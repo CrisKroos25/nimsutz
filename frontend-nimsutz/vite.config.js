@@ -1,12 +1,21 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
-    plugins: [react()],
-    server: {
-        host: '0.0.0.0',
-        watch: {
-            usePolling: true,
+    plugins: [
+        react({
+            babel: {
+                plugins: [['babel-plugin-react-compiler']],
+            },
+        }),
+    ],
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './src'),
+            '@features': path.resolve(__dirname, './src/features'),
+            '@shared': path.resolve(__dirname, './src/shared'),
+            '@layouts': path.resolve(__dirname, './src/layouts'),
         },
     },
 });
