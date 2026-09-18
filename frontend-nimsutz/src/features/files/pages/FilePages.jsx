@@ -1,0 +1,1 @@
+/* 	Pantallas completas que conecta el router. */
