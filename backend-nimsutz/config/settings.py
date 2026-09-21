@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "corsheaders",
+    "rest_framework",
+    "files"
 ]
 
 MIDDLEWARE = [
@@ -83,6 +85,39 @@ DATABASES = {
         'HOST': os.environ['DB_HOST'],
         'PORT': os.environ['DB_PORT'],
     }
+}
+
+MINIO_ENDPOINT = os.environ['MINIO_ENDPOINT']
+MINIO_PUBLIC_ENDPOINT = os.environ['MINIO_PUBLIC_ENDPOINT']
+MINIO_ACCESS_KEY = os.environ['MINIO_ACCESS_KEY']
+MINIO_SECRET_KEY = os.environ['MINIO_SECRET_KEY']
+MINIO_BUCKET_NAME = os.environ['MINIO_BUCKET_NAME']
+
+MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # RN-E3-17
+ALLOWED_CONTENT_TYPES = [               # RN-E3-18
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "text/plain",
+    "image/png",
+    "image/jpeg",
+]
+RESERVATION_TTL_MINUTES = 15
+SIMULATED_QUOTA_BYTES = int(
+    os.getenv("SIMULATED_QUOTA_BYTES", 500 * 1024 * 1024)
+)
+SIMULATED_AUTH_ENABLED = bool(os.getenv("SIMULATED_AUTH_ENABLED", default=True))
+SIMULATED_USER_ID = int(os.getenv("SIMULATED_USER_ID", default=1))
+
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        ["files.auth.SimulatedUserAuthentication"]   # <- "files", no "archivos"
+        if SIMULATED_AUTH_ENABLED
+        else ["rest_framework_simplejwt.authentication.JWTAuthentication"]
+    ),
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
 }
 
 
