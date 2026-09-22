@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from . import services
 from .models import File, Folder
-from .serializers import FileSerializer, FolderSerializer, RequestUploadSerializer
+from .serializers import FileSerializer, FolderSerializer, RequestUploadSerializer, RestoreFileSerializer
 
 
 # ---------- Folders ----------
@@ -128,3 +128,49 @@ class FileRequestDownloadView(APIView):
         except DjangoValidationError as e:
             raise DRFValidationError({"detail": e.messages})
         return Response({"download_url": url})
+
+
+# ---------- Recycle Bin and deletion ----------
+
+class FileTrashView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        file = get_object_or_404(File, pk=pk, owner=request.user)
+        try:
+            file = services.trash_file(file=file, owner=request.user)
+        except DjangoValidationError as e:
+            raise DRFValidationError({"detail": e.messages})
+        return Response(FileSerializer(file).data)
+
+
+class FileRestoreView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    # futuro: E2 agrega aquí HasActiveSubscription (restaurar cuenta como escritura, RN-E2-18)
+
+    def post(self, request, pk):
+        file = get_object_or_404(File, pk=pk, owner=request.user)
+        serializer = RestoreFileSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            file = services.restore_file(
+                file=file,
+                owner=request.user,
+                new_name=serializer.validated_data.get("new_name"),
+            )
+        except DjangoValidationError as e:
+            raise DRFValidationError({"detail": e.messages})
+        return Response(FileSerializer(file).data)
+
+
+class FilePermanentDeleteView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, pk):
+        file = get_object_or_404(File, pk=pk, owner=request.user)
+        try:
+            services.permanently_delete_file(file=file, owner=request.user)
+        except DjangoValidationError as e:
+            raise DRFValidationError({"detail": e.messages})
+        return Response(status=status.HTTP_204_NO_CONTENT)

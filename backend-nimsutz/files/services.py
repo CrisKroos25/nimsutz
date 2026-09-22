@@ -165,3 +165,80 @@ def request_download(*, file, owner):
     return storage.generate_download_url(
         storage_key=file.storage_key, original_name=file.original_name
     )
+
+# Recycle Bin and deletion
+
+def trash_file(*, file, owner):
+    if file.owner_id != owner.id:
+        raise ValidationError("El archivo no pertenece al usuario.")  # RN-E3-06
+
+    if file.status == File.Status.TRASHED:
+        return file  # idempotente: ya está en papelera, sin efecto
+
+    if file.status != File.Status.AVAILABLE:
+        raise ValidationError("Solo un archivo disponible puede enviarse a papelera.")
+
+    file.status = File.Status.TRASHED
+    file.trashed_at = timezone.now()
+    file.save(update_fields=["status", "trashed_at", "updated_at"])
+    # RN-E3-28: eliminación lógica, MinIO no se toca.
+    # RN-E3-24: la reserva de cuota sigue en CONFIRMED, sigue consumiendo espacio.
+    return file
+
+
+def restore_file(*, file, owner, new_name=None):
+    if file.owner_id != owner.id:
+        raise ValidationError("El archivo no pertenece al usuario.")
+
+    if file.status != File.Status.TRASHED:
+        raise ValidationError("Solo un archivo en papelera puede restaurarse.")
+
+    target_name = (new_name or file.original_name).strip()
+
+    conflict = (
+        File.objects.filter(
+            folder=file.folder,
+            original_name__iexact=target_name,
+            status__in=[File.Status.UPLOADING, File.Status.AVAILABLE],
+        )
+        .exclude(pk=file.pk)
+        .exists()
+    )
+    if conflict:
+        raise ValidationError(
+            "Ya existe un archivo con ese nombre en esta carpeta. "
+            "Proporciona un nuevo nombre para restaurar."
+        )  # RN-E3-32
+
+    if get_available_quota(owner) < 0:
+        # Defensivo: la reserva ya estaba CONFIRMED durante la papelera (RN-E3-24),
+        # así que normalmente no hace falta espacio adicional. Esto solo protege
+        # el caso borde de que la cuota total se haya reducido mientras tanto.
+        raise ValidationError("No hay cuota suficiente para restaurar este archivo.")  # RN-E3-31
+
+    file.status = File.Status.AVAILABLE
+    file.original_name = target_name
+    file.trashed_at = None
+    file.save(update_fields=["status", "original_name", "trashed_at", "updated_at"])
+    return file
+
+
+def permanently_delete_file(*, file, owner):
+    if file.owner_id != owner.id:
+        raise ValidationError("El archivo no pertenece al usuario.")
+
+    if file.status != File.Status.TRASHED:
+        raise ValidationError("Solo un archivo en papelera puede eliminarse definitivamente.")
+        # RN-E3-33: la confirmación del usuario es responsabilidad del frontend
+        # (modal "Eliminar definitivamente"); aquí solo se exige el estado correcto.
+
+    storage.delete_object(storage_key=file.storage_key)  # RN-E3-35
+
+    reservation = file.reservations.filter(status=QuotaReservation.Status.CONFIRMED).first()
+    if reservation:
+        reservation.status = QuotaReservation.Status.RELEASED
+        reservation.save(update_fields=["status"])  # RN-E3-34
+
+    file.status = File.Status.DELETED
+    file.save(update_fields=["status", "updated_at"])
+    return file

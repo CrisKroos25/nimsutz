@@ -30,3 +30,7 @@ class RequestUploadSerializer(serializers.Serializer):
     original_name = serializers.CharField(max_length=255)
     content_type = serializers.CharField(max_length=100)
     size_bytes = serializers.IntegerField(min_value=1)
+
+
+class RestoreFileSerializer(serializers.Serializer):
+    new_name = serializers.CharField(max_length=255, required=False, allow_blank=False)

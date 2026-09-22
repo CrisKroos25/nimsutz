@@ -10,4 +10,8 @@ urlpatterns = [
     path("files/request-upload/", views.FileRequestUploadView.as_view()),
     path("files/<int:pk>/confirm-upload/", views.FileConfirmUploadView.as_view()),
     path("files/<int:pk>/request-download/", views.FileRequestDownloadView.as_view()),
+
+    path("files/<int:pk>/trash/", views.FileTrashView.as_view()),
+    path("files/<int:pk>/restore/", views.FileRestoreView.as_view()),
+    path("files/<int:pk>/permanent/", views.FilePermanentDeleteView.as_view()),
 ]
