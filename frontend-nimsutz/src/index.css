@@ -23,8 +23,12 @@
     --shadow-panel: 0 2px 8px #1e1b4b0d;
     --font-base: 'Poppins', sans-serif;
     --font-size-xs: 0.75rem;
+    --font-size-hero-min: 2rem;
+    --font-size-hero: 3.5rem;
+    --space-7: 80px;
     --layout-width: 1200px;
     --table-min-width: 640px;
+    --text-width: 560px;
     --radius-pill: 999px;
     --status-dot-size: 6px;
     --brand-size: 32px;

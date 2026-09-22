@@ -1,6 +1,6 @@
 # Componentes compartidos
 
-Primera entrega: estilos globales, tema y Button. La página de demostración es temporal y no realiza operaciones de archivos ni autenticación.
+Catálogo compartido: Button, Input, Modal, Badge, Table y temas claro y oscuro. La página de demostración es temporal y no realiza operaciones de archivos ni autenticación.
 
 ## Button
 
@@ -28,7 +28,7 @@ La paleta y Poppins proceden del design system. Poppins se carga desde Google Fo
 
 Usar variables y CSS Modules. Mantener responsabilidades separadas y archivos de código por debajo de 200 líneas cuando sea posible. No dividir archivos únicamente para reducir el contador. Badge y Table ya están disponibles; la integración con archivos reales sigue pendiente.
 
-## Input y Modal (segunda entrega)
+## Input y Modal
 
 `Input` incluye label asociado por id, hint, error con aria-invalid y aria-describedby. Admite atributos nativos como required, disabled, name, value y onChange. No valida reglas del negocio: recibe el mensaje de error del módulo que lo usa.
 
@@ -60,12 +60,26 @@ const columns = [
 <Table caption="Mis archivos" columns={columns} rows={files} />;
 ```
 
-## Abrir el catálogo
+## Estado de entrega y responsables
 
-Esta entrega contiene exclusivamente el catálogo y los componentes compartidos. App.jsx abre el catálogo en la raíz y permite cambiar el tema. No incluye landing, rutas del explorador ni conexión al backend.
+El commit del catálogo contiene los componentes, sus ejemplos y estilos globales. Abre el catálogo en la raíz. La landing, los layouts y el router son avances locales separados; requieren otro PR antes de que el equipo pueda usarlos.
 
-Desde frontend-nimsutz, instalar dependencias y ejecutar npm run dev. Con Docker en ejecución: docker compose exec frontend npm install y abrir http://localhost:5173. Reiniciar el servicio frontend si es necesario. Se conserva pnpm-lock.yaml; para una instalación bloqueada utilizar pnpm install --frozen-lockfile. No subir otro lockfile sin acordar el gestor con el equipo.
+- Integrante A: explorador, organización, MainLayout, Header, Sidebar, App.jsx y router.
+- Integrante B: carga, descarga, papelera y conexión de sus operaciones a la API.
+- Integrante C: landing, PublicLayout, shared, index.css y esta guía.
 
-Importar mediante @shared/components/Button/Button, @shared/components/Input/Input, @shared/components/Modal/Modal, @shared/components/Badge/Badge y @shared/components/Table/Table. Importar index.css y montar useTheme una sola vez. Las llamadas API corresponden al módulo consumidor.
+Los componentes compartidos reciben datos y acciones por props. No realizan llamadas HTTP ni implementan reglas de almacenamiento. A y B pueden desarrollar sus pantallas usando el catálogo sin esperar la landing.
 
-Lucide es la única dependencia nueva. Los ejemplos no crean ni eliminan archivos reales.
+## Uso de los componentes
+
+Importar desde @shared/components/Button/Button y las carpetas equivalentes de Input, Modal, Badge y Table. Cargar index.css una sola vez. Mantener una sola instancia de useTheme en la raíz.
+
+Table requiere rows como arreglo, columns con claves únicas y caption descriptivo. Modal requiere una acción visible de Cancelar o Cerrar dentro de children. Los formularios y las validaciones del negocio corresponden a la pantalla que consume Input.
+
+## Dependencias y comprobaciones
+
+El catálogo añade lucide-react. La base local de rutas también requiere react-router-dom; esa dependencia debe viajar con el PR del router. Mantener el manifiesto y el único lockfile acordado con Docker.
+
+Ejecutar npm run lint y npm run build desde frontend-nimsutz. Cuando cambien dependencias, reconstruir con docker compose up -d --build desde la raíz y seguir el procedimiento del proyecto si el volumen de dependencias requiere actualización.
+
+No se consideran completas las operaciones reales por mostrar sus ejemplos en el catálogo.
