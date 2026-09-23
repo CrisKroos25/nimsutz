@@ -1,0 +1,6 @@
+.page { max-width: 480px; margin: 64px auto; display: grid; gap: 24px; }
+.page h1 { font-size: 32px; }
+.page p { color: var(--color-text-muted); }
+.page form { display: grid; gap: 20px; }
+
+.register { color: var(--color-secondary); text-decoration: underline; cursor: default; }
