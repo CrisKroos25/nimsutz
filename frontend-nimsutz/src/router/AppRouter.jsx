@@ -1,3 +1,4 @@
+import AboutPage from '../pages/AboutPage';
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import useTheme from '@shared/hooks/useTheme';
 import MainLayout from '@layouts/MainLayout';
@@ -14,6 +15,7 @@ export default function AppRouter() {
                 <Route element={<PublicLayout {...theme} />}>
                     <Route index element={<LandingPage />} />
                     <Route path="login" element={<LoginPage />} />
+                    <Route path="about" element={<AboutPage />} />
                     <Route
                         path="*"
                         element={

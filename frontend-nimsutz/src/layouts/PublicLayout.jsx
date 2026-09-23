@@ -22,6 +22,7 @@ export default function PublicLayout({ theme, toggleTheme }) {
             <footer className={styles.footer}>
                 <div><Brand /><p>Un lugar para tus documentos.<br />Más espacio para tus ideas.</p></div>
                 <nav aria-label="Navegación del pie">
+                    <Link to="/about">Sobre nosotros</Link>
                     <a href="/#features">Beneficios</a>
                     <a href="/#plans">Planes</a>
                     <a href="/#questions">Preguntas frecuentes</a>

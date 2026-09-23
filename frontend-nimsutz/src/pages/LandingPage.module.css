@@ -1,5 +1,5 @@
 .landing { overflow: clip; }
-.landing > section:not(.hero) {
+.landing > section:not(.hero):not([data-product-showcase]) {
     max-width: calc(var(--layout-width) - 48px);
     margin-inline: auto;
 }
@@ -119,7 +119,7 @@
 .landing[data-motion] [data-reveal="right"] { transform: translateX(24px); }
 .landing[data-motion] [data-visible="true"] { opacity: 1; transform: none; }
 @media (max-width: 760px) {
-    .landing > section:not(.hero) { margin-inline: 16px; }
+    .landing > section:not(.hero):not([data-product-showcase]) { margin-inline: 16px; }
     .hero { grid-template-columns: 1fr; gap: 36px; padding-block: 40px; }
     .copy h1 { font-size: clamp(38px, 8vw, 58px); }
     .grid { grid-template-columns: 1fr; }

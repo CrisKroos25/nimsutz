@@ -1,3 +1,4 @@
+import ProductShowcase from './landing/ProductShowcase';
 import PlansSection from './landing/PlansSection';
 import FaqSection from './landing/FaqSection';
 import { CloudUpload, FolderOpen, Download, ArrowRight } from 'lucide-react';
@@ -31,9 +32,9 @@ export default function LandingPage() {
                 <div className={styles.copy}>
                     <p className={styles.eyebrow}>TU ESPACIO EN LA NUBE</p>
                     <h1 id="landing-title">
-                        Tus documentos.
+                        Tus documentos
                         <br />
-                        <span>Un solo lugar.</span>
+                        <span>en un solo lugar.</span>
                     </h1>
                     <p className={styles.lead}>
                         Nim sutz’ reúne tus archivos en un espacio sencillo para
@@ -85,12 +86,13 @@ export default function LandingPage() {
                 </div>
             </section>
             <PlansSection />
-            <FaqSection />
+            <ProductShowcase />
             <section className={styles.closing} data-reveal="left">
                 <p className={styles.eyebrow}>NIM SUTZ’</p>
                 <h2>Tu próximo proyecto empieza con una idea.</h2>
                 <Link to="/login" className={styles.primary}>Accede a tu espacio <ArrowRight size={18} /></Link>
             </section>
+            <FaqSection />
         </div>
     );
 }
