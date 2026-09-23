@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Check } from 'lucide-react';
 import Button from '../../shared/components/Button/Button';
 import styles from './Information.module.css';
@@ -16,6 +17,7 @@ const FEATURES = [
 ];
 
 export default function PlansSection() {
+    const [selectedPlan, setSelectedPlan] = useState(null);
     return (
         <section
             id="plans"
@@ -28,9 +30,18 @@ export default function PlansSection() {
             <p>Tus documentos, organizados. Encuentra el plan que va contigo.</p>
             <div className={styles.plans}>
                 {PLANS.map((plan) => (
-                    <article className={styles.plan} key={plan.name}>
+                    <article
+                        className={styles.plan}
+                        data-selected={selectedPlan === plan.name}
+                        key={plan.name}
+                    >
                         <div className={styles.planHeading}>
-                            <h3>{plan.name}</h3>
+                            <div className={styles.planTitle}>
+                                <h3>{plan.name}</h3>
+                                {selectedPlan === plan.name && (
+                                    <span className={styles.selectedLabel}><Check size={14} aria-hidden="true" /> Seleccionado</span>
+                                )}
+                            </div>
                             <p className={styles.price}>
                                 <span className={styles.currency}>Q</span>
                                 <strong>{plan.price}</strong>
@@ -48,8 +59,14 @@ export default function PlansSection() {
                                 </li>
                             ))}
                         </ul>
-                        <Button disabled className={styles.planAction}>
-                            Próximamente
+                        <Button
+                            className={styles.planAction}
+                            variant={selectedPlan === plan.name ? 'primary' : 'secondary'}
+                            aria-label={'Seleccionar plan ' + plan.name}
+                            aria-pressed={selectedPlan === plan.name}
+                            onClick={() => setSelectedPlan(plan.name)}
+                        >
+                            Seleccionar plan
                         </Button>
                     </article>
                 ))}

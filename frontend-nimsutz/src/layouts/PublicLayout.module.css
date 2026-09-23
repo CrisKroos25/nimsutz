@@ -1,4 +1,8 @@
-.public {
+.public { min-height: 100dvh; }
+.main,
+.headerContent,
+.footer {
+    width: 100%;
     max-width: var(--layout-width);
     margin-inline: auto;
     padding-inline: var(--space-4);
@@ -7,16 +11,19 @@
     position: sticky;
     top: 0;
     z-index: 5;
-    background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+    background: color-mix(in srgb, var(--color-surface) 64%, transparent);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    border-bottom: var(--border-width) solid color-mix(in srgb, var(--color-text) 12%, transparent);
+}
+.headerContent {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: var(--space-3);
     padding-block: var(--space-3);
-    border-bottom: var(--border-width) solid var(--color-divider);
+
 }
 .publicNav {
     display: flex;
@@ -57,5 +64,7 @@
 @media(max-width: 760px) {
     .publicHeader { position: relative; }
     .publicNav { gap: 12px; }
-    .public { padding-inline: 16px; }
+    .main, .headerContent, .footer { padding-inline: 16px; }
 }
+
+.main:has(> [data-landing]) { max-width: none; padding-inline: 0; }

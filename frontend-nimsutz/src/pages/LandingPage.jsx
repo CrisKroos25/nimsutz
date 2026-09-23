@@ -26,7 +26,7 @@ const FEATURES = [
 export default function LandingPage() {
     const root = useLandingMotion();
     return (
-        <div ref={root} className={styles.landing}>
+        <div ref={root} className={styles.landing} data-landing>
             <section className={styles.hero} aria-labelledby="landing-title">
                 <div className={styles.copy}>
                     <p className={styles.eyebrow}>TU ESPACIO EN LA NUBE</p>
@@ -44,9 +44,6 @@ export default function LandingPage() {
                             Iniciar sesión{' '}
                             <ArrowRight size={18} aria-hidden="true" />
                         </Link>
-                        <a href="#features" className={styles.secondary}>
-                            Descubrir beneficios
-                        </a>
                     </div>
                     
                 </div>
@@ -93,7 +90,6 @@ export default function LandingPage() {
                 <p className={styles.eyebrow}>NIM SUTZ’</p>
                 <h2>Tu próximo proyecto empieza con una idea.</h2>
                 <Link to="/login" className={styles.primary}>Accede a tu espacio <ArrowRight size={18} /></Link>
-                <p className={styles.note}>Tus documentos, a un inicio de sesión de distancia.</p>
             </section>
         </div>
     );

@@ -2,3 +2,5 @@
 .page h1 { font-size: 32px; }
 .page p { color: var(--color-text-muted); }
 .page form { display: grid; gap: 20px; }
+
+.register { color: var(--color-secondary); text-decoration: underline; cursor: default; }

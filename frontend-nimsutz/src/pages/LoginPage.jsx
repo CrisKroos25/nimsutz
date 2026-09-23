@@ -8,13 +8,12 @@ export default function LoginPage() {
         <section className={styles.page} aria-labelledby="login-title">
             <p>BIENVENIDO A NIM SUTZ’</p>
             <h1 id="login-title">Inicia sesión en tu espacio</h1>
-            <p id="login-status">El inicio de sesión aún no está disponible. Vuelve cuando el servicio esté habilitado.</p>
-            <form onSubmit={(event) => event.preventDefault()} aria-describedby="login-status">
+            <form onSubmit={(event) => event.preventDefault()}>
                 <Input label="Correo electrónico" type="email" autoComplete="username" disabled />
                 <Input label="Contraseña" type="password" autoComplete="current-password" disabled />
                 <Button type="submit" disabled>Iniciar sesión</Button>
             </form>
-            <p>¿Aún no tienes cuenta? Registro próximamente.</p>
+            <p>¿Aún no tienes cuenta? <span role="link" aria-disabled="true" className={styles.register}>Registrarse</span></p>
             <Link to="/">Volver al inicio</Link>
         </section>
     );
