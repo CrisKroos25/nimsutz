@@ -3,12 +3,15 @@ import heroImg from './assets/hero.png';
 import reactLogo from './assets/react.svg';
 import viteLogo from './assets/vite.svg';
 import './App.css';
+import TestTransfersPage from './features/files/transfers/TestTransfersPages';
+import { Trash } from 'lucide-react';
 
 function App() {
     const [count, setCount] = useState(0);
 
     return (
         <>
+        <TestTransfersPage />
             <section id="center">
                 <div className="hero">
                     <img
@@ -144,6 +147,10 @@ function App() {
 
             <div className="ticks"></div>
             <section id="spacer"></section>
+
+            <div style={{ padding: '2rem 1rem' }}>
+            <Trash />
+            </div>
         </>
     );
 }
