@@ -105,16 +105,12 @@ RESERVATION_TTL_MINUTES = 15
 SIMULATED_QUOTA_BYTES = int(
     os.getenv("SIMULATED_QUOTA_BYTES", 500 * 1024 * 1024)
 )
-SIMULATED_AUTH_ENABLED = bool(os.getenv("SIMULATED_AUTH_ENABLED", default=True))
+SIMULATED_AUTH_ENABLED = os.getenv("SIMULATED_AUTH_ENABLED", "true").lower() == "true"
 SIMULATED_USER_ID = int(os.getenv("SIMULATED_USER_ID", default=1))
 
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        ["files.auth.SimulatedUserAuthentication"]   # <- "files", no "archivos"
-        if SIMULATED_AUTH_ENABLED
-        else ["rest_framework_simplejwt.authentication.JWTAuthentication"]
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
