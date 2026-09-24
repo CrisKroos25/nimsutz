@@ -1,5 +1,8 @@
+import AuthProvider from '@shared/auth/AuthProvider';
+import RequireSession from '@shared/auth/RequireSession';
+import StoragePreviewPage from '../pages/StoragePreviewPage';
 import AboutPage from '../pages/AboutPage';
-import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import useTheme from '@shared/hooks/useTheme';
 import MainLayout from '@layouts/MainLayout';
 import PublicLayout from '@layouts/PublicLayout';
@@ -11,6 +14,7 @@ export default function AppRouter() {
     const theme = useTheme();
     return (
         <BrowserRouter>
+            <AuthProvider>
             <Routes>
                 <Route element={<PublicLayout {...theme} />}>
                     <Route index element={<LandingPage />} />
@@ -27,14 +31,17 @@ export default function AppRouter() {
                     />
                 </Route>
                 <Route element={<MainLayout {...theme} />}>
-                    <Route path="files/*" element={<Navigate to="/login" replace />} />
-                    <Route path="trash/*" element={<Navigate to="/login" replace />} />
+                    <Route element={<RequireSession />}>
+                        <Route path="files/*" element={<StoragePreviewPage />} />
+                        <Route path="trash/*" element={<section><h1>Papelera</h1><p>La vista de papelera se conectará al módulo del equipo.</p></section>} />
+                    </Route>
                     <Route
                         path="design-system"
                         element={<DesignSystemPage />}
                     />
                 </Route>
             </Routes>
+        </AuthProvider>
         </BrowserRouter>
     );
 }
