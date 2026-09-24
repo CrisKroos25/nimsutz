@@ -1,0 +1,126 @@
+.overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(13, 11, 30, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background-color: #1a1638; /* Color temporal oscuro */
+    border-radius: var(--radius);
+    padding: var(--space-4);
+    width: 100%;
+    max-width: 500px;
+    color: var(--color-surface);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+}
+
+.title {
+    font-size: var(--font-size-lg);
+    font-weight: bold;
+    margin: 0;
+}
+
+.subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin: 4px 0 0 0;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.dropZone {
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    display: block;
+    transition: all 0.2s;
+}
+
+.dropZone:hover {
+    border-color: #f97316; /* Naranja Nim sutz' */
+    background-color: rgba(249, 115, 22, 0.05);
+}
+
+.hiddenInput {
+    display: none;
+}
+
+.iconWrapper {
+    background-color: #f97316;
+    border-radius: 12px;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px auto;
+}
+
+.errorBox {
+    background-color: rgba(220, 38, 38, 0.1);
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius);
+    padding: var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.errorIcon {
+    color: var(--color-danger);
+}
+
+.retryBtn {
+    background-color: #f97316;
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 8px 16px;
+    cursor: pointer;
+    margin-left: auto;
+}
+
+/* Simulador */
+.simulator {
+    margin-top: 30px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 15px;
+}
+
+.simTitle {
+    font-size: 10px;
+    font-weight: bold;
+    color: var(--color-text-muted);
+}
+
+.simButtons {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.simBtn {
+    background-color: rgba(220, 38, 38, 0.2);
+    color: #fca5a5;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+}

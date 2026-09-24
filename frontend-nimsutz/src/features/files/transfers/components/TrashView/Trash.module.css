@@ -1,0 +1,118 @@
+.container {
+    padding: 1.5rem;
+    color: white;
+    background-color: #0D0B1E;
+    min-height: 80vh;
+}
+
+.headerArea {
+    margin-bottom: 2rem;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.notification {
+    background-color: rgba(74, 222, 128, 0.15);
+    border: 1px solid #4ade80;
+    color: #4ade80;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: #1a1638;
+    border-radius: 12px;
+    border: 1px solid #332d66;
+    color: #94a3b8;
+}
+
+.emptyIcon {
+    color: #64748b;
+    margin-bottom: 1rem;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1a1638;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #332d66;
+}
+
+.fileName {
+    display: block;
+    font-weight: 500;
+    font-size: 1rem;
+    color: white;
+}
+
+.fileMeta {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.restoreBtn {
+    background: transparent;
+    border: 1px solid #332d66;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+.restoreBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.deleteBtn {
+    background: rgba(220, 38, 38, 0.15);
+    border: none;
+    color: #fca5a5;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+.deleteBtn:hover {
+    background: rgba(220, 38, 38, 0.3);
+}
