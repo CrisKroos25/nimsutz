@@ -14,7 +14,13 @@
          <FileActions file={row} onChanged={reload} /> */
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Folder as FolderIcon, File as FileIcon, FolderPlus } from 'lucide-react';
+import {
+    Folder as FolderIcon,
+    File as FileIcon,
+    FolderPlus,
+    Pencil,
+    Trash2,
+} from 'lucide-react';
 import Table from '@shared/components/Table/Table';
 import Button from '@shared/components/Button/Button';
 import Badge from '@shared/components/Badge/Badge';
@@ -26,7 +32,10 @@ import styles from './FilePages.module.css';
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
     const units = ['B', 'KB', 'MB', 'GB'];
-    const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const exponent = Math.min(
+        Math.floor(Math.log(bytes) / Math.log(1024)),
+        units.length - 1,
+    );
     const value = bytes / 1024 ** exponent;
     return `${value.toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
 }
@@ -61,12 +70,18 @@ function buildBreadcrumb(folderIndex, folderId) {
 
 /** Reemplazar por <UploadPanel folderId={folderId} onCompleted={reload} /> cuando B lo entregue. */
 function UploadPanelPlaceholder() {
-    return <Badge tone="warning">Subir archivo: pendiente de Rodrigo (UploadPanel)</Badge>;
+    return (
+        <Badge tone="warning">
+            Subir archivo: pendiente de Rodrigo (UploadPanel)
+        </Badge>
+    );
 }
 
 /** Reemplazar por <FileActions file={row} onChanged={reload} /> cuando B lo entregue. */
 function FileActionsPlaceholder() {
-    return <span className={styles.pending}>Acciones pendientes (Rodrigo)</span>;
+    return (
+        <span className={styles.pending}>Acciones pendientes (Rodrigo)</span>
+    );
 }
 
 /**
@@ -82,8 +97,17 @@ export function FilesPage() {
     const folderIdParam = searchParams.get('folder');
     const folderId = folderIdParam ? Number(folderIdParam) : null;
 
-    const { folders, files, folderIndex, loading, error, reload, createFolder, renameFolder, deleteFolder } =
-        useFiles(folderId);
+    const {
+        folders,
+        files,
+        folderIndex,
+        loading,
+        error,
+        reload,
+        createFolder,
+        renameFolder,
+        deleteFolder,
+    } = useFiles(folderId);
 
     const breadcrumb = buildBreadcrumb(folderIndex, folderId);
 
@@ -109,24 +133,31 @@ export function FilesPage() {
             label: 'Nombre',
             render: (row) =>
                 row.__type === 'folder' ? (
-                    <button type="button" className={styles.name} onClick={() => openFolder(row)}>
-                        <FolderIcon size={16} aria-hidden="true" /> {row.name}
+                    <button
+                        type="button"
+                        className={styles.name}
+                        onClick={() => openFolder(row)}
+                    >
+                        <FolderIcon size={20} aria-hidden="true" /> {row.name}
                     </button>
                 ) : (
-                    <span>
-                        <FileIcon size={16} aria-hidden="true" /> {row.original_name}
+                    <span className={styles.name}>
+                        <FileIcon size={20} aria-hidden="true" />{' '}
+                        {row.original_name}
                     </span>
                 ),
         },
         {
             key: 'type',
             label: 'Tipo',
-            render: (row) => (row.__type === 'folder' ? 'Carpeta' : row.content_type),
+            render: (row) =>
+                row.__type === 'folder' ? 'Carpeta' : row.content_type,
         },
         {
             key: 'size',
             label: 'Tamaño',
-            render: (row) => (row.__type === 'folder' ? '-' : formatBytes(row.size_bytes)),
+            render: (row) =>
+                row.__type === 'folder' ? '-' : formatBytes(row.size_bytes),
         },
         {
             key: 'updated_at',
@@ -139,11 +170,19 @@ export function FilesPage() {
             render: (row) =>
                 row.__type === 'folder' ? (
                     <div className={styles.rowActions}>
-                        <button type="button" className={styles.linkAction} onClick={() => setRenameTarget(row)}>
-                            Renombrar
+                        <button
+                            type="button"
+                            className={styles.linkAction}
+                            onClick={() => setRenameTarget(row)}
+                        >
+                            <Pencil size={18} />
                         </button>
-                        <button type="button" className={styles.dangerAction} onClick={() => setDeleteTarget(row)}>
-                            Eliminar
+                        <button
+                            type="button"
+                            className={styles.dangerAction}
+                            onClick={() => setDeleteTarget(row)}
+                        >
+                            <Trash2 size={18} />
                         </button>
                     </div>
                 ) : (
@@ -159,10 +198,16 @@ export function FilesPage() {
 
     return (
         <section className={styles.page} aria-labelledby="files-title">
-            <h1 id="files-title" className={styles.srOnly}>Mis archivos</h1>
+            <h1 id="files-title" className={styles.srOnly}>
+                Mis archivos
+            </h1>
 
             <nav aria-label="Ruta de carpetas" className={styles.breadcrumb}>
-                <button type="button" className={styles.breadcrumbButton} onClick={goToRoot}>
+                <button
+                    type="button"
+                    className={styles.breadcrumbButton}
+                    onClick={goToRoot}
+                >
                     Raíz
                 </button>
                 {breadcrumb.map((crumb, index) => (
@@ -182,19 +227,30 @@ export function FilesPage() {
             <div className={styles.toolbar}>
                 <div className={styles.actions}>
                     <Button type="button" onClick={() => setCreateOpen(true)}>
-                        <FolderPlus size={16} aria-hidden="true" /> Nueva carpeta
+                        <FolderPlus size={16} aria-hidden="true" /> Nueva
+                        carpeta
                     </Button>
                     {folderId != null && <UploadPanelPlaceholder />}
                 </div>
                 {folderId == null && (
-                    <Badge tone="info">Entra a una carpeta para subir archivos</Badge>
+                    <Badge tone="info">
+                        Entra a una carpeta para subir archivos
+                    </Badge>
                 )}
             </div>
 
-            {error && <p className={styles.banner} role="alert">{error}</p>}
+            {error && (
+                <p className={styles.banner} role="alert">
+                    {error}
+                </p>
+            )}
 
             <Table
-                caption={folderId == null ? 'Carpetas en la raíz' : 'Contenido de la carpeta'}
+                caption={
+                    folderId == null
+                        ? 'Carpetas en la raíz'
+                        : 'Contenido de la carpeta'
+                }
                 columns={columns}
                 rows={rows}
                 rowKey={(row) => `${row.__type}-${row.id}`}
@@ -202,7 +258,11 @@ export function FilesPage() {
                 emptyMessage="Esta carpeta está vacía."
             />
 
-            <FolderFormModal open={createOpen} onClose={() => setCreateOpen(false)} onSubmit={(name) => createFolder(name)} />
+            <FolderFormModal
+                open={createOpen}
+                onClose={() => setCreateOpen(false)}
+                onSubmit={(name) => createFolder(name)}
+            />
             <FolderFormModal
                 open={Boolean(renameTarget)}
                 onClose={() => setRenameTarget(null)}
