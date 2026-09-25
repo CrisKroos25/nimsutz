@@ -1,0 +1,114 @@
+/* 
+  src/features/files/styles/responsive.css
+  Archivo separado de estilos responsivos para Móviles.
+  Utiliza selectores de atributos (data-*) para no interferir con los CSS Modules 
+  y mantener la separación de responsabilidades intacta.
+*/
+
+@media (max-width: 768px) {
+    /* ----- EXPLORADOR Y PAPELERA (Tablas) ----- */
+    
+    /* Ocultar encabezados de las tablas */
+    [data-table="header"] {
+        display: none !important;
+    }
+
+    /* Convertir las filas en tarjetas (Cards) */
+    [data-table="row"] {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px 12px !important;
+        padding: 16px 16px !important;
+        position: relative;
+        align-items: center;
+    }
+
+    /* Nombre del archivo (Fila 1 completa) */
+    [data-cell="name"] {
+        flex: 1 1 100% !important;
+        margin-bottom: 8px;
+        max-width: calc(100% - 90px) !important; /* Espacio para acciones absolutas */
+    }
+
+    /* Metadatos (Fila 2) */
+    [data-cell="type"],
+    [data-cell="size"],
+    [data-cell="date"],
+    [data-cell="status"] {
+        flex: 0 0 auto !important;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+    }
+
+    [data-cell="type"] {
+        display: none !important; /* Ocultamos el badge de tipo porque el icono ya está en el nombre */
+    }
+
+    [data-cell="owner"] {
+        display: none !important; /* Ocultar propietario en móvil para ahorrar espacio */
+    }
+
+    /* Acciones alineadas a la derecha */
+    [data-cell="actions"] {
+        position: absolute !important;
+        right: 16px;
+        top: 16px;
+        display: flex;
+        gap: 8px;
+        flex-direction: row !important;
+    }
+
+    /* ----- BARRA DE HERRAMIENTAS ----- */
+    [data-element="toolbar"] {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px;
+    }
+    
+    [data-element="toolbar"] > div {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+    }
+
+    [data-element="toolbar"] button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* ----- MIGAS DE PAN (BREADCRUMB) ----- */
+    [data-element="breadcrumb"] {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 8px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+    }
+    [data-element="breadcrumb"]::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+    }
+
+    /* ----- GESTOR DE SUBIDAS (UPLOAD PANEL) ----- */
+    [data-component="upload-panel"] {
+        padding: 0 !important;
+        align-items: flex-end !important; /* Estilo Bottom Sheet */
+    }
+
+    [data-component="upload-panel"] > div {
+        max-width: 100% !important;
+        width: 100% !important;
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        padding: 24px 20px !important;
+        max-height: 85vh;
+        overflow-y: auto;
+        animation: slideUp 0.3s ease-out forwards;
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+}

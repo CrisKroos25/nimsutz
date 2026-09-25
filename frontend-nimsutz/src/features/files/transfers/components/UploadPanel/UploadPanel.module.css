@@ -1,7 +1,11 @@
 .overlay {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(13, 11, 30, 0.8);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--color-overlay, rgba(13, 11, 30, 0.7));
+    backdrop-filter: blur(var(--backdrop-blur, 4px));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -9,28 +13,32 @@
 }
 
 .modal {
-    background-color: #1a1638; /* Color temporal oscuro */
-    border-radius: var(--radius);
-    padding: var(--space-4);
+    background-color: var(--color-surface, #ffffff);
+    border: var(--border-width, 1px) solid var(--color-border);
+    border-radius: var(--radius-panel, 16px);
+    box-shadow: var(--modal-shadow, 0 24px 64px rgba(0, 0, 0, 0.2));
+    padding: var(--space-4, 1.5rem);
     width: 100%;
-    max-width: 500px;
-    color: var(--color-surface);
+    max-width: var(--modal-width, 480px);
+    color: var(--color-text);
 }
 
 .header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: var(--space-4);
+    align-items: flex-start;
+    margin-bottom: var(--space-4, 1.5rem);
 }
 
 .title {
-    font-size: var(--font-size-lg);
-    font-weight: bold;
+    font-size: var(--font-size-lg, 1.25rem);
+    font-weight: var(--font-weight-bold, 700);
+    color: var(--color-text);
     margin: 0;
 }
 
 .subtitle {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-sm, 0.875rem);
     color: var(--color-text-muted);
     margin: 4px 0 0 0;
 }
@@ -40,21 +48,38 @@
     border: none;
     color: var(--color-text-muted);
     cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius, 6px);
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+
+.closeBtn:hover {
+    color: var(--color-text);
 }
 
 .dropZone {
-    border: 2px dashed rgba(255, 255, 255, 0.2);
-    border-radius: var(--radius);
-    padding: 40px 20px;
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius, 8px);
+    padding: 36px 20px;
     text-align: center;
     cursor: pointer;
     display: block;
-    transition: all 0.2s;
+    background: color-mix(in srgb, var(--color-surface) 60%, transparent);
+    transition: all 0.2s ease;
+    color: var(--color-text);
 }
 
-.dropZone:hover {
-    border-color: #f97316; /* Naranja Nim sutz' */
-    background-color: rgba(249, 115, 22, 0.05);
+.dropZone:hover:not(.uploading),
+.dropZone.dragging {
+    border-color: var(--color-primary, #f97316);
+    background-color: color-mix(in srgb, var(--color-primary) 6%, transparent);
+}
+
+.dropZone.uploading {
+    cursor: wait;
+    opacity: 0.85;
 }
 
 .hiddenInput {
@@ -62,65 +87,181 @@
 }
 
 .iconWrapper {
-    background-color: #f97316;
+    background-color: var(--color-primary, #f97316);
+    color: var(--color-on-primary, #ffffff);
     border-radius: 12px;
-    width: 64px;
-    height: 64px;
+    width: 60px;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 16px auto;
 }
 
+.dropTitle {
+    font-size: var(--font-size-md, 1rem);
+    font-weight: var(--font-weight-semibold, 600);
+    margin: 0 0 4px 0;
+    color: var(--color-text);
+}
+
+.dropSubtitle {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
 .errorBox {
-    background-color: rgba(220, 38, 38, 0.1);
+    background-color: color-mix(in srgb, var(--color-danger) 10%, transparent);
     border: 1px solid var(--color-danger);
-    border-radius: var(--radius);
-    padding: var(--space-3);
+    border-radius: var(--radius, 8px);
+    padding: var(--space-3, 1rem);
     display: flex;
-    align-items: center;
-    gap: var(--space-3);
+    align-items: flex-start;
+    gap: var(--space-3, 0.75rem);
+    color: var(--color-danger);
+    margin-top: var(--space-2, 0.5rem);
 }
 
 .errorIcon {
     color: var(--color-danger);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.errorText {
+    flex: 1;
+}
+
+.errorTitle {
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: var(--font-weight-semibold, 600);
+    margin: 0 0 4px 0;
+    color: var(--color-danger);
+}
+
+.errorDescription {
+    font-size: var(--font-size-xs, 0.8rem);
+    margin: 0;
+    color: var(--color-text);
+    opacity: 0.9;
 }
 
 .retryBtn {
-    background-color: #f97316;
-    color: white;
+    background-color: var(--color-primary, #f97316);
+    color: var(--color-on-primary, #ffffff);
     border: none;
-    border-radius: var(--radius);
-    padding: 8px 16px;
+    border-radius: var(--radius, 6px);
+    padding: 6px 14px;
     cursor: pointer;
-    margin-left: auto;
+    font-size: var(--font-size-sm, 0.85rem);
+    font-weight: var(--font-weight-semibold, 600);
+    align-self: center;
+    transition: background-color 0.2s;
 }
 
-/* Simulador */
-.simulator {
-    margin-top: 30px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-    padding-top: 15px;
+.retryBtn:hover {
+    background-color: var(--color-primary-hover, #fb923c);
 }
 
-.simTitle {
-    font-size: 10px;
-    font-weight: bold;
-    color: var(--color-text-muted);
+.spin {
+    animation: spin 0.8s linear infinite;
 }
 
-.simButtons {
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}.uploadsList {
+    margin-top: 1.5rem;
     display: flex;
-    gap: 8px;
-    margin-top: 8px;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
-.simBtn {
-    background-color: rgba(220, 38, 38, 0.2);
-    color: #fca5a5;
+.listTitle {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin: 0 0 0.5rem 0;
+}
+
+.uploadItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.uploadItem.popping {
+    opacity: 0;
+    transform: scale(0.9);
+}
+
+.uploadInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.uploadName {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.statusBadge {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-weight: 600;
+    align-self: flex-start;
+}
+
+.pendiente { color: #8a8a8a; background: #e5e5e5; }
+.procesando { color: #0284c7; background: #bae6fd; }
+.disponible { color: #16a34a; background: #bbf7d0; }
+.error { color: #dc2626; background: #fecaca; }
+
+.uploadError {
+    font-size: 0.75rem;
+    color: #dc2626;
+}
+
+.progressContainer {
+    width: 100%;
+    height: 6px;
+    background: var(--color-border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.progressBar {
+    height: 100%;
+    background: var(--color-primary);
+    transition: width 0.2s ease-out;
+}
+
+.cancelBtn {
+    background: none;
     border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 12px;
+    color: var(--color-text-muted);
     cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.cancelBtn:hover {
+    background-color: var(--color-border);
+    color: var(--color-text);
 }
