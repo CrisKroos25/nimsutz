@@ -53,7 +53,13 @@ docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py createsuperuser
 ```
 
+### 5.1 O crear un usuario temporal
+```bash
+docker compose exec backend python manage.py create_demo_user --email usuario@email.com
+```
+
 Sigue las instrucciones en pantalla (usuario, correo, contraseña).
+Es el mismo que usara luego para loguearse.
 
 ### 6. Crear el bucket de MinIO
 
@@ -71,6 +77,14 @@ docker compose exec backend python crear_bucket.py
 | Backend (API)    | http://localhost:8000        | Página de bienvenida de Django                   |
 | Admin de Django  | http://localhost:8000/admin/ | Login con el superusuario que creaste            |
 | Consola de MinIO | http://localhost:9001        | Login con `nimsutz_admin` / `nimsutz_admin_pass` |
+
+### 8. Correr script de prueba para carga, descarga y papelera
+
+```bash
+bash smoke_test_files.sh
+```
+
+Ingresa con el usuario creado anteriormente.
 
 ---
 
