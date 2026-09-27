@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Download, Trash2, Loader2, AlertTriangle } from 'lucide-react';
-import { useTransfers } from '../../hooks/useTransfers';
+import { useTransfers } from '@features/files/hooks/useTransfers';
 import Modal from '@shared/components/Modal/Modal';
 import Button from '@shared/components/Button/Button';
 import styles from './FileActions.module.css';
@@ -77,10 +77,15 @@ export default function FileActions({ file, onChanged }) {
                     <div className={styles.modalBody}>
                         <p className={styles.modalText}>
                             ¿Estás seguro de que deseas enviar el archivo{' '}
-                            <strong className={styles.fileNameHighlight}>"{file.original_name}"</strong> a la papelera?
+                            <strong className={styles.fileNameHighlight}>
+                                "{file.original_name}"
+                            </strong>{' '}
+                            a la papelera?
                         </p>
                         <p className={styles.modalSubtext}>
-                            El archivo dejará de estar disponible en esta carpeta, pero podrás restaurarlo en cualquier momento desde la sección de papelera.
+                            El archivo dejará de estar disponible en esta
+                            carpeta, pero podrás restaurarlo en cualquier
+                            momento desde la sección de papelera.
                         </p>
                         <div className={styles.modalActions}>
                             <Button

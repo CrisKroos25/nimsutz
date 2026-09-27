@@ -6,7 +6,7 @@
    maneja su propio ciclo de vida de listado. */
 
 import { useState } from 'react';
-import { transfersApi } from '../api/TransfersApi';
+import { transfersApi } from '@features/files/api/transfersApi';
 
 export function useTransfers() {
     const [loading, setLoading] = useState(false);
@@ -37,9 +37,12 @@ export function useTransfers() {
             if (!contentType || contentType === 'application/octet-stream') {
                 if (ext === 'pdf') contentType = 'application/pdf';
                 else if (ext === 'png') contentType = 'image/png';
-                else if (ext === 'jpg' || ext === 'jpeg') contentType = 'image/jpeg';
+                else if (ext === 'jpg' || ext === 'jpeg')
+                    contentType = 'image/jpeg';
                 else if (ext === 'txt') contentType = 'text/plain';
-                else if (ext === 'docx') contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                else if (ext === 'docx')
+                    contentType =
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
             }
 
             const validTypes = [
@@ -50,16 +53,19 @@ export function useTransfers() {
                 'image/jpeg',
             ];
             if (!validTypes.includes(contentType)) {
-                throw new Error('Tipo de archivo no permitido. Solo se permiten PDF, DOCX, TXT, PNG y JPG.');
+                throw new Error(
+                    'Tipo de archivo no permitido. Solo se permiten PDF, DOCX, TXT, PNG y JPG.',
+                );
             }
 
             // Paso 1: solicitar reserva de cuota y URL firmada
-            const { file: reserva, upload_url } = await transfersApi.solicitarCarga({
-                folder: folderId,
-                original_name: file.name,
-                content_type: contentType,
-                size_bytes: file.size,
-            });
+            const { file: reserva, upload_url } =
+                await transfersApi.solicitarCarga({
+                    folder: folderId,
+                    original_name: file.name,
+                    content_type: contentType,
+                    size_bytes: file.size,
+                });
 
             // Paso 2: PUT físico contra MinIO (no pasa por Django)
             const uploadResponse = await fetch(upload_url, {
@@ -76,7 +82,8 @@ export function useTransfers() {
 
             if (onCompleted) onCompleted();
         } catch (err) {
-            const rawMsg = err?.detail || err?.message || 'Error al procesar el archivo.';
+            const rawMsg =
+                err?.detail || err?.message || 'Error al procesar el archivo.';
             const msg = Array.isArray(rawMsg) ? rawMsg[0] : String(rawMsg);
             setError(msg);
             if (onCompleted) onCompleted(new Error(msg));
@@ -91,7 +98,9 @@ export function useTransfers() {
      */
     const descargarArchivo = async (file) => {
         try {
-            const { download_url } = await transfersApi.solicitarDescarga(file.id);
+            const { download_url } = await transfersApi.solicitarDescarga(
+                file.id,
+            );
             const link = document.createElement('a');
             link.href = download_url;
             link.setAttribute('download', file.original_name);
@@ -119,5 +128,12 @@ export function useTransfers() {
         }
     };
 
-    return { subirArchivo, descargarArchivo, enviarAPapelera, loading, error, setError };
+    return {
+        subirArchivo,
+        descargarArchivo,
+        enviarAPapelera,
+        loading,
+        error,
+        setError,
+    };
 }

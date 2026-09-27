@@ -9,7 +9,7 @@ import LandingPage from '../pages/LandingPage';
 import DesignSystemPage from '../pages/DesignSystemPage';
 import LoginPage from '../pages/LoginPage';
 import { FilesPage } from '@features/files/pages/FilePages';
-import TrashPage from '@features/files/transfers/components/TrashView/Trash';
+import TrashPage from '@features/files/pages/Trash';
 
 export default function AppRouter() {
     const theme = useTheme();
@@ -40,7 +40,10 @@ export default function AppRouter() {
                                 '@features/files/trash/TrashPage'; y reemplazar aquí. */}
                             <Route path="trash/*" element={<TrashPage />} />
                         </Route>
-                        <Route path="design-system" element={<DesignSystemPage />} />
+                        <Route
+                            path="design-system"
+                            element={<DesignSystemPage />}
+                        />
                     </Route>
                 </Routes>
             </AuthProvider>

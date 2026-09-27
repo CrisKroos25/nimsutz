@@ -11,22 +11,26 @@ import {
     File as FileGenericIcon,
     X,
 } from 'lucide-react';
+import { useFiles } from '@features/files/hooks/useFiles';
+import { useTransfers } from '@features/files/hooks/useTransfers';
+import FolderFormModal from '@features/files/components/FolderFormModal';
+import ConfirmDialog from '@features/files/components/ConfirmDialog';
+import UploadPanel from '@features/files/components/UploadPanel/UploadPanel';
+import FileActions from '@features/files/components/FileActions/FileActions';
+import '@features/files/styles/responsive.css';
+
 import Button from '@shared/components/Button/Button';
 import Badge from '@shared/components/Badge/Badge';
-import { useFiles } from '../hooks/useFiles';
-import { useTransfers } from '@features/files/transfers/hooks/useTransfers';
-import FolderFormModal from '../components/FolderFormModal';
-import ConfirmDialog from '../components/ConfirmDialog';
-import UploadPanel from '@features/files/transfers/components/UploadPanel/UploadPanel';
-import FileActions from '@features/files/transfers/components/FileActions/FileActions';
 import styles from './FilePages.module.css';
-import '@features/files/styles/responsive.css';
 
 function formatBytes(bytes) {
     if (!bytes || bytes <= 0 || isNaN(Number(bytes))) return '0 B';
     const num = Number(bytes);
     const units = ['B', 'KB', 'MB', 'GB'];
-    const exponent = Math.min(Math.floor(Math.log(num) / Math.log(1024)), units.length - 1);
+    const exponent = Math.min(
+        Math.floor(Math.log(num) / Math.log(1024)),
+        units.length - 1,
+    );
     if (exponent < 0) return '0 B';
     const value = num / 1024 ** exponent;
     return `${value.toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
@@ -56,21 +60,47 @@ function getFileTypeInfo(contentType, fileName = '') {
         return { label: 'PDF', icon: FileText, className: styles.typePdf };
     }
     if (safeType.includes('presentation') || ['PPT', 'PPTX'].includes(ext)) {
-        return { label: ext || 'PPTX', icon: FileText, className: styles.typePpt };
+        return {
+            label: ext || 'PPTX',
+            icon: FileText,
+            className: styles.typePpt,
+        };
     }
-    if (safeType.includes('image') || ['PNG', 'JPG', 'JPEG', 'WEBP', 'SVG'].includes(ext)) {
-        return { label: ext || 'IMG', icon: ImageIcon, className: styles.typeImage };
+    if (
+        safeType.includes('image') ||
+        ['PNG', 'JPG', 'JPEG', 'WEBP', 'SVG'].includes(ext)
+    ) {
+        return {
+            label: ext || 'IMG',
+            icon: ImageIcon,
+            className: styles.typeImage,
+        };
     }
     if (safeType.includes('word') || ['DOC', 'DOCX'].includes(ext)) {
         return { label: 'DOCX', icon: FileText, className: styles.typeDoc };
     }
-    if (safeType.includes('spreadsheet') || ['XLS', 'XLSX', 'CSV'].includes(ext)) {
-        return { label: ext || 'XLSX', icon: FileText, className: styles.typeExcel };
+    if (
+        safeType.includes('spreadsheet') ||
+        ['XLS', 'XLSX', 'CSV'].includes(ext)
+    ) {
+        return {
+            label: ext || 'XLSX',
+            icon: FileText,
+            className: styles.typeExcel,
+        };
     }
     if (safeType.includes('zip') || ['ZIP', 'RAR', 'TAR', 'GZ'].includes(ext)) {
-        return { label: ext || 'ZIP', icon: FileText, className: styles.typeZip };
+        return {
+            label: ext || 'ZIP',
+            icon: FileText,
+            className: styles.typeZip,
+        };
     }
-    return { label: ext || 'FILE', icon: FileGenericIcon, className: styles.typeDefault };
+    return {
+        label: ext || 'FILE',
+        icon: FileGenericIcon,
+        className: styles.typeDefault,
+    };
 }
 
 function buildBreadcrumb(folderIndex, folderId) {
@@ -128,14 +158,30 @@ export function FilesPage() {
 
     return (
         <section className={styles.page} aria-labelledby="files-title">
-            <h1 id="files-title" className={styles.srOnly}>Mis archivos</h1>
+            <h1 id="files-title" className={styles.srOnly}>
+                Mis archivos
+            </h1>
 
-            <nav aria-label="Ruta de carpetas" className={styles.breadcrumb} data-element="breadcrumb">
-                <button type="button" className={styles.breadcrumbButton} onClick={goToRoot}>Raíz</button>
+            <nav
+                aria-label="Ruta de carpetas"
+                className={styles.breadcrumb}
+                data-element="breadcrumb"
+            >
+                <button
+                    type="button"
+                    className={styles.breadcrumbButton}
+                    onClick={goToRoot}
+                >
+                    Raíz
+                </button>
                 {breadcrumb.map((crumb, index) => (
                     <span key={crumb.id}>
                         {' / '}
-                        <button type="button" className={styles.breadcrumbButton} onClick={() => goToBreadcrumbIndex(index)}>
+                        <button
+                            type="button"
+                            className={styles.breadcrumbButton}
+                            onClick={() => goToBreadcrumbIndex(index)}
+                        >
                             {crumb.name}
                         </button>
                     </span>
@@ -145,16 +191,22 @@ export function FilesPage() {
             <div className={styles.toolbar} data-element="toolbar">
                 <div className={styles.actions}>
                     <Button type="button" onClick={() => setCreateOpen(true)}>
-                        <FolderPlus size={16} aria-hidden="true" /> Nueva carpeta
+                        <FolderPlus size={16} aria-hidden="true" /> Nueva
+                        carpeta
                     </Button>
                     {folderId != null && (
-                        <Button type="button" onClick={() => setUploadOpen(true)}>
+                        <Button
+                            type="button"
+                            onClick={() => setUploadOpen(true)}
+                        >
                             ↑ Subir archivo
                         </Button>
                     )}
                 </div>
                 {folderId == null && (
-                    <Badge tone="info">Entra a una carpeta para subir archivos</Badge>
+                    <Badge tone="info">
+                        Entra a una carpeta para subir archivos
+                    </Badge>
                 )}
             </div>
 
@@ -188,29 +240,84 @@ export function FilesPage() {
                     <div className={styles.tableBody}>
                         {/* Carpetas */}
                         {folders.map((folder) => (
-                            <div key={`folder-${folder.id}`} className={styles.tableRow} data-table="row">
-                                <div className={styles.cellName} data-cell="name">
-                                    <button type="button" className={styles.folderBtn} onClick={() => openFolder(folder)}>
+                            <div
+                                key={`folder-${folder.id}`}
+                                className={styles.tableRow}
+                                data-table="row"
+                            >
+                                <div
+                                    className={styles.cellName}
+                                    data-cell="name"
+                                >
+                                    <button
+                                        type="button"
+                                        className={styles.folderBtn}
+                                        onClick={() => openFolder(folder)}
+                                    >
                                         <div className={styles.nameMeta}>
-                                            <span className={styles.fileName}>{folder.name}</span>
-                                            <span className={styles.fileSubtext}>Carpeta</span>
+                                            <span className={styles.fileName}>
+                                                {folder.name}
+                                            </span>
+                                            <span
+                                                className={styles.fileSubtext}
+                                            >
+                                                Carpeta
+                                            </span>
                                         </div>
                                     </button>
                                 </div>
-                                <div className={styles.cellType} data-cell="type">
-                                    <div className={`${styles.iconBadge} ${styles.typeFolder}`}>
+                                <div
+                                    className={styles.cellType}
+                                    data-cell="type"
+                                >
+                                    <div
+                                        className={`${styles.iconBadge} ${styles.typeFolder}`}
+                                    >
                                         <FolderIcon size={18} />
                                     </div>
                                 </div>
-                                <div className={styles.cellSize} data-cell="size">-</div>
-                                <div className={styles.cellDate} data-cell="date">{formatDate(folder.updated_at)}</div>
-                                <div className={styles.cellOwner} data-cell="owner">Pendiente</div>
-                                <div className={styles.cellStatus} data-cell="status">-</div>
-                                <div className={styles.cellActions} data-cell="actions">
-                                    <button type="button" className={styles.linkAction} onClick={() => setRenameTarget(folder)} title="Renombrar">
+                                <div
+                                    className={styles.cellSize}
+                                    data-cell="size"
+                                >
+                                    -
+                                </div>
+                                <div
+                                    className={styles.cellDate}
+                                    data-cell="date"
+                                >
+                                    {formatDate(folder.updated_at)}
+                                </div>
+                                <div
+                                    className={styles.cellOwner}
+                                    data-cell="owner"
+                                >
+                                    Pendiente
+                                </div>
+                                <div
+                                    className={styles.cellStatus}
+                                    data-cell="status"
+                                >
+                                    -
+                                </div>
+                                <div
+                                    className={styles.cellActions}
+                                    data-cell="actions"
+                                >
+                                    <button
+                                        type="button"
+                                        className={styles.linkAction}
+                                        onClick={() => setRenameTarget(folder)}
+                                        title="Renombrar"
+                                    >
                                         <Pencil size={18} />
                                     </button>
-                                    <button type="button" className={styles.dangerAction} onClick={() => setDeleteTarget(folder)} title="Eliminar">
+                                    <button
+                                        type="button"
+                                        className={styles.dangerAction}
+                                        onClick={() => setDeleteTarget(folder)}
+                                        title="Eliminar"
+                                    >
                                         <Trash2 size={18} />
                                     </button>
                                 </div>
@@ -219,35 +326,87 @@ export function FilesPage() {
 
                         {/* Archivos reales */}
                         {safeFiles.map((file) => {
-                            const typeInfo = getFileTypeInfo(file.content_type, file.original_name);
+                            const typeInfo = getFileTypeInfo(
+                                file.content_type,
+                                file.original_name,
+                            );
                             return (
-                                <div key={`file-${file.id}`} className={styles.tableRow} data-table="row">
-                                    <div className={styles.cellName} data-cell="name">
+                                <div
+                                    key={`file-${file.id}`}
+                                    className={styles.tableRow}
+                                    data-table="row"
+                                >
+                                    <div
+                                        className={styles.cellName}
+                                        data-cell="name"
+                                    >
                                         <div className={styles.nameMeta}>
-                                            <span className={styles.fileName} title={file.original_name}>
+                                            <span
+                                                className={styles.fileName}
+                                                title={file.original_name}
+                                            >
                                                 {file.original_name}
                                             </span>
-                                            <span className={styles.fileSubtext}>
-                                                {folderId ? breadcrumb[breadcrumb.length - 1]?.name || 'Carpeta' : 'Raíz'}
+                                            <span
+                                                className={styles.fileSubtext}
+                                            >
+                                                {folderId
+                                                    ? breadcrumb[
+                                                          breadcrumb.length - 1
+                                                      ]?.name || 'Carpeta'
+                                                    : 'Raíz'}
                                             </span>
                                         </div>
                                     </div>
-                                    <div className={styles.cellType} data-cell="type">
-                                        <div className={`${styles.iconBadge} ${typeInfo.className}`}>
+                                    <div
+                                        className={styles.cellType}
+                                        data-cell="type"
+                                    >
+                                        <div
+                                            className={`${styles.iconBadge} ${typeInfo.className}`}
+                                        >
                                             {typeInfo.label}
                                         </div>
                                     </div>
-                                    <div className={styles.cellSize} data-cell="size">{formatBytes(file.size_bytes)}</div>
-                                    <div className={styles.cellDate} data-cell="date">{formatDate(file.updated_at)}</div>
-                                    <div className={styles.cellOwner} data-cell="owner">Pendiente</div>
-                                    <div className={styles.cellStatus} data-cell="status">
-                                        <span className={`${styles.statusBadge} ${styles.statusDisponible}`}>
-                                            <span className={styles.statusDot}></span>
+                                    <div
+                                        className={styles.cellSize}
+                                        data-cell="size"
+                                    >
+                                        {formatBytes(file.size_bytes)}
+                                    </div>
+                                    <div
+                                        className={styles.cellDate}
+                                        data-cell="date"
+                                    >
+                                        {formatDate(file.updated_at)}
+                                    </div>
+                                    <div
+                                        className={styles.cellOwner}
+                                        data-cell="owner"
+                                    >
+                                        Pendiente
+                                    </div>
+                                    <div
+                                        className={styles.cellStatus}
+                                        data-cell="status"
+                                    >
+                                        <span
+                                            className={`${styles.statusBadge} ${styles.statusDisponible}`}
+                                        >
+                                            <span
+                                                className={styles.statusDot}
+                                            ></span>
                                             Disponible
                                         </span>
                                     </div>
-                                    <div className={styles.cellActions} data-cell="actions">
-                                        <FileActions file={file} onChanged={reload} />
+                                    <div
+                                        className={styles.cellActions}
+                                        data-cell="actions"
+                                    >
+                                        <FileActions
+                                            file={file}
+                                            onChanged={reload}
+                                        />
                                     </div>
                                 </div>
                             );
@@ -256,11 +415,30 @@ export function FilesPage() {
                 )}
             </div>
 
-            <FolderFormModal open={createOpen} onClose={() => setCreateOpen(false)} onSubmit={(name) => createFolder(name)} />
-            <FolderFormModal open={Boolean(renameTarget)} onClose={() => setRenameTarget(null)} folder={renameTarget} onSubmit={(name) => renameFolder(renameTarget.id, name)} />
-            <ConfirmDialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title="Eliminar carpeta" description={`Esta acción no se puede deshacer. La carpeta "${deleteTarget?.name}" debe estar vacía.`} onConfirm={() => deleteFolder(deleteTarget.id)} />
+            <FolderFormModal
+                open={createOpen}
+                onClose={() => setCreateOpen(false)}
+                onSubmit={(name) => createFolder(name)}
+            />
+            <FolderFormModal
+                open={Boolean(renameTarget)}
+                onClose={() => setRenameTarget(null)}
+                folder={renameTarget}
+                onSubmit={(name) => renameFolder(renameTarget.id, name)}
+            />
+            <ConfirmDialog
+                open={Boolean(deleteTarget)}
+                onClose={() => setDeleteTarget(null)}
+                title="Eliminar carpeta"
+                description={`Esta acción no se puede deshacer. La carpeta "${deleteTarget?.name}" debe estar vacía.`}
+                onConfirm={() => deleteFolder(deleteTarget.id)}
+            />
             {uploadOpen && (
-                <UploadPanel folderId={folderId} onCompleted={reload} onClose={() => setUploadOpen(false)} />
+                <UploadPanel
+                    folderId={folderId}
+                    onCompleted={reload}
+                    onClose={() => setUploadOpen(false)}
+                />
             )}
         </section>
     );
