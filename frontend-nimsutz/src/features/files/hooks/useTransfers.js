@@ -1,12 +1,40 @@
-/* Hook del módulo de transferencias (B - Rodrigo).
-   Centraliza el estado de carga/error y las tres operaciones de B:
-   subirArchivo, descargarArchivo y enviarAPapelera.
-   El resto de operaciones de papelera (listar, restaurar, eliminar
-   definitivamente) viven directamente en Trash.jsx porque ese componente
-   maneja su propio ciclo de vida de listado. */
-
 import { useState } from 'react';
 import { transfersApi } from '@features/files/api/transfersApi';
+import { resolveMimeType, assertFileAllowed } from '@features/files/utils/mimeValidator';
+
+// ─── helpers internos ──────────────────────────────────────────────────────────
+
+/**
+ * Extrae un mensaje de error legible desde cualquier valor capturado.
+ * Normaliza arrays de DRF, objetos Error y strings.
+ *
+ * @param {unknown} err
+ * @param {string}  fallback
+ * @returns {string}
+ */
+function toErrorMessage(err, fallback = 'Ocurrió un error inesperado.') {
+    const raw = err?.detail ?? err?.message ?? err;
+    if (Array.isArray(raw)) return String(raw[0]);
+    if (raw) return String(raw);
+    return fallback;
+}
+
+/**
+ * Crea y hace clic en un <a> temporal para desencadenar la descarga de una URL.
+ *
+ * @param {string} url
+ * @param {string} filename
+ */
+function triggerDownload(url, filename) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+}
+
+// ─── hook ─────────────────────────────────────────────────────────────────────
 
 export function useTransfers() {
     const [loading, setLoading] = useState(false);
@@ -14,60 +42,30 @@ export function useTransfers() {
 
     /**
      * Sube un archivo al servidor en tres pasos:
-     * 1. Solicita reserva y URL firmada a Django.
-     * 2. Hace el PUT físico contra MinIO con la URL firmada.
+     * 1. Solicita reserva de cuota y URL firmada a Django.
+     * 2. Hace el PUT físico a MinIO con la URL firmada.
      * 3. Confirma la carga al servidor.
      *
-     * @param {File}        file       - Objeto File del input/drop
-     * @param {number}      folderId   - ID de la carpeta destino (requerido)
-     * @param {function}    onCompleted - Callback que recarga el listado de A
+     * @param {File}                file
+     * @param {number}              folderId   - ID de la carpeta destino
+     * @param {(err?: Error)=>void} onCompleted - Callback de A; recibe Error si falla
      */
     const subirArchivo = async (file, folderId, onCompleted) => {
         setLoading(true);
         setError(null);
         try {
-            // Validación de tamaño (RN-E3-17: máximo 25 MB)
-            if (file.size > 25 * 1024 * 1024) {
-                throw new Error('El archivo supera el límite de 25 MB.');
-            }
+            const contentType = resolveMimeType(file);
+            assertFileAllowed(file, contentType); // lanza si no cumple
 
-            // Detección y normalización de tipo MIME (RN-E3-18)
-            let contentType = file.type;
-            const ext = file.name.split('.').pop()?.toLowerCase();
-            if (!contentType || contentType === 'application/octet-stream') {
-                if (ext === 'pdf') contentType = 'application/pdf';
-                else if (ext === 'png') contentType = 'image/png';
-                else if (ext === 'jpg' || ext === 'jpeg')
-                    contentType = 'image/jpeg';
-                else if (ext === 'txt') contentType = 'text/plain';
-                else if (ext === 'docx')
-                    contentType =
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-            }
+            // Paso 1: reserva de cuota y URL firmada
+            const { file: reserva, upload_url } = await transfersApi.solicitarCarga({
+                folder: folderId,
+                original_name: file.name,
+                content_type: contentType,
+                size_bytes: file.size,
+            });
 
-            const validTypes = [
-                'application/pdf',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'text/plain',
-                'image/png',
-                'image/jpeg',
-            ];
-            if (!validTypes.includes(contentType)) {
-                throw new Error(
-                    'Tipo de archivo no permitido. Solo se permiten PDF, DOCX, TXT, PNG y JPG.',
-                );
-            }
-
-            // Paso 1: solicitar reserva de cuota y URL firmada
-            const { file: reserva, upload_url } =
-                await transfersApi.solicitarCarga({
-                    folder: folderId,
-                    original_name: file.name,
-                    content_type: contentType,
-                    size_bytes: file.size,
-                });
-
-            // Paso 2: PUT físico contra MinIO (no pasa por Django)
+            // Paso 2: PUT directo a MinIO (no pasa por Django)
             const uploadResponse = await fetch(upload_url, {
                 method: 'PUT',
                 body: file,
@@ -77,16 +75,14 @@ export function useTransfers() {
                 throw new Error('Error al transferir el archivo al servidor.');
             }
 
-            // Paso 3: confirmar al servidor que el PUT se completó
+            // Paso 3: confirmar al servidor
             await transfersApi.confirmarCarga(reserva.id);
 
-            if (onCompleted) onCompleted();
+            onCompleted?.();
         } catch (err) {
-            const rawMsg =
-                err?.detail || err?.message || 'Error al procesar el archivo.';
-            const msg = Array.isArray(rawMsg) ? rawMsg[0] : String(rawMsg);
+            const msg = toErrorMessage(err, 'Error al procesar el archivo.');
             setError(msg);
-            if (onCompleted) onCompleted(new Error(msg));
+            onCompleted?.(new Error(msg));
         } finally {
             setLoading(false);
         }
@@ -94,38 +90,28 @@ export function useTransfers() {
 
     /**
      * Solicita una URL firmada de descarga y la abre en el navegador.
-     * @param {{ id: number, original_name: string }} file - Objeto de archivo
+     *
+     * @param {{ id: number, original_name: string }} file
      */
     const descargarArchivo = async (file) => {
         try {
-            const { download_url } = await transfersApi.solicitarDescarga(
-                file.id,
-            );
-            const link = document.createElement('a');
-            link.href = download_url;
-            link.setAttribute('download', file.original_name);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
+            const { download_url } = await transfersApi.solicitarDescarga(file.id);
+            triggerDownload(download_url, file.original_name);
         } catch (err) {
-            console.error('Error al descargar el archivo:', err);
-            alert('No se pudo completar la descarga. Inténtalo de nuevo.');
+            const msg = toErrorMessage(err, 'No se pudo completar la descarga.');
+            // La descarga no tiene estado global de error; el componente debe manejarlo
+            throw new Error(msg);
         }
     };
 
     /**
      * Envía el archivo a la papelera (eliminación lógica).
-     * @param {number}   fileId    - ID del archivo
-     * @param {function} onChanged - Callback que recarga el listado de A
+     * Lanza si la petición falla, para que FileActions gestione el error.
+     *
+     * @param {number} fileId
      */
-    const enviarAPapelera = async (fileId, onChanged) => {
-        try {
-            await transfersApi.moverAPapelera(fileId);
-            if (onChanged) onChanged();
-        } catch (err) {
-            console.error('Error al mover a papelera:', err);
-            alert(err.message || 'Error al enviar el archivo a la papelera.');
-        }
+    const enviarAPapelera = async (fileId) => {
+        await transfersApi.moverAPapelera(fileId);
     };
 
     return {
