@@ -88,11 +88,15 @@ DATABASES = {
     }
 }
 
-MINIO_ENDPOINT = os.environ['MINIO_ENDPOINT']
-MINIO_PUBLIC_ENDPOINT = os.environ['MINIO_PUBLIC_ENDPOINT']
-MINIO_ACCESS_KEY = os.environ['MINIO_ACCESS_KEY']
-MINIO_SECRET_KEY = os.environ['MINIO_SECRET_KEY']
-MINIO_BUCKET_NAME = os.environ['MINIO_BUCKET_NAME']
+STORAGE_BACKEND_CLASS = os.getenv("STORAGE_BACKEND_CLASS", "files.storage.s3_compatible.S3CompatibleStorageBackend")
+
+STORAGE_BACKEND_CONFIG = {
+    "bucket_name": os.environ['MINIO_BUCKET_NAME'],
+    "access_key": os.environ['MINIO_ACCESS_KEY'],
+    "secret_key":  os.environ['MINIO_SECRET_KEY'],
+    "internal_endpoint_url": os.environ['MINIO_ENDPOINT'],
+    "public_endpoint_url": os.environ['MINIO_PUBLIC_ENDPOINT'],
+}
 
 MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # RN-E3-17
 ALLOWED_CONTENT_TYPES = [               # RN-E3-18
