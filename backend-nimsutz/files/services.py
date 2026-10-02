@@ -111,7 +111,7 @@ def request_upload(*, owner, folder, original_name, content_type, size_bytes):
         expires_at=timezone.now() + timedelta(minutes=settings.RESERVATION_TTL_MINUTES),
     )
 
-    upload_url = storage.generate_upload_url(
+    upload_url = storage.get_backend().generate_upload_url(
         storage_key=storage_key, content_type=content_type
     )
 
@@ -129,7 +129,7 @@ def confirm_upload(*, file, owner):
     if reservation is None:
         raise ValidationError("No hay una reserva pendiente para este archivo.")
 
-    metadata = storage.head_object(storage_key=file.storage_key)
+    metadata = storage.get_backend().head_object(storage_key=file.storage_key)
 
     if metadata is None:
         # El cliente nunca completó el PUT contra MinIO.
@@ -141,7 +141,7 @@ def confirm_upload(*, file, owner):
     real_size = metadata["ContentLength"]
     if real_size != file.size_bytes:
         # RN-T-08: no se confía en lo declarado, se verifica el contenido real.
-        storage.delete_object(storage_key=file.storage_key)
+        storage.get_backend().delete_object(storage_key=file.storage_key)
         reservation.status = QuotaReservation.Status.RELEASED
         reservation.save(update_fields=["status"])
         file.delete()
@@ -162,7 +162,7 @@ def request_download(*, file, owner):
     if file.status not in [File.Status.AVAILABLE, File.Status.TRASHED]:
         raise ValidationError("Este archivo no está disponible para descarga.")
 
-    return storage.generate_download_url(
+    return storage.get_backend().generate_download_url(
         storage_key=file.storage_key, original_name=file.original_name
     )
 
@@ -232,7 +232,7 @@ def permanently_delete_file(*, file, owner):
         # RN-E3-33: la confirmación del usuario es responsabilidad del frontend
         # (modal "Eliminar definitivamente"); aquí solo se exige el estado correcto.
 
-    storage.delete_object(storage_key=file.storage_key)  # RN-E3-35
+    storage.get_backend().delete_object(storage_key=file.storage_key)  # RN-E3-35
 
     reservation = file.reservations.filter(status=QuotaReservation.Status.CONFIRMED).first()
     if reservation:
