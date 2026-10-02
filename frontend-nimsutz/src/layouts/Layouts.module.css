@@ -1,9 +1,14 @@
 .app {
+    --sidebar-width: 208px;
+    --header-height: 48px;
     display: grid;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
     min-height: 100dvh;
 }
 .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
@@ -31,6 +36,7 @@
     font-size: var(--font-size-sm);
 }
 .active {
+    box-shadow: inset 3px 0 var(--color-primary);
     color: var(--color-warning-text);
     background: color-mix(in srgb, var(--color-primary) 12%, transparent);
     font-weight: var(--font-weight-semibold);
@@ -51,7 +57,7 @@
     font-size: var(--font-size-sm);
 }
 .content {
-    max-width: var(--layout-width);
+    max-width: none;
     margin-inline: auto;
     padding: var(--space-4);
 }
@@ -73,6 +79,8 @@
         grid-template-columns: minmax(0, 1fr);
     }
     .sidebar {
+        position: static;
+        height: auto;
         border-right: 0;
         border-bottom: var(--border-width) solid var(--color-border);
         gap: var(--space-3);
@@ -87,4 +95,12 @@
     .content {
         padding: var(--space-3);
     }
+}
+
+.header > button {
+    border: 0;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: var(--font-size-xs);
 }

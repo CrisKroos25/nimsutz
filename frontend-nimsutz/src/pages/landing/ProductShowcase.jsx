@@ -1,10 +1,15 @@
-import explorer from '../../assets/product/explorer-dark.png';
-import trash from '../../assets/product/trash-dark.png';
+import { useOutletContext } from 'react-router-dom';
+import explorerDark from '../../assets/product/explorer-dark.jpg';
+import explorerLight from '../../assets/product/explorer-light.jpg';
+import trashDark from '../../assets/product/trash-dark.jpg';
+import trashLight from '../../assets/product/trash-light.jpg';
 import useProductMotion from './useProductMotion';
 import styles from './ProductShowcase.module.css';
 
 export default function ProductShowcase() {
     const root = useProductMotion();
+    const { theme } = useOutletContext();
+    const isDark = theme === 'dark';
     return (
         <section
             ref={root}
@@ -19,20 +24,20 @@ export default function ProductShowcase() {
                 <div className={styles.stage}>
                     <figure className={styles.explorer}>
                         <img
-                            src={explorer}
-                            alt="Explorador de Nim sutz’ en modo oscuro con carpetas, archivos y panel de detalles"
-                            width="1000"
-                            height="448"
+                            src={isDark ? explorerDark : explorerLight}
+                            alt="Explorador de carpetas de Nim sutz"
+                            width="1202"
+                            height="668"
                             loading="lazy"
                             decoding="async"
                         />
                     </figure>
                     <figure className={styles.trash}>
                         <img
-                            src={trash}
-                            alt="Papelera de Nim sutz’ en modo oscuro"
-                            width="1000"
-                            height="454"
+                            src={isDark ? trashDark : trashLight}
+                            alt="Papelera de Nim sutz"
+                            width="1202"
+                            height="668"
                             loading="lazy"
                             decoding="async"
                         />
