@@ -17,8 +17,8 @@ export default function Header() {
     return (
         <header className={styles.header}>
             <span>
-                {pathname === '/design-system'
-                    ? 'Sistema de diseño'
+                {pathname.startsWith('/trash')
+                    ? 'Papelera'
                     : 'Mis archivos'}
             </span>
             {user && <button onClick={exit} disabled={busy}>Cerrar sesión</button>}

@@ -9,7 +9,7 @@ import styles from './FileActions.module.css';
  * Acciones directas sobre un archivo en la fila del explorador.
  * Contrato A-B: recibe `file` y `onChanged`.
  */
-export default function FileActions({ file, onChanged }) {
+export default function FileActions({ file, onChanged, expanded = false }) {
     const [busyAction, setBusyAction] = useState(null); // 'download' | 'trash' | null
     const [trashModalOpen, setTrashModalOpen] = useState(false);
     const { descargarArchivo, enviarAPapelera } = useTransfers();
@@ -35,7 +35,7 @@ export default function FileActions({ file, onChanged }) {
 
     return (
         <>
-            <div className={styles.rowActions}>
+            <div className={expanded ? styles.expandedActions : styles.rowActions}>
                 <button
                     type="button"
                     onClick={handleDownload}
@@ -49,7 +49,7 @@ export default function FileActions({ file, onChanged }) {
                     ) : (
                         <Download size={18} />
                     )}
-                </button>
+                {expanded && 'Descargar'}</button>
 
                 <button
                     type="button"

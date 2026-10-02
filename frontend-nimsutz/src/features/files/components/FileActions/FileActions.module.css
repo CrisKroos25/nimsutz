@@ -90,3 +90,7 @@
         transform: rotate(360deg);
     }
 }
+.expandedActions { display: grid; gap: 8px; margin-block: 20px; }
+.expandedActions button { width: 100%; display: flex; gap: 8px; justify-content: center; padding: 10px; font: inherit; font-size: 13px; border-radius: var(--radius); }
+.expandedActions .downloadBtn { background: var(--color-primary); color: var(--color-text); }
+.expandedActions .trashBtn { background: var(--color-danger); color: var(--color-text); }

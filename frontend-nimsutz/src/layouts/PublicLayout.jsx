@@ -18,7 +18,7 @@ export default function PublicLayout({ theme, toggleTheme }) {
                 </nav>
                 </div>
             </header>
-            <main className={styles.main} id="main-content" tabIndex={-1}><Outlet /></main>
+            <main className={styles.main} id="main-content" tabIndex={-1}><Outlet context={{ theme }} /></main>
             <footer className={styles.footer}>
                 <div><Brand /><p>Un lugar para tus documentos.<br />Más espacio para tus ideas.</p></div>
                 <nav aria-label="Navegación del pie">
