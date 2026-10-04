@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -12,16 +13,22 @@ export default defineConfig({
     ],
     server: {
         host: '0.0.0.0',
+        proxy: {
+            '/api': {
+                target: process.env.API_PROXY_TARGET || 'http://127.0.0.1:8000',
+                changeOrigin: true,
+            },
+        },
         watch: {
             usePolling: true,
         },
     },
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, './src'),
-            '@features': path.resolve(__dirname, './src/features'),
-            '@shared': path.resolve(__dirname, './src/shared'),
-            '@layouts': path.resolve(__dirname, './src/layouts'),
+            '@': path.resolve(import.meta.dirname, './src'),
+            '@features': path.resolve(import.meta.dirname, './src/features'),
+            '@shared': path.resolve(import.meta.dirname, './src/shared'),
+            '@layouts': path.resolve(import.meta.dirname, './src/layouts'),
         },
     },
 });

@@ -1,0 +1,47 @@
+.section { padding-block: 40px; scroll-margin-top: 130px; }
+.section h2 { font-size: clamp(28px, 4vw, 44px); margin-block: 16px; }
+.section > p { color: var(--color-text-muted); }
+.eyebrow { font-size: 12px; letter-spacing: 2px; font-weight: 600; }
+.plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-block: 32px; }
+.plan { display: flex; flex-direction: column; gap: 20px; background: var(--color-surface); padding: 24px; border: 1px solid var(--color-border); border-radius: 20px; }
+.plan h3 { font-size: 26px; color: var(--color-secondary); }
+.plan p, .plan li { color: var(--color-text-muted); }
+.plan ul { padding-left: 20px; margin: 0; }
+.plan li { margin-bottom: 12px; }
+.availability { margin-top: auto; font-size: 13px; font-weight: 600; }
+.note { font-size: 13px; }
+.section details { padding: 24px 0; border-bottom: 1px solid var(--color-divider); }
+.section summary { cursor: pointer; font-weight: 600; }
+.section details p { margin-top: 16px; color: var(--color-text-muted); max-width: 720px; }
+@media(max-width: 760px) { .plans { grid-template-columns: 1fr; } }
+
+.planHeading {
+    display: grid;
+    gap: 20px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--color-divider);
+}
+.plan .price {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    color: var(--color-text);
+}
+.price strong { font-size: 48px; line-height: 1; letter-spacing: -2px; }
+.currency { font-size: 24px; }
+.period { font-size: var(--font-size-sm); color: var(--color-text-muted); margin-left: 4px; }
+.plan .storage { color: var(--color-text); font-size: var(--font-size-sm); }
+.plan .featureList { list-style: none; padding: 0; display: grid; gap: 16px; }
+.featureList li { display: flex; gap: 10px; align-items: flex-start; margin: 0; font-size: var(--font-size-sm); }
+.featureList svg { flex-shrink: 0; color: var(--color-secondary); margin-top: 3px; }
+.planAction { width: 100%; margin-top: auto; }
+
+.plan { transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
+.plan:hover { border-color: var(--color-secondary); box-shadow: var(--shadow-panel); }
+.plan[data-selected="true"] {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface));
+    box-shadow: 0 0 0 1px var(--color-primary), 0 8px 24px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+.planTitle { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; min-height: 60px; }
+.selectedLabel { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--color-warning-text); }

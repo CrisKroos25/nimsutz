@@ -25,7 +25,7 @@ SECRET_KEY = os.environ['SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -37,10 +37,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    "corsheaders",
+    'rest_framework',
+    'corsheaders',
+    'accounts',
+    'files',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -48,7 +52,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "corsheaders.middleware.CorsMiddleware",
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -83,6 +86,39 @@ DATABASES = {
         'HOST': os.environ['DB_HOST'],
         'PORT': os.environ['DB_PORT'],
     }
+}
+
+STORAGE_BACKEND_CLASS = os.getenv("STORAGE_BACKEND_CLASS", "files.storage.s3_compatible.S3CompatibleStorageBackend")
+
+STORAGE_BACKEND_CONFIG = {
+    "bucket_name": os.environ['MINIO_BUCKET_NAME'],
+    "access_key": os.environ['MINIO_ACCESS_KEY'],
+    "secret_key":  os.environ['MINIO_SECRET_KEY'],
+    "internal_endpoint_url": os.environ['MINIO_ENDPOINT'],
+    "public_endpoint_url": os.environ['MINIO_PUBLIC_ENDPOINT'],
+}
+
+MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # RN-E3-17
+ALLOWED_CONTENT_TYPES = [               # RN-E3-18
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "text/plain",
+    "image/png",
+    "image/jpeg",
+]
+RESERVATION_TTL_MINUTES = 15
+SIMULATED_QUOTA_BYTES = int(
+    os.getenv("SIMULATED_QUOTA_BYTES", 500 * 1024 * 1024)
+)
+SIMULATED_AUTH_ENABLED = os.getenv("SIMULATED_AUTH_ENABLED", "true").lower() == "true"
+SIMULATED_USER_ID = int(os.getenv("SIMULATED_USER_ID", default=1))
+
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
 }
 
 
@@ -134,4 +170,13 @@ MAILERS = {
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]

@@ -18,6 +18,7 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+      - STORAGE_BACKEND_CLASS=${STORAGE_BACKEND_CLASS}
     depends_on:
       - db
       - minio
@@ -31,6 +32,7 @@ services:
       - /app/node_modules
     environment:
       - VITE_API_URL=${VITE_API_URL}
+      - API_PROXY_TARGET=http://backend:8000
     depends_on:
       - backend
 

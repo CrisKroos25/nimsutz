@@ -1,0 +1,44 @@
+.scroll {
+    overflow-x: auto;
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
+}
+.scroll:focus-visible {
+    outline: var(--focus-width) solid var(--color-focus);
+    outline-offset: var(--focus-offset);
+}
+.table {
+    min-width: var(--table-min-width);
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+    text-align: left;
+}
+.table caption {
+    text-align: left;
+    padding: var(--space-3);
+    color: var(--color-text-muted);
+}
+.table th {
+    background: var(--color-table-header);
+    font-weight: var(--font-weight-semibold);
+}
+.table th,
+.table td {
+    padding: var(--space-3);
+    border-bottom: var(--border-width) solid var(--color-border);
+}
+.table td {
+    overflow-wrap: anywhere;
+}
+.table tbody tr:last-child td {
+    border-bottom: 0;
+}
+.table tbody tr:hover {
+    background: color-mix(in srgb, var(--color-secondary) 4%, transparent);
+}
+.message {
+    text-align: center;
+    color: var(--color-text-muted);
+}
