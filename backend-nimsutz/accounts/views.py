@@ -1,51 +1,76 @@
-import json
-
-from django.conf import settings
-from django.contrib.auth import authenticate, get_user_model, login, logout
-from django.http import JsonResponse
+# accounts/views.py
+from django.contrib.auth import login as django_login, logout as django_logout
 from django.middleware.csrf import get_token
-from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_GET, require_POST
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect
+from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework import status, permissions
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from . import services
+from .models import User
+from .serializers import LoginSerializer, UserSerializer
 
 
-def session_data(request):
-    user = request.user
-    return {
-        "user": {"id": user.pk, "email": user.email} if user.is_authenticated else None,
-        "csrfToken": get_token(request),
-    }
+class SessionView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        user_data = UserSerializer(request.user).data if request.user.is_authenticated else None
+        return Response({"user": user_data, "csrfToken": get_token(request)})
 
 
-@never_cache
-@require_GET
-def session_view(request):
-    return JsonResponse(session_data(request))
+@method_decorator(csrf_protect, name="dispatch")
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            user = services.authenticate_user(**serializer.validated_data)
+        except services.AuthenticationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
+        django_login(request, user)
+        return Response({"user": UserSerializer(user).data, "csrfToken": get_token(request)})
 
 
-@never_cache
-@require_POST
-def login_view(request):
-    try:
-        data = json.loads(request.body)
-        email, password = data.get("email"), data.get("password")
-        if not isinstance(email, str) or not isinstance(password, str):
-            raise ValueError
-        if not email.strip() or not password or len(email) > 254 or len(password) > 128:
-            raise ValueError
-    except (ValueError, AttributeError, UnicodeDecodeError):
-        return JsonResponse({"detail": "Ingresa un correo y una contraseña válidos."}, status=400)
-    user = get_user_model().objects.filter(pk=settings.SIMULATED_USER_ID).first()
-    authenticated = None
-    if settings.SIMULATED_AUTH_ENABLED and user and user.email.casefold() == email.strip().casefold():
-        authenticated = authenticate(request, username=user.get_username(), password=password)
-    if authenticated is None or authenticated.is_staff or authenticated.is_superuser:
-        return JsonResponse({"detail": "Correo o contraseña incorrectos."}, status=401)
-    login(request, authenticated)
-    return JsonResponse(session_data(request))
+@method_decorator(csrf_protect, name="dispatch")
+class LogoutView(APIView):
+    def post(self, request):
+        django_logout(request)
+        return Response({"user": None, "csrfToken": get_token(request)})
 
 
-@never_cache
-@require_POST
-def logout_view(request):
-    logout(request)
-    return JsonResponse(session_data(request))
+class SuspendUserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        target = get_object_or_404(User, pk=pk)
+        try:
+            target = services.suspend_account(actor=request.user, target=target)
+        except services.AuthorizationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except DjangoValidationError as e:
+            raise DRFValidationError({"detail": e.messages})
+        return Response(UserSerializer(target).data)
+
+
+class ReactivateUserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        target = get_object_or_404(User, pk=pk)
+        try:
+            target = services.reactivate_account(actor=request.user, target=target)
+        except services.AuthorizationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except DjangoValidationError as e:
+            raise DRFValidationError({"detail": e.messages})
+        return Response(UserSerializer(target).data)
