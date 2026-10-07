@@ -1,13 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@shared/auth/AuthContext';
+import { savePlanIntent } from '@shared/auth/accessFlow';
+import { PLAN_INFORMATION } from '@shared/planInformation';
 import { Check } from 'lucide-react';
 import Button from '../../shared/components/Button/Button';
 import styles from './Information.module.css';
-
-const PLANS = [
-    { name: 'Gratis', price: 0, storage: '100 MB' },
-    { name: 'Básico', price: 15, storage: '1 GB' },
-    { name: 'Premium', price: 30, storage: '5 GB' },
-];
 
 const FEATURES = [
     'Cargar archivos',
@@ -18,6 +16,17 @@ const FEATURES = [
 
 export default function PlansSection() {
     const [selectedPlan, setSelectedPlan] = useState(null);
+    const [error, setError] = useState('');
+    const navigate = useNavigate();
+    const { user, loading } = useAuth();
+    function select(plan) {
+        setError('');
+        try {
+            savePlanIntent(plan.code);
+            setSelectedPlan(plan.name);
+            navigate(user ? '/plans/summary' : '/register');
+        } catch { setError('No se pudo guardar tu selección. Permite el almacenamiento del navegador e inténtalo de nuevo.'); }
+    }
     return (
         <section
             id="plans"
@@ -28,8 +37,9 @@ export default function PlansSection() {
             <p className={styles.eyebrow}>UN ESPACIO A TU MEDIDA</p>
             <h2 id="plans-title">Elige el espacio para tus ideas</h2>
             <p>Tus documentos, organizados. Encuentra el plan que va contigo.</p>
+            {error && <p role="alert">{error}</p>}
             <div className={styles.plans}>
-                {PLANS.map((plan) => (
+                {PLAN_INFORMATION.map((plan) => (
                     <article
                         className={styles.plan}
                         data-selected={selectedPlan === plan.name}
@@ -64,7 +74,8 @@ export default function PlansSection() {
                             variant={selectedPlan === plan.name ? 'primary' : 'secondary'}
                             aria-label={'Seleccionar plan ' + plan.name}
                             aria-pressed={selectedPlan === plan.name}
-                            onClick={() => setSelectedPlan(plan.name)}
+                            disabled={loading}
+                            onClick={() => select(plan)}
                         >
                             Seleccionar plan
                         </Button>
