@@ -74,3 +74,30 @@ class ReactivateUserView(APIView):
         except DjangoValidationError as e:
             raise DRFValidationError({"detail": e.messages})
         return Response(UserSerializer(target).data)
+
+from .serializers import RegisterSerializer
+
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                "code": "validation_error",
+                "detail": "Datos inválidos",
+                "field_errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Guardar usuario
+        user = serializer.save()
+
+        # TODO: Asociar preferred_plan_version_id al registro (Tarea de integración con Cristian)
+        # preferred_plan_version_id = serializer.validated_data.get("preferred_plan_version_id")
+        
+        # TODO: Generar token y enviar correo de verificación (Fase 3)
+
+        return Response(
+            UserSerializer(user).data,
+            status=status.HTTP_201_CREATED
+        )
