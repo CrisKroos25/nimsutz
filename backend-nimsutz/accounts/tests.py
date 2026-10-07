@@ -1,3 +1,4 @@
+# accounts/tests.py
 import json
 
 from django.contrib.auth import get_user_model
@@ -9,7 +10,11 @@ class DemoSessionTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = get_user_model().objects.create_user(
-            pk=1, username="test-demo", email="demo@example.test", password="test-password"
+            name="Usuario Demo",
+            email="demo@example.test",
+            password="test-password",
+            account_status=get_user_model().AccountStatus.ACTIVE,
+            email_verified=True,
         )
 
     def setUp(self):
@@ -31,7 +36,7 @@ class DemoSessionTests(TestCase):
     def test_login_persists_and_logout_revokes_session(self):
         response = self.sign_in()
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(self.client.get("/api/auth/session/").json()["user"]["id"], 1)
+        self.assertEqual(self.client.get("/api/auth/session/").json()["user"]["id"], self.user.id)
         self.assertEqual(self.client.get("/api/folders/").status_code, 200)
         response = self.client.post("/api/auth/logout/", HTTP_X_CSRFTOKEN=response.json()["csrfToken"])
         self.assertEqual(response.status_code, 200)
@@ -49,7 +54,7 @@ class DemoSessionTests(TestCase):
         self.assertEqual(self.sign_in().status_code, 401)
 
     def test_other_account_rejected(self):
-        get_user_model().objects.create_user(username="other", email="other@example.test", password="test-password")
+        get_user_model().objects.create_user(name="Otro", email="other@example.test", password="test-password")
         self.assertEqual(self.sign_in(email="other@example.test").status_code, 401)
 
     def test_csrf_required_for_login_logout_and_file_mutations(self):
@@ -63,6 +68,70 @@ class DemoSessionTests(TestCase):
             response = self.client.post("/api/auth/login/", body, content_type="application/json", HTTP_X_CSRFTOKEN=self.token)
             self.assertEqual(response.status_code, 400)
 
-    @override_settings(SIMULATED_AUTH_ENABLED=False)
-    def test_demo_login_can_be_disabled(self):
-        self.assertEqual(self.sign_in().status_code, 401)
+
+class AdminActionsTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        User = get_user_model()
+        cls.admin = User.objects.create_user(
+            name="Admin", email="admin@example.test", password="test-password",
+            role=User.Role.ADMINISTRADOR, account_status=User.AccountStatus.ACTIVE,
+            email_verified=True,
+        )
+        cls.client_user = User.objects.create_user(
+            name="Cliente", email="cliente@example.test", password="test-password",
+            account_status=User.AccountStatus.ACTIVE, email_verified=True,
+        )
+
+    def login_as(self, email):
+        client = Client(enforce_csrf_checks=True)
+        token = client.get("/api/auth/session/").json()["csrfToken"]
+        response = client.post(
+            "/api/auth/login/",
+            data=json.dumps({"email": email, "password": "test-password"}),
+            content_type="application/json", HTTP_X_CSRFTOKEN=token,
+        )
+        return client, response.json()["csrfToken"]
+
+    def test_non_admin_cannot_suspend(self):
+        client, token = self.login_as("cliente@example.test")
+        response = client.post(
+            f"/api/admin/users/{self.admin.pk}/suspend/", HTTP_X_CSRFTOKEN=token
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_can_suspend_and_session_is_killed(self):
+        target_client, target_token = self.login_as("cliente@example.test")
+        self.assertEqual(target_client.get("/api/folders/").status_code, 200)
+
+        admin_client, admin_token = self.login_as("admin@example.test")
+        response = admin_client.post(
+            f"/api/admin/users/{self.client_user.pk}/suspend/", HTTP_X_CSRFTOKEN=admin_token
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # La MISMA sesión del cliente, ya iniciada antes de la suspensión,
+        # debe quedar invalidada en la siguiente petición (RN-E1-13).
+        self.assertEqual(target_client.get("/api/folders/").status_code, 403)
+
+    def test_cannot_suspend_self_or_another_admin(self):
+        admin_client, admin_token = self.login_as("admin@example.test")
+        self.assertEqual(
+            admin_client.post(f"/api/admin/users/{self.admin.pk}/suspend/", HTTP_X_CSRFTOKEN=admin_token).status_code,
+            400,
+        )
+
+    def test_suspend_is_idempotent(self):
+        admin_client, admin_token = self.login_as("admin@example.test")
+        for _ in range(2):
+            response = admin_client.post(
+                f"/api/admin/users/{self.client_user.pk}/suspend/", HTTP_X_CSRFTOKEN=admin_token
+            )
+            self.assertEqual(response.status_code, 200)
+
+    def test_reactivate_requires_suspended_status(self):
+        admin_client, admin_token = self.login_as("admin@example.test")
+        response = admin_client.post(
+            f"/api/admin/users/{self.client_user.pk}/reactivate/", HTTP_X_CSRFTOKEN=admin_token
+        )
+        self.assertEqual(response.status_code, 400)  # estaba activa, no suspendida

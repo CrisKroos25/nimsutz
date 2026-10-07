@@ -50,6 +50,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    "accounts.middleware.EnforceActiveAccountMiddleware",  
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -73,6 +74,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+AUTH_USER_MODEL = "accounts.User"
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
@@ -110,9 +112,6 @@ RESERVATION_TTL_MINUTES = 15
 SIMULATED_QUOTA_BYTES = int(
     os.getenv("SIMULATED_QUOTA_BYTES", 500 * 1024 * 1024)
 )
-SIMULATED_AUTH_ENABLED = os.getenv("SIMULATED_AUTH_ENABLED", "true").lower() == "true"
-SIMULATED_USER_ID = int(os.getenv("SIMULATED_USER_ID", default=1))
-
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
