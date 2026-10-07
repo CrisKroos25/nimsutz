@@ -8,6 +8,7 @@ export default function Header() {
     const { pathname } = useLocation();
     const title = pathname.startsWith('/profile')
         ? 'Mi perfil'
+        : pathname.startsWith('/plans') ? 'Planes'
         : pathname.startsWith('/trash') ? 'Papelera' : 'Mis archivos';
 
     return (
