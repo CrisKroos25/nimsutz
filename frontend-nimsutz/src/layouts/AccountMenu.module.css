@@ -1,0 +1,62 @@
+.account { position: relative; }
+.trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    max-width: 260px;
+    padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
+    border: var(--border-width) solid color-mix(in srgb, var(--color-secondary) 24%, var(--color-border));
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-secondary) 8%, var(--color-surface));
+    color: var(--color-text);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+}
+.trigger:hover { background: color-mix(in srgb, var(--color-secondary) 15%, var(--color-surface)); }
+.avatar {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-secondary) 18%, var(--color-surface));
+    color: var(--color-secondary);
+}
+.name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trigger > svg { flex-shrink: 0; }
+.panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + var(--space-2));
+    z-index: 20;
+    width: min(300px, calc(100vw - var(--space-6)));
+    padding: var(--space-2);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
+    box-shadow: var(--modal-shadow);
+    overflow-wrap: anywhere;
+}
+.identity { display: grid; gap: var(--space-1); padding: var(--space-3); border-bottom: var(--border-width) solid var(--color-border); }
+.identity span { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.panel nav { display: grid; }
+.panel nav a, .panel nav button {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-3);
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--color-text);
+    text-decoration: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+}
+.panel nav a:hover, .panel nav button:hover { background: var(--color-bg); }
+.panel nav button:disabled { opacity: var(--disabled-opacity); cursor: wait; }
+.error { color: var(--color-danger); padding: var(--space-2); font-size: var(--font-size-xs); }

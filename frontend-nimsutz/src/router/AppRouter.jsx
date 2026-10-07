@@ -7,6 +7,7 @@ import MainLayout from '@layouts/MainLayout';
 import PublicLayout from '@layouts/PublicLayout';
 import LandingPage from '../pages/LandingPage';
 import LoginPage from '../pages/LoginPage';
+import ProfilePage from '../pages/ProfilePage';
 import { FilesPage } from '@features/files/pages/FilePages';
 import TrashPage from '@features/files/pages/Trash';
 
@@ -34,6 +35,7 @@ export default function AppRouter() {
                         <Route element={<RequireSession />}>
                             <Route path="files/*" element={<FilesPage />} />
                             <Route path="trash/*" element={<TrashPage />} />
+                            <Route path="profile" element={<ProfilePage />} />
                         </Route>
                     </Route>
                 </Routes>

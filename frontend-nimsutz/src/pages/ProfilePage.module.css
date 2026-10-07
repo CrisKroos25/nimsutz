@@ -1,0 +1,30 @@
+.page { max-width: var(--content-width); display: grid; gap: var(--space-4); padding-block: var(--space-3); }
+.heading p { margin-top: var(--space-2); color: var(--color-text-muted); }
+.card { padding: var(--space-5); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-panel); background: var(--color-surface); box-shadow: var(--shadow-panel); min-width: 0; }
+.card h2 { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-md); }
+.card h2 svg { color: var(--color-secondary); flex-shrink: 0; }
+.identity { display: flex; align-items: center; gap: var(--space-5); margin-top: var(--space-5); }
+.avatar { width: 88px; height: 88px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--color-secondary) 12%, var(--color-surface)); color: var(--color-secondary); font-size: 2rem; font-weight: var(--font-weight-semibold); }
+.fields { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-3) var(--space-5); min-width: 0; margin: 0; }
+.fields dt { color: var(--color-text-muted); }
+.fields dd { margin: 0; overflow-wrap: anywhere; }
+.summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.plan { display: flex; align-items: center; gap: var(--space-4); margin-top: var(--space-5); }
+.plan > svg { color: var(--color-secondary); flex-shrink: 0; }
+.planName { font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); }
+.muted, .note, .demo { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.note { margin-top: var(--space-3); font-size: var(--font-size-xs); }
+.demo { margin-bottom: calc(-1 * var(--space-2)); }
+.usage { margin-top: var(--space-4); font-size: var(--font-size-sm); }
+.meter { display: flex; align-items: center; gap: var(--space-3); margin-block: var(--space-2); font-size: var(--font-size-xs); }
+.meter progress { appearance: none; flex: 1; min-width: 0; width: 100%; height: 12px; border: 0; border-radius: var(--radius-pill); overflow: hidden; background: var(--color-bg); color: var(--color-secondary); }
+.meter progress::-webkit-progress-bar { background: var(--color-bg); border-radius: var(--radius-pill); }
+.meter progress::-webkit-progress-value { background: var(--color-secondary); border-radius: var(--radius-pill); }
+.meter progress::-moz-progress-bar { background: var(--color-secondary); border-radius: var(--radius-pill); }
+@media (max-width: 760px) {
+    .summary { grid-template-columns: minmax(0, 1fr); }
+    .identity { align-items: flex-start; flex-direction: column; gap: var(--space-3); }
+    .fields { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+    .fields dd + dt { margin-top: var(--space-2); }
+    .card { padding: var(--space-4); }
+}
