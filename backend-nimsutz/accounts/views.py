@@ -95,9 +95,54 @@ class RegisterView(APIView):
         # TODO: Asociar preferred_plan_version_id al registro (Tarea de integración con Cristian)
         # preferred_plan_version_id = serializer.validated_data.get("preferred_plan_version_id")
         
-        # TODO: Generar token y enviar correo de verificación (Fase 3)
+        base_url = request.headers.get('Origin', 'http://localhost:5173')
+        token = services.generate_verification_token(user)
+        verification_link = f'{base_url}/verify-email?token={token}'
+        services.send_verification_email(user.email, user.name, verification_link)
 
         return Response(
             UserSerializer(user).data,
             status=status.HTTP_201_CREATED
         )
+
+from rest_framework.serializers import Serializer, CharField, EmailField
+
+class VerifyEmailSerializer(Serializer):
+    token = CharField(required=True)
+
+class ResendVerificationSerializer(Serializer):
+    email = EmailField(required=True)
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = VerifyEmailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            services.verify_email_with_token(serializer.validated_data["token"])
+        except services.TokenError as e:
+            return Response({"code": e.code, "detail": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"detail": "Correo verificado exitosamente."})
+
+class ResendVerificationView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResendVerificationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Obtenemos la base_url del frontend desde request o de settings
+        # Como es una demo, la construimos temporalmente hardcodeada o de Origin
+        base_url = request.headers.get("Origin", "http://localhost:5173")
+        
+        services.resend_verification_email(
+            email=serializer.validated_data["email"],
+            base_url=base_url
+        )
+        
+        return Response({
+            "detail": "Si el correo está registrado y pendiente, se ha enviado un nuevo enlace."
+        })
