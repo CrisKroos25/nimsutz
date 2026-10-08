@@ -1,4 +1,8 @@
 # accounts/models.py
+import secrets
+from datetime import timedelta
+from django.conf import settings
+from django.utils import timezone
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -72,3 +76,33 @@ class User(AbstractUser):
     def can_use_private_features(self):
         # RN-E1-05 / RN-E1-11 / RN-E1-12: verificado Y activo (no pendiente, no suspendido)
         return self.email_verified and self.account_status == self.AccountStatus.ACTIVE
+
+class PasswordResetToken(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="password_reset_tokens"
+    )
+    token = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    @classmethod
+    def issue(cls, user):
+        # RN-propia: invalidamos tokens anteriores sin usar antes de emitir uno nuevo,
+        # asi solo puede existir un link de recuperacion valido a la vez por usuario.
+        cls.objects.filter(user=user, used_at__isnull=True).update(used_at=timezone.now())
+
+        ttl = getattr(settings, "PASSWORD_RESET_TOKEN_TTL_MINUTES", 30)
+        return cls.objects.create(
+            user=user,
+            token=secrets.token_urlsafe(32),
+            expires_at=timezone.now() + timedelta(minutes=ttl),
+        )
+
+    @property
+    def is_valid(self):
+        return self.used_at is None and self.expires_at > timezone.now()
+
+    def mark_used(self):
+        self.used_at = timezone.now()
+        self.save(update_fields=["used_at"])

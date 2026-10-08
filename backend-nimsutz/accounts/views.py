@@ -11,9 +11,14 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from . import services
+from . import services, emails
 from .models import User
-from .serializers import LoginSerializer, UserSerializer
+from .serializers import (
+    LoginSerializer,
+    UserSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer,
+)
 
 
 class SessionView(APIView):
@@ -74,3 +79,35 @@ class ReactivateUserView(APIView):
         except DjangoValidationError as e:
             raise DRFValidationError({"detail": e.messages})
         return Response(UserSerializer(target).data)
+
+@method_decorator(csrf_protect, name="dispatch")
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        token = services.request_password_reset(**serializer.validated_data)
+        if token is not None:
+            emails.send_password_reset_email(user=token.user, token=token.token)
+
+        return Response(
+            {"detail": "Si el correo existe, se envio un enlace de recuperacion."}
+        )
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            services.confirm_password_reset(**serializer.validated_data)
+        except services.AuthenticationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response({"detail": "Contraseña actualizada correctamente."})

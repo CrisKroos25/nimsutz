@@ -5,6 +5,8 @@ auth_urlpatterns = [
     path("session/", views.SessionView.as_view()),
     path("login/", views.LoginView.as_view()),
     path("logout/", views.LogoutView.as_view()),
+    path("password-reset/", views.PasswordResetRequestView.as_view()),
+    path("password-reset/confirm/", views.PasswordResetConfirmView.as_view()),
 ]
 
 admin_urlpatterns = [

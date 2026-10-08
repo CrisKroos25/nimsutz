@@ -16,3 +16,22 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "email", "name", "role", "account_status", "email_verified"]
         read_only_fields = fields
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.CharField(max_length=254)
+
+    def validate_email(self, value):
+        value = value.strip().lower()
+        if not value:
+            raise serializers.ValidationError("Este campo es requerido.")
+        return value
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=64)
+    new_password = serializers.CharField(max_length=128, trim_whitespace=False)
+
+    def validate_new_password(self, value):
+        if len(value) < 8:
+            raise serializers.ValidationError("La contraseña debe tener al menos 8 caracteres.")
+        return value
