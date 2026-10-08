@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 import { AuthContext } from './AuthContext';
 import { apiRequest } from '../api/httpClient';
+import { clearPlanPreference, sessionDestination } from './accessFlow';
 
 export default function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [destination, setDestination] = useState('/files');
     async function refresh() {
         try {
             const data = await apiRequest('/api/auth/session/');
             setUser(data.user);
+            setDestination(sessionDestination(data));
             setError('');
         } catch {
             setUser(null);
@@ -19,7 +22,7 @@ export default function AuthProvider({ children }) {
     useEffect(() => {
         let active = true;
         apiRequest('/api/auth/session/').then((data) => {
-            if (active) { setUser(data.user); setError(''); }
+            if (active) { setUser(data.user); setDestination(sessionDestination(data)); setError(''); }
         }).catch(() => {
             if (active) setError('No se pudo conectar con el servicio. Inténtalo de nuevo.');
         }).finally(() => { if (active) setLoading(false); });
@@ -31,11 +34,14 @@ export default function AuthProvider({ children }) {
             body: JSON.stringify({ email, password }),
         });
         setUser(data.user);
+        setDestination(sessionDestination(data));
         setError('');
     }
     async function signOut() {
         await apiRequest('/api/auth/logout/', { method: 'POST' });
+        clearPlanPreference();
         setUser(null);
+        setDestination('/files');
     }
-    return <AuthContext.Provider value={{ user, loading, error, refresh, signIn, signOut }}>{children}</AuthContext.Provider>;
+    return <AuthContext.Provider value={{ user, loading, error, destination, refresh, signIn, signOut }}>{children}</AuthContext.Provider>;
 }

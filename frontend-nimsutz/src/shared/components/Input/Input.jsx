@@ -6,6 +6,8 @@ export default function Input({
     id,
     hint,
     error,
+    leadingIcon,
+    trailingAction,
     className = '',
     'aria-describedby': describedBy,
     ...props
@@ -22,13 +24,17 @@ export default function Input({
             <label htmlFor={inputId} className={styles.label}>
                 {label}
             </label>
-            <input
-                {...props}
-                id={inputId}
-                className={`${styles.input} ${className}`}
-                aria-invalid={error ? true : props['aria-invalid']}
-                aria-describedby={description}
-            />
+            <div className={styles.control}>
+                {leadingIcon && <span className={styles.leadingIcon} aria-hidden="true">{leadingIcon}</span>}
+                <input
+                    {...props}
+                    id={inputId}
+                    className={`${styles.input} ${leadingIcon ? styles.withIcon : ''} ${trailingAction ? styles.withAction : ''} ${className}`}
+                    aria-invalid={error ? true : props['aria-invalid']}
+                    aria-describedby={description}
+                />
+                {trailingAction && <span className={styles.trailingAction}>{trailingAction}</span>}
+            </div>
             {hint && (
                 <p id={`${inputId}-hint`} className={styles.hint}>
                     {hint}

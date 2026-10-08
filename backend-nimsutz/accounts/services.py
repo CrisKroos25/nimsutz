@@ -1,6 +1,10 @@
 # accounts/services.py
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
+from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
+from django.conf import settings
+from .models import PasswordResetToken
 
 from .models import User
 
@@ -61,11 +65,36 @@ def reactivate_account(*, actor, target):
     target.save(update_fields=["account_status", "updated_at"])
     return target
 
+def request_password_reset(*, email):
+    normalized_email = email.strip().lower()
 
-from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
-from django.conf import settings
+    try:
+        user = User.objects.get(email__iexact=normalized_email)
+    except User.DoesNotExist:
+        # RN propia: no revelamos si el correo existe o no (mismo criterio
+        # que authenticate_user con las credenciales de login).
+        return None
 
-# Placeholder for Miguel's service.
+    token = PasswordResetToken.issue(user)
+    return token
+
+
+def confirm_password_reset(*, token, new_password):
+    try:
+        reset_token = PasswordResetToken.objects.select_related("user").get(token=token)
+    except PasswordResetToken.DoesNotExist:
+        raise AuthenticationError("El enlace de recuperación no es válido.")
+
+    if not reset_token.is_valid:
+        raise AuthenticationError("El enlace de recuperación venció o ya fue usado.")
+
+    user = reset_token.user
+    validate_password(new_password, user)  # lanza ValidationError si es débil
+    user.set_password(new_password)
+    user.save(update_fields=["password"])
+    reset_token.mark_used()
+    return user
+
 def send_verification_email(user_email: str, user_name: str, verification_link: str) -> None:
     """
     MOCK: Envía el correo con la plantilla de verificación.

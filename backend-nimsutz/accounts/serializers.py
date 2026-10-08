@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.CharField(max_length=254)
@@ -17,8 +19,19 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["id", "email", "name", "role", "account_status", "email_verified"]
         read_only_fields = fields
 
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError as DjangoValidationError
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.CharField(max_length=254)
+
+    def validate_email(self, value):
+        value = value.strip().lower()
+        if not value:
+            raise serializers.ValidationError("Este campo es requerido.")
+        return value
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=64)
+    new_password = serializers.CharField(max_length=128, trim_whitespace=False)
 
 class RegisterSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)

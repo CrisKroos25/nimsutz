@@ -12,9 +12,8 @@
 .plan { display: flex; align-items: center; gap: var(--space-4); margin-top: var(--space-5); }
 .plan > svg { color: var(--color-secondary); flex-shrink: 0; }
 .planName { font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); }
-.muted, .note, .demo { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.muted, .note { color: var(--color-text-muted); font-size: var(--font-size-sm); }
 .note { margin-top: var(--space-3); font-size: var(--font-size-xs); }
-.demo { margin-bottom: calc(-1 * var(--space-2)); }
 .usage { margin-top: var(--space-4); font-size: var(--font-size-sm); }
 .meter { display: flex; align-items: center; gap: var(--space-3); margin-block: var(--space-2); font-size: var(--font-size-xs); }
 .meter progress { appearance: none; flex: 1; min-width: 0; width: 100%; height: 12px; border: 0; border-radius: var(--radius-pill); overflow: hidden; background: var(--color-bg); color: var(--color-secondary); }
