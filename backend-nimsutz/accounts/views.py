@@ -109,5 +109,7 @@ class PasswordResetConfirmView(APIView):
             services.confirm_password_reset(**serializer.validated_data)
         except services.AuthenticationError as e:
             return Response({"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        except DjangoValidationError as e:
+            raise DRFValidationError({"new_password": e.messages})
 
         return Response({"detail": "Contraseña actualizada correctamente."})

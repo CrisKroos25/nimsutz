@@ -249,3 +249,30 @@ class PasswordResetTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_confirm_rejects_common_password_and_keeps_token_usable(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+        self.assertEqual(self.confirm(token.token, "password123").status_code, 400)
+        token.refresh_from_db()
+        self.assertIsNone(token.used_at)
+        self.assertEqual(self.confirm(token.token).status_code, 200)
+
+    def test_confirm_invalidates_existing_sessions(self):
+        old_client = Client(enforce_csrf_checks=True)
+        csrf = old_client.get("/api/auth/session/").json()["csrfToken"]
+        login = old_client.post(
+            "/api/auth/login/",
+            data=json.dumps({"email": "ana@example.test", "password": "old-password-123"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(old_client.get("/api/folders/").status_code, 200)
+
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+        self.assertEqual(self.confirm(token.token).status_code, 200)
+
+        self.assertEqual(old_client.get("/api/folders/").status_code, 403)
+        self.assertIsNone(old_client.get("/api/auth/session/").json()["user"])

@@ -30,8 +30,3 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 class PasswordResetConfirmSerializer(serializers.Serializer):
     token = serializers.CharField(max_length=64)
     new_password = serializers.CharField(max_length=128, trim_whitespace=False)
-
-    def validate_new_password(self, value):
-        if len(value) < 8:
-            raise serializers.ValidationError("La contraseña debe tener al menos 8 caracteres.")
-        return value
