@@ -41,10 +41,7 @@ export default function LoginPage() {
             <form onSubmit={submit}>
                 <Input label="Correo electrónico" type="email" placeholder="tu@correo.com" leadingIcon={<Mail size={18} />} autoComplete="username" name="email" maxLength={254} required disabled={busy || loading} error={fieldMessage(errors.email)} />
                 <PasswordInput label="Contraseña" placeholder="Tu contraseña" autoComplete="current-password" name="password" maxLength={128} required disabled={busy || loading} error={fieldMessage(errors.password)} />
-                <details className={styles.recovery}>
-                    <summary>Olvidé mi contraseña</summary>
-                    <p>La recuperación de contraseña estará disponible próximamente.</p>
-                </details>
+                   <p className={styles.recovery}><Link to="/forgot-password">Olvidé mi contraseña</Link></p>
                 {error && <p role="alert" className={styles.error}>{error}</p>}
                 <Button type="submit" loading={busy} disabled={loading}>Ingresar</Button>
             </form>
