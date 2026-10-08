@@ -90,7 +90,10 @@ class PasswordResetRequestView(APIView):
 
         token = services.request_password_reset(**serializer.validated_data)
         if token is not None:
-            emails.send_password_reset_email(user=token.user, token=token.token)
+            try:
+                emails.send_password_reset_email(user=token.user, token=token.token)
+            except emails.EmailDeliveryError:
+                pass
 
         return Response(
             {"detail": "Si el correo existe, se envio un enlace de recuperacion."}

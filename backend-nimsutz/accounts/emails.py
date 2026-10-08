@@ -1,17 +1,30 @@
+import logging
+import smtplib
+
 from django.conf import settings
 from django.core.mail import send_mail
+
+logger = logging.getLogger(__name__)
+
+
+class EmailDeliveryError(Exception):
+    """El proveedor de correo no pudo entregar el mensaje."""
 
 
 def _send(*, to_email, subject, body):
     # Punto único de envío: la verificación de correo de Rodrigo puede
     # reutilizar esta función sin tocar las reglas de token de recuperación.
-    send_mail(
-        subject=subject,
-        message=body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[to_email],
-        fail_silently=False,
-    )
+    try:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[to_email],
+            fail_silently=False,
+        )
+    except (smtplib.SMTPException, OSError) as exc:
+        logger.error("Fallo el envio de correo a %s: %s", to_email, exc)
+        raise EmailDeliveryError(str(exc)) from exc
 
 
 def send_password_reset_email(*, user, token):

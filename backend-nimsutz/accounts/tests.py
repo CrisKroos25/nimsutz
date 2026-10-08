@@ -1,5 +1,6 @@
 # accounts/tests.py
 import json
+import smtplib
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
@@ -7,6 +8,7 @@ from django.core import mail
 from django.utils import timezone
 
 from datetime import timedelta
+from unittest import mock
 
 from .models import PasswordResetToken
 
@@ -240,6 +242,14 @@ class PasswordResetTests(TestCase):
         self.assertEqual(self.user.account_status, "activa")
         self.assertEqual(self.user.role, "cliente")
         self.assertTrue(self.user.email_verified)
+
+    def test_request_survives_email_provider_failure(self):
+        with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("caido")):
+            with self.assertLogs("accounts.emails", level="ERROR"):
+                response = self.request_reset()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(PasswordResetToken.objects.filter(user=self.user).count(), 1)
 
     def test_csrf_required(self):
         client = Client(enforce_csrf_checks=True)
