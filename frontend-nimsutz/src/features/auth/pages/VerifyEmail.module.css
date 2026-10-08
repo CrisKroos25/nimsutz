@@ -1,0 +1,128 @@
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background-color: var(--bg-primary, #121212);
+    color: var(--text-primary, #ffffff);
+    padding: 20px;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.card {
+    background-color: var(--bg-surface, #1e1e1e);
+    border: 1px solid var(--border-color, #333333);
+    border-radius: 12px;
+    padding: 40px;
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.icon {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: center;
+}
+
+.icon svg {
+    color: var(--accent-color, #3b82f6);
+}
+
+.icon.success svg {
+    color: #10b981;
+}
+
+.icon.error svg {
+    color: #ef4444;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.message {
+    color: var(--text-secondary, #a1a1aa);
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 32px;
+}
+
+.inputGroup {
+    margin-bottom: 24px;
+    text-align: left;
+}
+
+.inputGroup label {
+    display: block;
+    font-size: 0.875rem;
+    margin-bottom: 8px;
+    color: var(--text-secondary, #a1a1aa);
+}
+
+.input {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--bg-input, #2a2a2a);
+    border: 1px solid var(--border-color, #444);
+    border-radius: 8px;
+    color: var(--text-primary, #fff);
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--accent-color, #3b82f6);
+}
+
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.primaryBtn, .secondaryBtn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    border: none;
+    width: 100%;
+}
+
+.primaryBtn {
+    background-color: var(--accent-color, #3b82f6);
+    color: white;
+}
+
+.primaryBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.secondaryBtn {
+    background-color: transparent;
+    border: 1px solid var(--border-color, #444);
+    color: var(--text-primary, #fff);
+}
+
+.secondaryBtn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Spinner */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
