@@ -1,0 +1,44 @@
+.page { display: grid; gap: var(--space-4); }
+.page form { display: grid; gap: var(--space-4); }
+
+.heading p { margin-top: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm); }
+
+/* Estados con icono centrado: correo enviado, contraseña actualizada, enlace no válido. */
+.status { display: grid; justify-items: center; gap: var(--space-3); text-align: center; }
+.status h1:focus { outline: none; }
+.status p { max-width: 40ch; color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.titleSuccess { color: var(--color-success-text); }
+
+.icon {
+    display: grid;
+    place-items: center;
+    width: calc(var(--icon-badge-size) * 1.5);
+    height: calc(var(--icon-badge-size) * 1.5);
+    margin-bottom: var(--space-2);
+    border-radius: 50%;
+    color: var(--color-secondary);
+    background: color-mix(in srgb, var(--color-secondary) 14%, var(--color-surface));
+}
+.iconSuccess {
+    color: var(--color-success-text);
+    background: color-mix(in srgb, var(--color-success) 16%, var(--color-surface));
+}
+.iconDanger {
+    color: var(--color-danger);
+    background: color-mix(in srgb, var(--color-danger) 14%, var(--color-surface));
+}
+
+.actions { display: grid; gap: var(--space-3); width: 100%; margin-top: var(--space-3); }
+.linkButton { text-decoration: none; }
+
+.error { color: var(--color-danger); font-size: var(--font-size-sm); }
+.notice { color: var(--color-success-text); font-size: var(--font-size-sm); }
+
+.back { text-align: center; font-size: var(--font-size-sm); }
+.back a { color: var(--color-text-muted); text-decoration: none; }
+.back a:hover { text-decoration: underline; }
+
+.requirements { display: grid; gap: var(--space-1); }
+.requirements span { display: flex; align-items: baseline; gap: var(--space-2); }
+.requirements svg { flex-shrink: 0; }
+.valid { color: var(--color-success-text); }

@@ -1,9 +1,16 @@
 # accounts/tests.py
 import json
+import smtplib
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
+from django.core import mail
+from django.utils import timezone
 
+from datetime import timedelta
+from unittest import mock
+
+from .models import PasswordResetToken
 
 @override_settings(SIMULATED_AUTH_ENABLED=True, SIMULATED_USER_ID=1)
 class DemoSessionTests(TestCase):
@@ -135,3 +142,147 @@ class AdminActionsTests(TestCase):
             f"/api/admin/users/{self.client_user.pk}/reactivate/", HTTP_X_CSRFTOKEN=admin_token
         )
         self.assertEqual(response.status_code, 400)  # estaba activa, no suspendida
+
+class PasswordResetTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        User = get_user_model()
+        cls.user = User.objects.create_user(
+            name="Ana Prueba",
+            email="ana@example.test",
+            password="old-password-123",
+            account_status=User.AccountStatus.ACTIVE,
+            email_verified=True,
+        )
+
+    def setUp(self):
+        self.client = Client(enforce_csrf_checks=True)
+        self.csrf = self.client.get("/api/auth/session/").json()["csrfToken"]
+
+    def post(self, path, payload):
+        return self.client.post(
+            path,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=self.csrf,
+        )
+
+    def request_reset(self, email="ana@example.test"):
+        return self.post("/api/auth/password-reset/", {"email": email})
+
+    def confirm(self, token, new_password="new-password-123"):
+        return self.post(
+            "/api/auth/password-reset/confirm/",
+            {"token": token, "new_password": new_password},
+        )
+
+    def test_request_sends_email_and_creates_token(self):
+        response = self.request_reset()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["ana@example.test"])
+        token = PasswordResetToken.objects.get(user=self.user)
+        self.assertIn(token.token, mail.outbox[0].body)
+
+    def test_request_unknown_email_does_not_reveal_anything(self):
+        known = self.request_reset()
+        unknown = self.request_reset("nadie@example.test")
+        self.assertEqual(unknown.status_code, 200)
+        self.assertEqual(unknown.json(), known.json())
+        self.assertEqual(len(mail.outbox), 1)  # solo el de la cuenta real
+        self.assertEqual(PasswordResetToken.objects.count(), 1)
+
+    def test_new_request_invalidates_previous_token(self):
+        self.request_reset()
+        first = PasswordResetToken.objects.get(user=self.user)
+        self.request_reset()
+        first.refresh_from_db()
+        self.assertIsNotNone(first.used_at)
+        self.assertEqual(self.confirm(first.token).status_code, 401)
+
+    def test_confirm_changes_password_and_allows_login(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+        self.assertEqual(self.confirm(token.token).status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("new-password-123"))
+        token.refresh_from_db()
+        self.assertIsNotNone(token.used_at)
+
+    def test_confirm_token_cannot_be_reused(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+        self.assertEqual(self.confirm(token.token).status_code, 200)
+        self.assertEqual(self.confirm(token.token, "other-password-1").status_code, 401)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("new-password-123"))
+
+    def test_confirm_invalid_token(self):
+        self.assertEqual(self.confirm("token-que-no-existe").status_code, 401)
+
+    def test_confirm_expired_token(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+        token.expires_at = timezone.now() - timedelta(minutes=1)
+        token.save(update_fields=["expires_at"])
+        self.assertEqual(self.confirm(token.token).status_code, 401)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("old-password-123"))
+
+    def test_confirm_rejects_short_password(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+        self.assertEqual(self.confirm(token.token, "corta").status_code, 400)
+
+    def test_reset_does_not_change_account_status_or_role(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+        self.confirm(token.token)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.account_status, "activa")
+        self.assertEqual(self.user.role, "cliente")
+        self.assertTrue(self.user.email_verified)
+
+    def test_request_survives_email_provider_failure(self):
+        with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("caido")):
+            with self.assertLogs("accounts.emails", level="ERROR"):
+                response = self.request_reset()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(PasswordResetToken.objects.filter(user=self.user).count(), 1)
+
+    def test_csrf_required(self):
+        client = Client(enforce_csrf_checks=True)
+        response = client.post(
+            "/api/auth/password-reset/",
+            data=json.dumps({"email": "ana@example.test"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_confirm_rejects_common_password_and_keeps_token_usable(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+        self.assertEqual(self.confirm(token.token, "password123").status_code, 400)
+        token.refresh_from_db()
+        self.assertIsNone(token.used_at)
+        self.assertEqual(self.confirm(token.token).status_code, 200)
+
+    def test_confirm_invalidates_existing_sessions(self):
+        old_client = Client(enforce_csrf_checks=True)
+        csrf = old_client.get("/api/auth/session/").json()["csrfToken"]
+        login = old_client.post(
+            "/api/auth/login/",
+            data=json.dumps({"email": "ana@example.test", "password": "old-password-123"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(old_client.get("/api/folders/").status_code, 200)
+
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+        self.assertEqual(self.confirm(token.token).status_code, 200)
+
+        self.assertEqual(old_client.get("/api/folders/").status_code, 403)
+        self.assertIsNone(old_client.get("/api/auth/session/").json()["user"])

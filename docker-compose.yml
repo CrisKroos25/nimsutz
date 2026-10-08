@@ -19,6 +19,9 @@ services:
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
       - STORAGE_BACKEND_CLASS=${STORAGE_BACKEND_CLASS}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@nimsutz.local}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - PASSWORD_RESET_TOKEN_TTL_MINUTES=${PASSWORD_RESET_TOKEN_TTL_MINUTES:-30}
     depends_on:
       - db
       - minio

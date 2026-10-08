@@ -12,12 +12,8 @@
 .page .error { color: var(--color-danger); font-size: var(--font-size-sm); }
 .notice { display: grid; gap: var(--space-3); padding: var(--space-4); border: var(--border-width) solid var(--color-border); border-radius: var(--radius); background: var(--color-bg); overflow-wrap: anywhere; }
 .notice p { color: var(--color-text-muted); font-size: var(--font-size-sm); }
-.recovery { margin-top: calc(-1 * var(--space-2)); font-size: var(--font-size-sm); text-align: right; }
-.recovery summary { color: var(--color-secondary); cursor: pointer; list-style: none; }
-.recovery summary::-webkit-details-marker { display: none; }
-.recovery summary:hover { text-decoration: underline; }
-.recovery summary:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--focus-offset); border-radius: var(--radius); }
-.recovery p { margin-top: var(--space-2); color: var(--color-text-muted); }
+.recovery a { color: var(--color-secondary); text-decoration: none; }
+.recovery a:hover { text-decoration: underline; }
 .requirements { display: grid; gap: var(--space-1); }
 .requirements > span > span { display: flex; align-items: baseline; gap: var(--space-2); }
 .requirements svg { flex-shrink: 0; }
