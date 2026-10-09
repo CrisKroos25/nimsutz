@@ -61,12 +61,15 @@ def delete_folder(*, folder):
 
 # Files
 
+def get_used_bytes(owner):
+    return QuotaReservation.objects.filter(
+        owner=owner,
+        status__in=[QuotaReservation.Status.PENDING, QuotaReservation.Status.CONFIRMED],
+    ).aggregate(total=Sum("reserved_bytes"))["total"] or 0
+
 def get_available_quota(owner):
     """RN-E3-22/23/24: consumo = archivos activos + reservas pendientes (incluye papelera)."""
-    used = QuotaReservation.objects.filter(
-        owner=owner, status__in=[QuotaReservation.Status.PENDING, QuotaReservation.Status.CONFIRMED]
-    ).aggregate(total=Sum("reserved_bytes"))["total"] or 0
-    return settings.SIMULATED_QUOTA_BYTES - used
+    return settings.SIMULATED_QUOTA_BYTES - get_used_bytes(owner)
 
 
 def request_upload(*, owner, folder, original_name, content_type, size_bytes):
