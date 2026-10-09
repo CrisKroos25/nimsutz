@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'accounts',
     'files',
+    'subscriptions'
 ]
 
 MIDDLEWARE = [
@@ -112,6 +113,8 @@ RESERVATION_TTL_MINUTES = 15
 SIMULATED_QUOTA_BYTES = int(
     os.getenv("SIMULATED_QUOTA_BYTES", 500 * 1024 * 1024)
 )
+
+PAID_PLANS_ENABLED = os.getenv("PAID_PLANS_ENABLED", "false").lower() == "true"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
