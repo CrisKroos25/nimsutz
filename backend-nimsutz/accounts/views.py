@@ -11,6 +11,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.serializers import Serializer, CharField, EmailField
+from subscriptions.services import resolve_destination
 
 from . import services, emails
 from .models import User
@@ -22,6 +23,13 @@ from .serializers import (
     RegisterSerializer,
 )
 
+
+def _auth_payload(request, user):
+    return {
+        "user": UserSerializer(user).data if user else None,
+        "destination": resolve_destination(user) if user else None,
+        "csrfToken": get_token(request),
+    }
 
 class SessionView(APIView):
     permission_classes = [AllowAny]
