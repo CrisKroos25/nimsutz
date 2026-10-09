@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Loader2, CheckCircle, XCircle, AlertTriangle, Mail } from 'lucide-react';
 import { verificationApi } from '../api/verificationApi';
 import styles from './VerifyEmail.module.css';
@@ -95,9 +96,9 @@ export default function VerifyEmail() {
                         Ya puedes iniciar sesión para configurar tu plan de almacenamiento.
                     </p>
                     <div className={styles.actions}>
-                        <a href="/login" className={styles.primaryBtn} style={{ textDecoration: 'none', display: 'block' }}>
+                        <Link to="/login" className={styles.primaryBtn} style={{ textDecoration: 'none', display: 'block' }}>
                             Ir al inicio de sesión
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -146,9 +147,9 @@ export default function VerifyEmail() {
                                     <><Mail size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Enviar nuevo enlace</>
                                 )}
                             </button>
-                            <a href="/login" className={styles.secondaryBtn} style={{ textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                            <Link to="/login" className={styles.secondaryBtn} style={{ textDecoration: 'none', display: 'block', textAlign: 'center' }}>
                                 Volver al inicio
-                            </a>
+                            </Link>
                         </div>
                     </form>
                 </div>
@@ -171,9 +172,9 @@ export default function VerifyEmail() {
                 </p>
                 <div className={styles.actions}>
                     {errorCode === 'used_token' ? (
-                        <a href="/login" className={styles.primaryBtn} style={{ textDecoration: 'none', display: 'block' }}>
+                        <Link to="/login" className={styles.primaryBtn} style={{ textDecoration: 'none', display: 'block' }}>
                             Ir al inicio de sesión
-                        </a>
+                        </Link>
                     ) : (
                         <button 
                             type="button" 

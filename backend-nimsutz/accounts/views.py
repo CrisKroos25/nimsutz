@@ -19,6 +19,7 @@ from .serializers import (
     UserSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
+    RegisterSerializer,
 )
 
 
@@ -139,10 +140,24 @@ class RegisterView(APIView):
         base_url = request.headers.get('Origin', 'http://localhost:5173')
         token = services.generate_verification_token(user)
         verification_link = f'{base_url}/verify-email?token={token}'
-        services.send_verification_email(user.email, user.name, verification_link)
+        
+        email_sent = False
+        try:
+            services.send_verification_email(user.email, user.name, verification_link)
+            email_sent = True
+        except Exception:
+            pass # Si falla el correo, queda en email_sent = False
+
+        # Simulamos que se guardó la preferencia porque aún Cristian no ha integrado subscriptions
+        preference_saved = serializer.validated_data.get("preferred_plan_version_id") is not None
+
+        response_data = UserSerializer(user).data
+        response_data["status"] = "pending_verification"
+        response_data["email_sent"] = email_sent
+        response_data["preference_saved"] = preference_saved
 
         return Response(
-            UserSerializer(user).data,
+            response_data,
             status=status.HTTP_201_CREATED
         )
 

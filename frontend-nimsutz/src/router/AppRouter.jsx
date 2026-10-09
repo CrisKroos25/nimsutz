@@ -15,6 +15,7 @@ import { FilesPage } from '@features/files/pages/FilePages';
 import TrashPage from '@features/files/pages/Trash';
 import ForgotPassword from '@features/auth/pages/ForgotPassword';
 import ResetPassword from '@features/auth/pages/ResetPassword';
+import VerifyEmail from '@features/auth/pages/VerifyEmail';
 
 export default function AppRouter() {
     const theme = useTheme();
@@ -38,6 +39,7 @@ export default function AppRouter() {
                     <Route element={<AuthLayout {...theme} />}>
                         <Route path="login" element={<LoginPage />} />
                         <Route path="register" element={<RegisterPage />} />
+                        <Route path="verify-email" element={<VerifyEmail />} />
                         <Route path="forgot-password" element={<ForgotPassword />} />
                         <Route path="reset-password" element={<ResetPassword />} />
                     </Route>
