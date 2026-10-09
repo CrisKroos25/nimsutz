@@ -7,6 +7,7 @@ urlpatterns = [
     path('api/', include('files.urls')),    
     path("api/plans/", include(plan_urlpatterns)),
     path("api/subscriptions/", include(subscription_urlpatterns)),
+    path("api/account/", include(account_urlpatterns)),
     path("api/auth/", include(auth_urlpatterns)),
     path("api/admin/", include(admin_urlpatterns)),
 ]
