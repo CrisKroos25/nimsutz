@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AuthContext } from './AuthContext';
 import { apiRequest } from '../api/httpClient';
+import { withAccountDestination } from '../api/accountApi';
 import { clearPlanPreference, sessionDestination } from './accessFlow';
 
 export default function AuthProvider({ children }) {
@@ -10,7 +11,7 @@ export default function AuthProvider({ children }) {
     const [destination, setDestination] = useState('/files');
     async function refresh() {
         try {
-            const data = await apiRequest('/api/auth/session/');
+            const data = await withAccountDestination(await apiRequest('/api/auth/session/'));
             setUser(data.user);
             setDestination(sessionDestination(data));
             setError('');
@@ -21,7 +22,7 @@ export default function AuthProvider({ children }) {
     }
     useEffect(() => {
         let active = true;
-        apiRequest('/api/auth/session/').then((data) => {
+        apiRequest('/api/auth/session/').then(withAccountDestination).then((data) => {
             if (active) { setUser(data.user); setDestination(sessionDestination(data)); setError(''); }
         }).catch(() => {
             if (active) setError('No se pudo conectar con el servicio. Inténtalo de nuevo.');
@@ -33,8 +34,9 @@ export default function AuthProvider({ children }) {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
         });
-        setUser(data.user);
-        setDestination(sessionDestination(data));
+        const account = await withAccountDestination(data);
+        setUser(account.user);
+        setDestination(sessionDestination(account));
         setError('');
     }
     async function signOut() {

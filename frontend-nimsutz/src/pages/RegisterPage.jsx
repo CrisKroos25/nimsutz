@@ -3,7 +3,7 @@ import { Check, Circle, Mail, UserRound } from 'lucide-react';
 import PasswordInput from '@shared/components/Input/PasswordInput';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthContext';
-import { fieldMessage, readPlanPreference, clearPlanPreference, validateRegistration, passwordRequirements } from '@shared/auth/accessFlow';
+import { fieldMessage, readPlanPreference, validateRegistration, passwordRequirements } from '@shared/auth/accessFlow';
 import { registerAccount, serviceMessage } from '@shared/api/accountApi';
 import Input from '@shared/components/Input/Input';
 import Button from '@shared/components/Button/Button';
@@ -50,7 +50,7 @@ export default function RegisterPage() {
             const result = await registerAccount({ ...values, name: values.name.trim(), email: values.email.trim(),
                 ...(preference ? { preferred_plan_version_id: preference } : {}) });
             if (result?.status !== 'pending_verification') throw new Error('No se pudo confirmar el registro. Intenta iniciar sesión antes de repetirlo.');
-            if (preference && result.preference_saved === true) clearPlanPreference();
+            // La preferencia se conserva hasta que el endpoint autenticado confirme su guardado.
             setRegistered({ email: values.email.trim(), emailSent: result.email_sent === true });
             form.reset();
         } catch (failure) {

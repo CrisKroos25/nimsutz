@@ -34,8 +34,9 @@ export function clearPlanPreference() {
 
 export function sessionDestination(data) {
     if (data?.user?.role === 'administrador') return '/profile';
+    if (data?.destination === 'files') return '/files';
     if (readPlanPreference() || readPlanIntent()) return '/plans/summary';
-    return DESTINATIONS[data?.next] || '/files';
+    return DESTINATIONS[data?.destination ?? data?.next] || '/files';
 }
 
 export function fieldMessage(value) {

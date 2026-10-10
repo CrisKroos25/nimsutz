@@ -114,3 +114,19 @@ Los pagos siguen pendientes; una cuenta con un plan activo necesita el flujo com
 La landing ahora guarda inmediatamente solo el código público (gratis/basico/premium) en sessionStorage y navega a registro o resumen según la sesión. No consulta GET /api/plans/ antes de redirigir. Esta intención sustituye a una selección temporal anterior, no concede cobertura y no inventa version_id.
 El resumen resuelve el código contra el catálogo del servidor cuando esté disponible, guarda la versión validada y exige confirmar sus condiciones. Mientras falta la API muestra el plan informativo elegido, permite cambiarlo o salir, sin activar ni cobrar. Logout elimina tanto el código temporal como la versión temporal.
 Este ajuste reemplaza la descripción anterior que exigía resolver el catálogo en la landing. La continuidad en el mismo navegador está preparada; persistir una intención sin versión durante registro para otro dispositivo requiere acordar esa entrada con Rodrigo/Cristian. Nunca enviar el código como si fuera preferred_plan_version_id.
+
+
+## Integración con subscriptions — 10 de octubre de 2026
+
+Esta sección sustituye las suposiciones de contratos de suscripciones de las notas anteriores.
+
+- accountApi adapta plan_code (free/basic/premium) a los identificadores de la landing; contractable controla disponibilidad y duration_days se muestra sin inventar periodicidad.
+- GET preference devuelve {preference: null|{version_id,is_current,...}}; PUT envía plan_version_id. Una versión vencida exige seleccionar nuevamente.
+- Overview devuelve coverage, usage y destination. Se adapta a las pantallas existentes; una respuesta incompleta produce error, nunca Sin plan activo.
+- La sesión consulta overview para obtener el destino mientras login/session no lo incluyen. Cobertura activa permite volver a archivos aunque exista intención local. No sustituye permisos del backend.
+- La preferencia local solo se limpia después de guardarla en el endpoint autenticado. El registro actual declara preference_saved sin persistirla, por eso no se utiliza esa bandera para borrarla. Continuidad entre dispositivos sigue pendiente del backend.
+- Antes de activar Gratis se reconsulta la versión y capacidad del catálogo. El backend aún ignora plan_version_id en activate-free: debe validarlo de forma atómica para cubrir cambios concurrentes entre consulta y activación.
+
+Verificación: build y ESLint de archivos modificados; pruebas Node del contrato y navegación. Navegador contra API local: Premium desde landing -> registro -> login Ana -> resumen Premium; cambio a Gratis -> activación -> perfil con 100 MB -> recarga -> archivos. La cuenta local ana@nimsutz.local quedó con Gratis activo durante la prueba. No se modificó código backend.
+
+Pendientes externos: cuota de cargas sigue simulada, falta release_expired_uploads, entrega de correo y registro/verificación completos no se validaron en este cambio. No declarar cerrado el recorrido completo de usuarios y archivos.

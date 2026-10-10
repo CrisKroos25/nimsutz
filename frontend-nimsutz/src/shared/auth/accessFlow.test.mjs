@@ -1,7 +1,7 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateRegistration, passwordRequirements, sessionDestination, readPlanPreference, savePlanPreference, clearPlanPreference, readPlanIntent, savePlanIntent } from './accessFlow.js';
-import { getPlans, validateSubscription, registerAccount, serviceMessage } from '../api/accountApi.js';
+import { getPlans, getPreference, setPreference, getAccountOverview, withAccountDestination, validateSubscription, registerAccount, serviceMessage } from '../api/accountApi.js';
 
 beforeEach(() => {
     const storage = new Map();
@@ -71,7 +71,7 @@ test('catálogo exige condiciones válidas del servidor', async () => {
     try {
         globalThis.fetch = async () => Response.json({ plans: [{ name: 'Gratis' }] });
         await assert.rejects(getPlans);
-        globalThis.fetch = async () => Response.json({ plans: [{ code: 'gratis', version_id: 'g1', name: 'Gratis', price: '0', currency: 'GTQ', capacity_bytes: 104857600, available: true }] });
+        globalThis.fetch = async () => Response.json({ plans: [{ plan_code: 'free', version_id: 'g1', name: 'Gratis', price: '0', currency: 'GTQ', capacity_bytes: 104857600, contractable: true }] });
         assert.equal((await getPlans())[0].version_id, 'g1');
     } finally { globalThis.fetch = original; }
 });
@@ -93,4 +93,46 @@ test('registro usa CSRF y conserva errores por campo sin fingir éxito', async (
 });
 test('API ausente produce un mensaje de indisponibilidad', () => {
     assert.match(serviceMessage({ status: 404 }, 'El registro'), /no está disponible/);
+});
+
+
+test('preferencia usa el contrato real y conserva versiones desactualizadas', async () => {
+    const original = globalThis.fetch;
+    try {
+        globalThis.fetch = async (path, options) => {
+            if (path.endsWith('/session/')) return Response.json({ csrfToken: 'test-csrf' });
+            if (options.method === 'PUT') assert.deepEqual(JSON.parse(options.body), { plan_version_id: 3 });
+            return Response.json({ preference: { version_id: 3, is_current: false } });
+        };
+        assert.deepEqual(await getPreference(), { preferred_plan_version_id: 3, is_current: false });
+        await setPreference(3);
+        globalThis.fetch = async () => Response.json({});
+        await assert.rejects(getPreference);
+    } finally { globalThis.fetch = original; }
+});
+
+test('perfil distingue cobertura ausente, nula y activa usando usage real', async () => {
+    const original = globalThis.fetch;
+    try {
+        globalThis.fetch = async () => Response.json({ coverage: null, usage: { used_bytes: 0, capacity_bytes: 0 }, destination: 'plans' });
+        assert.equal((await getAccountOverview()).subscription, null);
+        const session = { user: { id: 1, role: 'cliente' } };
+        assert.equal(sessionDestination(await withAccountDestination(session)), '/plans');
+        globalThis.fetch = async () => Response.json({ coverage: { plan: { name: 'Gratis' } }, usage: { used_bytes: 512, capacity_bytes: 104857600 }, destination: 'files' });
+        const overview = await getAccountOverview();
+        assert.equal(overview.subscription.plan.name, 'Gratis');
+        assert.equal(overview.storage.used_bytes, 512);
+        assert.equal(sessionDestination(await withAccountDestination(session)), '/files');
+        globalThis.fetch = async () => Response.json({ usage: {} });
+        await assert.rejects(getAccountOverview);
+        await assert.rejects(withAccountDestination(session));
+        assert.deepEqual(await withAccountDestination({ user: null }), { user: null });
+    } finally { globalThis.fetch = original; }
+});
+
+
+test('una preferencia no bloquea archivos cuando el servidor confirma cobertura', () => {
+    savePlanIntent('premium');
+    assert.equal(sessionDestination({ destination: 'files' }), '/files');
+    assert.equal(sessionDestination({ destination: 'plans' }), '/plans/summary');
 });

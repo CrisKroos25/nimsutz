@@ -27,7 +27,8 @@ export default function PlansPage() {
                 const local = readPlanPreference();
                 const code = readPlanIntent();
                 const version = local || preference?.preferred_plan_version_id;
-                const selected = plans.find((plan) => code ? plan.code === code : String(plan.version_id) === String(version)) || null;
+                const selected = !local && !code && preference.is_current === false ? null :
+                    plans.find((plan) => code ? plan.code === code : String(plan.version_id) === String(version)) || null;
                 if ((local || code) && selected && active) {
                     await setPreference(selected.version_id);
                     if (active) clearPlanPreference();
@@ -62,7 +63,14 @@ export default function PlansPage() {
         submitting.current = true;
         setBusy(true);
         try {
-            // El servidor debe volver a validar versión, gratuidad y cobertura vigente.
+            // Reconsultamos las condiciones; el servidor aún no valida la versión enviada.
+            const plans = await getPlans();
+            const latest = plans.find((plan) => plan.code === state.selected.code);
+            if (!latest || !latest.available || latest.version_id !== state.selected.version_id ||
+                Number(latest.price) !== 0 || latest.capacity_bytes !== state.selected.capacity_bytes) {
+                setState((previous) => ({ ...previous, plans, selected: null, notice: 'Las condiciones cambiaron. Vuelve a elegir y confirmar el plan.' }));
+                return;
+            }
             const response = await activateFree(state.selected.version_id);
             const subscription = validateSubscription(response);
             if (!subscription) throw new Error('No se pudo confirmar la activación. Consulta tu plan antes de repetirla.');
