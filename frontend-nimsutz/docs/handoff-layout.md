@@ -149,3 +149,10 @@ Pendientes externos y límites de esta revisión:
 - VerifyEmail confirma en un efecto sin limpieza/deduplicación. Con StrictMode puede emitir dos peticiones de un solo uso: Rodrigo debe comprobar la carrera éxito/usado. También convierte errores de red en enlace inválido.
 - No se pudieron ejecutar pruebas accounts: acceso denegado al motor dockerDesktopLinuxEngine. Ejecutar desde la terminal del usuario: docker compose exec backend python manage.py test accounts.
 - Continúan los pendientes de cuota/reservas y persistencia de preferencia durante el registro descritos antes.
+
+
+## Correcciones de revisión antes del push
+
+- Un fallo de overview conserva el usuario autenticado y produce accessError. RequireSession bloquea el contenido privado y ofrece Reintentar con Button existente, sin pedir nuevamente credenciales ni asumir cobertura. Logout limpia también el error.
+- Si guardar una elección devuelve plan_conditions_changed o plan_unavailable, selectPlan obtiene un catálogo nuevo. La pantalla elimina la selección anterior y exige elegir y confirmar de nuevo; no guarda automáticamente la nueva versión.
+- Validación: 18 pruebas Node correctas, incluyendo recuperación de overview tras 503 y catálogo actualizado tras 409 sin activación automática. ESLint de archivos modificados y build correctos. Fallos reproducidos mediante respuestas API simuladas en pruebas automatizadas, no provocando fallos en el backend local.

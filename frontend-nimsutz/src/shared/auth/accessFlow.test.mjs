@@ -1,7 +1,7 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { resolvePlanSelection, validateRegistration, passwordRequirements, sessionDestination, readPlanPreference, savePlanPreference, clearPlanPreference, readPlanIntent, savePlanIntent } from './accessFlow.js';
-import { getPlans, getPreference, setPreference, getAccountOverview, withAccountDestination, validateSubscription, registerAccount, serviceMessage } from '../api/accountApi.js';
+import { getPlans, getPreference, setPreference, selectPlan, getAccountOverview, withAccountDestination, validateSubscription, registerAccount, serviceMessage } from '../api/accountApi.js';
 
 beforeEach(() => {
     const storage = new Map();
@@ -125,7 +125,10 @@ test('perfil distingue cobertura ausente, nula y activa usando usage real', asyn
         assert.equal(sessionDestination(await withAccountDestination(session)), '/files');
         globalThis.fetch = async () => Response.json({ usage: {} });
         await assert.rejects(getAccountOverview);
-        await assert.rejects(withAccountDestination(session));
+        const failedAccess = await withAccountDestination(session);
+        assert.deepEqual(failedAccess.user, session.user);
+        assert.equal(failedAccess.destination, 'plans');
+        assert.ok(failedAccess.accessError);
         assert.deepEqual(await withAccountDestination({ user: null }), { user: null });
     } finally { globalThis.fetch = original; }
 });
@@ -166,5 +169,47 @@ test('fallo al guardar selección no borra intención ni la convierte en cobertu
         await assert.rejects(setPreference(3), (error) => error.code === 'plan_conditions_changed');
         assert.equal(readPlanIntent(), 'premium');
         assert.equal(readPlanPreference(), null);
+    } finally { globalThis.fetch = original; }
+});
+
+
+test('fallo de cobertura conserva identidad y reintento recupera acceso sin otro login', async () => {
+    const original = globalThis.fetch;
+    const session = { user: { id: 42, role: 'cliente' }, csrfToken: 'csrf-test' };
+    const paths = [];
+    try {
+        globalThis.fetch = async (path) => { paths.push(path); return Response.json({}, { status: 503 }); };
+        const failed = await withAccountDestination(session);
+        assert.equal(failed.user, session.user);
+        assert.equal(failed.csrfToken, session.csrfToken);
+        assert.ok(failed.accessError);
+        globalThis.fetch = async (path) => {
+            paths.push(path);
+            return Response.json({ coverage: { plan: { name: 'Gratis' } }, destination: 'files' });
+        };
+        const recovered = await withAccountDestination(session);
+        assert.equal(recovered.destination, 'files');
+        assert.equal(recovered.accessError, undefined);
+        assert.ok(paths.every((path) => path === '/api/account/overview/'));
+    } finally { globalThis.fetch = original; }
+});
+
+test('rechazo de versión recarga catálogo sin aceptar automáticamente la nueva', async () => {
+    const original = globalThis.fetch;
+    const requests = [];
+    try {
+        globalThis.fetch = async (path, options) => {
+            requests.push({ path, method: options.method });
+            if (path.endsWith('/session/')) return Response.json({ csrfToken: 'csrf-test' });
+            if (options.method === 'PUT') return Response.json({ code: 'plan_conditions_changed' }, { status: 409 });
+            return Response.json({ plans: [{ plan_code: 'free', version_id: 2, name: 'Gratis', price: '0', currency: 'GTQ', capacity_bytes: 104857600, contractable: true }] });
+        };
+        const result = await selectPlan(1);
+        assert.equal(result.needsReselection, true);
+        assert.equal(result.plans[0].version_id, 2);
+        assert.equal(requests.filter((request) => request.method === 'PUT').length, 1);
+        assert.ok(!requests.some((request) => request.path.includes('activate-free')));
+        globalThis.fetch = async () => Response.json({}, { status: 503 });
+        await assert.rejects(selectPlan(1));
     } finally { globalThis.fetch = original; }
 });

@@ -44,11 +44,18 @@ export async function getAccountOverview() {
 
 export async function withAccountDestination(session) {
     if (!session.user || session.user.role === 'administrador') return session;
-    const overview = await getAccountOverview();
-    if (!['files', 'plans', 'plan_summary'].includes(overview.destination)) {
-        throw new Error('No se pudo confirmar el acceso de tu cuenta. Inténtalo de nuevo.');
+    try {
+        const overview = await getAccountOverview();
+        if (!['files', 'plans', 'plan_summary'].includes(overview.destination)) {
+            throw new Error('No se pudo confirmar el acceso de tu cuenta.');
+        }
+        return { ...session, destination: overview.destination };
+    } catch {
+        // La identidad ya fue autenticada. Un fallo de cobertura no cierra la sesión
+        // ni concede acceso: RequireSession muestra el error y permite reintentar.
+        return { ...session, destination: 'plans',
+            accessError: 'Tu sesión está iniciada, pero no pudimos consultar tu plan. Reintenta la consulta.' };
     }
-    return { ...session, destination: overview.destination };
 }
 
 export function serviceMessage(error, subject) {
@@ -64,4 +71,16 @@ export function validateSubscription(data) {
         throw new Error('No se pudo confirmar el estado de tu suscripción. Inténtalo más tarde.');
     }
     return data.subscription;
+}
+
+
+export async function selectPlan(versionId) {
+    try {
+        await setPreference(versionId);
+        return { needsReselection: false };
+    } catch (error) {
+        if (!['plan_conditions_changed', 'plan_unavailable'].includes(error.code)) throw error;
+        // Actualizar no equivale a aceptar las nuevas condiciones: el usuario elige otra vez.
+        return { needsReselection: true, plans: await getPlans() };
+    }
 }

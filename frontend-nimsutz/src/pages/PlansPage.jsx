@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthContext';
 import { readPlanPreference, readPlanIntent, savePlanIntent, clearPlanPreference, resolvePlanSelection } from '@shared/auth/accessFlow';
-import { getPlans, getPreference, setPreference, getSubscription, validateSubscription, activateFree, serviceMessage } from '@shared/api/accountApi';
+import { getPlans, getPreference, setPreference, selectPlan, getSubscription, validateSubscription, activateFree, serviceMessage } from '@shared/api/accountApi';
 import Button from '@shared/components/Button/Button';
 import { PLAN_INFORMATION } from '@shared/planInformation';
 import styles from './PlansPage.module.css';
@@ -46,8 +46,14 @@ export default function PlansPage() {
         if (submitting.current) return;
         submitting.current = true;
         setBusy(true);
+        setState((previous) => ({ ...previous, selected: null }));
         try {
-            await setPreference(plan.version_id);
+            const result = await selectPlan(plan.version_id);
+            if (result.needsReselection) {
+                setState((previous) => ({ ...previous, plans: result.plans, selected: null,
+                    notice: 'Las condiciones cambiaron. Actualizamos los planes; vuelve a elegir y confirmar.' }));
+                return;
+            }
             clearPlanPreference();
             setState((previous) => ({ ...previous, selected: plan, notice: '', error: '' }));
             navigate('/plans/summary');
