@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthContext';
-import { readPlanPreference, readPlanIntent, savePlanIntent, clearPlanPreference } from '@shared/auth/accessFlow';
-import { getPlans, getPreference, setPreference, getSubscription, validateSubscription, activateFree, serviceMessage } from '@shared/api/accountApi';
+import { readPlanPreference, readPlanIntent, savePlanIntent, clearPlanPreference, resolvePlanSelection } from '@shared/auth/accessFlow';
+import { getPlans, getPreference, setPreference, selectPlan, getSubscription, validateSubscription, activateFree, serviceMessage } from '@shared/api/accountApi';
 import Button from '@shared/components/Button/Button';
 import { PLAN_INFORMATION } from '@shared/planInformation';
 import styles from './PlansPage.module.css';
@@ -26,14 +26,13 @@ export default function PlansPage() {
                 const subscription = validateSubscription(current);
                 const local = readPlanPreference();
                 const code = readPlanIntent();
-                const version = local || preference?.preferred_plan_version_id;
-                const selected = plans.find((plan) => code ? plan.code === code : String(plan.version_id) === String(version)) || null;
+                const { selected, needsReselection } = resolvePlanSelection(plans, preference, local, code);
                 if ((local || code) && selected && active) {
                     await setPreference(selected.version_id);
                     if (active) clearPlanPreference();
                 }
                 if (active) setState({ loading: false, plans, subscription, selected, error: '',
-                    notice: (version || code) && !selected ? 'El plan elegido cambió o ya no está disponible. Revisa las condiciones y selecciona de nuevo.' : '' });
+                    notice: needsReselection ? 'El plan elegido cambió o ya no está disponible. Revisa las condiciones y selecciona de nuevo.' : '' });
             } catch (failure) {
                 if (active) setState({ loading: false, plans: [], subscription: null, selected: null,
                     error: serviceMessage(failure, 'La consulta de planes'), notice: '' });
@@ -47,8 +46,14 @@ export default function PlansPage() {
         if (submitting.current) return;
         submitting.current = true;
         setBusy(true);
+        setState((previous) => ({ ...previous, selected: null }));
         try {
-            await setPreference(plan.version_id);
+            const result = await selectPlan(plan.version_id);
+            if (result.needsReselection) {
+                setState((previous) => ({ ...previous, plans: result.plans, selected: null,
+                    notice: 'Las condiciones cambiaron. Actualizamos los planes; vuelve a elegir y confirmar.' }));
+                return;
+            }
             clearPlanPreference();
             setState((previous) => ({ ...previous, selected: plan, notice: '', error: '' }));
             navigate('/plans/summary');
@@ -62,7 +67,14 @@ export default function PlansPage() {
         submitting.current = true;
         setBusy(true);
         try {
-            // El servidor debe volver a validar versión, gratuidad y cobertura vigente.
+            // Reconsultamos las condiciones; el servidor aún no valida la versión enviada.
+            const plans = await getPlans();
+            const latest = plans.find((plan) => plan.code === state.selected.code);
+            if (!latest || !latest.available || latest.version_id !== state.selected.version_id ||
+                Number(latest.price) !== 0 || latest.capacity_bytes !== state.selected.capacity_bytes) {
+                setState((previous) => ({ ...previous, plans, selected: null, notice: 'Las condiciones cambiaron. Vuelve a elegir y confirmar el plan.' }));
+                return;
+            }
             const response = await activateFree(state.selected.version_id);
             const subscription = validateSubscription(response);
             if (!subscription) throw new Error('No se pudo confirmar la activación. Consulta tu plan antes de repetirla.');

@@ -34,8 +34,9 @@ export function clearPlanPreference() {
 
 export function sessionDestination(data) {
     if (data?.user?.role === 'administrador') return '/profile';
+    if (data?.destination === 'files') return '/files';
     if (readPlanPreference() || readPlanIntent()) return '/plans/summary';
-    return DESTINATIONS[data?.next] || '/files';
+    return DESTINATIONS[data?.destination ?? data?.next] || '/files';
 }
 
 export function fieldMessage(value) {
@@ -60,4 +61,13 @@ export function validateRegistration(values) {
     if (!values.password_confirmation) errors.password_confirmation = 'Confirma tu contraseña.';
     else if (values.password !== values.password_confirmation) errors.password_confirmation = 'Las contraseñas no coinciden.';
     return errors;
+}
+
+
+export function resolvePlanSelection(plans, preference, localVersion, intent) {
+    const version = localVersion || preference.preferred_plan_version_id;
+    const stale = !localVersion && !intent && preference.is_current === false;
+    const selected = stale ? null : plans.find((plan) => intent
+        ? plan.code === intent : String(plan.version_id) === String(version)) || null;
+    return { selected, needsReselection: Boolean((version || intent) && !selected) };
 }

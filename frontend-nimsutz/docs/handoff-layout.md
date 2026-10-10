@@ -114,3 +114,45 @@ Los pagos siguen pendientes; una cuenta con un plan activo necesita el flujo com
 La landing ahora guarda inmediatamente solo el código público (gratis/basico/premium) en sessionStorage y navega a registro o resumen según la sesión. No consulta GET /api/plans/ antes de redirigir. Esta intención sustituye a una selección temporal anterior, no concede cobertura y no inventa version_id.
 El resumen resuelve el código contra el catálogo del servidor cuando esté disponible, guarda la versión validada y exige confirmar sus condiciones. Mientras falta la API muestra el plan informativo elegido, permite cambiarlo o salir, sin activar ni cobrar. Logout elimina tanto el código temporal como la versión temporal.
 Este ajuste reemplaza la descripción anterior que exigía resolver el catálogo en la landing. La continuidad en el mismo navegador está preparada; persistir una intención sin versión durante registro para otro dispositivo requiere acordar esa entrada con Rodrigo/Cristian. Nunca enviar el código como si fuera preferred_plan_version_id.
+
+
+## Integración con subscriptions — 10 de octubre de 2026
+
+Esta sección sustituye las suposiciones de contratos de suscripciones de las notas anteriores.
+
+- accountApi adapta plan_code (free/basic/premium) a los identificadores de la landing; contractable controla disponibilidad y duration_days se muestra sin inventar periodicidad.
+- GET preference devuelve {preference: null|{version_id,is_current,...}}; PUT envía plan_version_id. Una versión vencida exige seleccionar nuevamente.
+- Overview devuelve coverage, usage y destination. Se adapta a las pantallas existentes; una respuesta incompleta produce error, nunca Sin plan activo.
+- La sesión consulta overview para obtener el destino mientras login/session no lo incluyen. Cobertura activa permite volver a archivos aunque exista intención local. No sustituye permisos del backend.
+- La preferencia local solo se limpia después de guardarla en el endpoint autenticado. El registro actual declara preference_saved sin persistirla, por eso no se utiliza esa bandera para borrarla. Continuidad entre dispositivos sigue pendiente del backend.
+- Antes de activar Gratis se reconsulta la versión y capacidad del catálogo. El backend aún ignora plan_version_id en activate-free: debe validarlo de forma atómica para cubrir cambios concurrentes entre consulta y activación.
+
+Verificación: build y ESLint de archivos modificados; pruebas Node del contrato y navegación. Navegador contra API local: Premium desde landing -> registro -> login Ana -> resumen Premium; cambio a Gratis -> activación -> perfil con 100 MB -> recarga -> archivos. La cuenta local ana@nimsutz.local quedó con Gratis activo durante la prueba. No se modificó código backend.
+
+Pendientes externos: cuota de cargas sigue simulada, falta release_expired_uploads, entrega de correo y registro/verificación completos no se validaron en este cambio. No declarar cerrado el recorrido completo de usuarios y archivos.
+
+
+## Cierre de pantallas de acceso — 10 de octubre de 2026
+
+Cambios posteriores a d438a8e:
+- Registro ofrece reenvío desde la cuenta pendiente usando verificationApi y Button existentes. Evita doble envío y aplica espera visual de 30 segundos, que no sustituye límites del servidor. Solicitud aceptada no equivale a entrega al buzón.
+- Confirmación de registro y errores del servidor reciben foco; se vacían contraseñas del estado después de crear la cuenta.
+- resolvePlanSelection conserva preferencias persistidas, prioriza la selección local explícita y exige nueva elección para planes ausentes o versiones antiguas.
+- No se modificaron CSS, paleta, tipografías ni implementación de las pantallas de compañeros.
+
+Validación: 16 pruebas Node, build y ESLint de archivos modificados correctos. Navegador contra API real: errores obligatorios de registro y foco nombre -> correo; recuperación enlazada desde login en claro; error de credenciales y foco; Beto sin cobertura llega a Planes; acceso a Mis archivos regresa a Planes; seleccionar Gratis y salir mantiene Sin plan activo en perfil; comprobación visual en oscuro y logout. Beto conserva preferencia Gratis, sin activación.
+
+Revisión de recuperación integrada (no aprobación formal de PR): M04/M05 reutilizan Input, PasswordInput, Button, apiRequest, tokens y AuthLayout. Falta probar entrega real y cambio de contraseña con invalidación de sesiones contra backend.
+
+Pendientes externos y límites de esta revisión:
+- accounts.services.send_verification_email sigue siendo MOCK que imprime un enlace. Registro puede responder email_sent=true sin enviar correo. No se validó entrega real ni registro -> buzón -> verificación -> login completo; el reenvío nuevo requiere esa comprobación.
+- VerifyEmail confirma en un efecto sin limpieza/deduplicación. Con StrictMode puede emitir dos peticiones de un solo uso: Rodrigo debe comprobar la carrera éxito/usado. También convierte errores de red en enlace inválido.
+- No se pudieron ejecutar pruebas accounts: acceso denegado al motor dockerDesktopLinuxEngine. Ejecutar desde la terminal del usuario: docker compose exec backend python manage.py test accounts.
+- Continúan los pendientes de cuota/reservas y persistencia de preferencia durante el registro descritos antes.
+
+
+## Correcciones de revisión antes del push
+
+- Un fallo de overview conserva el usuario autenticado y produce accessError. RequireSession bloquea el contenido privado y ofrece Reintentar con Button existente, sin pedir nuevamente credenciales ni asumir cobertura. Logout limpia también el error.
+- Si guardar una elección devuelve plan_conditions_changed o plan_unavailable, selectPlan obtiene un catálogo nuevo. La pantalla elimina la selección anterior y exige elegir y confirmar de nuevo; no guarda automáticamente la nueva versión.
+- Validación: 18 pruebas Node correctas, incluyendo recuperación de overview tras 503 y catálogo actualizado tras 409 sin activación automática. ESLint de archivos modificados y build correctos. Fallos reproducidos mediante respuestas API simuladas en pruebas automatizadas, no provocando fallos en el backend local.
