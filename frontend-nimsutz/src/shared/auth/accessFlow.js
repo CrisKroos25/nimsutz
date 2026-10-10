@@ -62,3 +62,12 @@ export function validateRegistration(values) {
     else if (values.password !== values.password_confirmation) errors.password_confirmation = 'Las contraseñas no coinciden.';
     return errors;
 }
+
+
+export function resolvePlanSelection(plans, preference, localVersion, intent) {
+    const version = localVersion || preference.preferred_plan_version_id;
+    const stale = !localVersion && !intent && preference.is_current === false;
+    const selected = stale ? null : plans.find((plan) => intent
+        ? plan.code === intent : String(plan.version_id) === String(version)) || null;
+    return { selected, needsReselection: Boolean((version || intent) && !selected) };
+}

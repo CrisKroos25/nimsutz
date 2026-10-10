@@ -1,6 +1,6 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateRegistration, passwordRequirements, sessionDestination, readPlanPreference, savePlanPreference, clearPlanPreference, readPlanIntent, savePlanIntent } from './accessFlow.js';
+import { resolvePlanSelection, validateRegistration, passwordRequirements, sessionDestination, readPlanPreference, savePlanPreference, clearPlanPreference, readPlanIntent, savePlanIntent } from './accessFlow.js';
 import { getPlans, getPreference, setPreference, getAccountOverview, withAccountDestination, validateSubscription, registerAccount, serviceMessage } from '../api/accountApi.js';
 
 beforeEach(() => {
@@ -135,4 +135,36 @@ test('una preferencia no bloquea archivos cuando el servidor confirma cobertura'
     savePlanIntent('premium');
     assert.equal(sessionDestination({ destination: 'files' }), '/files');
     assert.equal(sessionDestination({ destination: 'plans' }), '/plans/summary');
+});
+
+
+test('selección conserva la preferencia del servidor al entrar desde otra pestaña', () => {
+    const plans = [{ code: 'gratis', version_id: 1 }, { code: 'premium', version_id: 3 }];
+    assert.deepEqual(resolvePlanSelection(plans, { preferred_plan_version_id: 3, is_current: true }, null, null),
+        { selected: plans[1], needsReselection: false });
+    assert.equal(resolvePlanSelection(plans, { preferred_plan_version_id: 3 }, null, 'gratis').selected, plans[0]);
+    assert.equal(resolvePlanSelection(plans, { preferred_plan_version_id: 3 }, '1', null).selected, plans[0]);
+});
+
+test('plan ausente o versión desactualizada exige elegir de nuevo, sin reemplazo silencioso', () => {
+    const plans = [{ code: 'gratis', version_id: 2 }];
+    assert.deepEqual(resolvePlanSelection(plans, { preferred_plan_version_id: 1, is_current: false }, null, null),
+        { selected: null, needsReselection: true });
+    assert.equal(resolvePlanSelection(plans, { preferred_plan_version_id: 1 }, '1', null).needsReselection, true);
+    assert.equal(resolvePlanSelection(plans, { preferred_plan_version_id: null }, null, 'premium').needsReselection, true);
+    assert.deepEqual(resolvePlanSelection(plans, { preferred_plan_version_id: null }, null, null),
+        { selected: null, needsReselection: false });
+});
+
+test('fallo al guardar selección no borra intención ni la convierte en cobertura', async () => {
+    const original = globalThis.fetch;
+    savePlanIntent('premium');
+    try {
+        globalThis.fetch = async (path) => path.endsWith('/session/')
+            ? Response.json({ csrfToken: 'test-csrf' })
+            : Response.json({ code: 'plan_conditions_changed', detail: 'Vuelve a elegir.' }, { status: 400 });
+        await assert.rejects(setPreference(3), (error) => error.code === 'plan_conditions_changed');
+        assert.equal(readPlanIntent(), 'premium');
+        assert.equal(readPlanPreference(), null);
+    } finally { globalThis.fetch = original; }
 });

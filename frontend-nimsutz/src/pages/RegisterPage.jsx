@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Circle, Mail, UserRound } from 'lucide-react';
 import PasswordInput from '@shared/components/Input/PasswordInput';
 import { Link, Navigate } from 'react-router-dom';
@@ -7,11 +7,16 @@ import { fieldMessage, readPlanPreference, validateRegistration, passwordRequire
 import { registerAccount, serviceMessage } from '@shared/api/accountApi';
 import Input from '@shared/components/Input/Input';
 import Button from '@shared/components/Button/Button';
+import { verificationApi } from '@features/auth/api/verificationApi';
 import styles from './LoginPage.module.css';
 
 export default function RegisterPage() {
     const { user, loading, destination } = useAuth();
     const submitting = useRef(false);
+    const resultHeading = useRef(null);
+    const errorMessage = useRef(null);
+    const [resendMessage, setResendMessage] = useState('');
+    const [cooldown, setCooldown] = useState(0);
     const [busy, setBusy] = useState(false);
     const [errors, setErrors] = useState({});
     const [error, setError] = useState('');
@@ -20,6 +25,29 @@ export default function RegisterPage() {
     const [confirmation, setConfirmation] = useState('');
     const requirements = passwordRequirements(password);
     const matches = confirmation.length > 0 && confirmation === password;
+
+    useEffect(() => { if (registered) resultHeading.current?.focus(); }, [registered]);
+    useEffect(() => { if (error && !busy) errorMessage.current?.focus(); }, [error, busy]);
+    useEffect(() => {
+        if (cooldown <= 0) return;
+        const timer = setTimeout(() => setCooldown((seconds) => seconds - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [cooldown]);
+
+    async function resend() {
+        if (submitting.current || cooldown > 0) return;
+        submitting.current = true;
+        setBusy(true);
+        setError('');
+        setResendMessage('');
+        try {
+            await verificationApi.resendVerification(registered.email);
+            setResendMessage('Solicitud aceptada. Revisa tu bandeja y la carpeta de spam; usa el enlace más reciente.');
+            setCooldown(30);
+        } catch (failure) {
+            setError(serviceMessage(failure, 'El reenvío de verificación'));
+        } finally { submitting.current = false; setBusy(false); }
+    }
 
     function updatePassword(event) {
         setPassword(event.target.value);
@@ -52,6 +80,8 @@ export default function RegisterPage() {
             if (result?.status !== 'pending_verification') throw new Error('No se pudo confirmar el registro. Intenta iniciar sesión antes de repetirlo.');
             // La preferencia se conserva hasta que el endpoint autenticado confirme su guardado.
             setRegistered({ email: values.email.trim(), emailSent: result.email_sent === true });
+            setPassword('');
+            setConfirmation('');
             form.reset();
         } catch (failure) {
             setErrors(failure.fieldErrors || {});
@@ -67,9 +97,14 @@ export default function RegisterPage() {
             {!registered && <p>Tu espacio para organizar y guardar documentos.</p>}
         </header>
         {registered ? <div className={styles.notice} role="status">
-            <h2>Cuenta pendiente de verificación</h2>
+            <h2 ref={resultHeading} tabIndex={-1}>Cuenta pendiente de verificación</h2>
             <p>{registered.emailSent ? `Enviamos un enlace a ${registered.email}. Revisa tu correo para verificar la cuenta.` : `La cuenta ${registered.email} está creada, pero no pudimos confirmar el envío del correo. La verificación sigue pendiente.`}</p>
             <p>Después de verificar, inicia sesión para confirmar tu plan.</p>
+            <Button variant="secondary" onClick={resend} loading={busy} loadingLabel="Solicitando enlace…" disabled={cooldown > 0}>
+                {cooldown > 0 ? `Reenviar enlace (${cooldown} s)` : 'Reenviar verificación'}
+            </Button>
+            {resendMessage && <p role="status">{resendMessage}</p>}
+            {error && <p ref={errorMessage} tabIndex={-1} role="alert" className={styles.error}>{error}</p>}
             <Link to="/login">Ir a iniciar sesión</Link>
         </div> : <>
             <form onSubmit={submit} noValidate>
@@ -96,7 +131,7 @@ export default function RegisterPage() {
                         {confirmation ? (matches ? 'Las contraseñas coinciden.' : 'Las contraseñas no coinciden.') : 'Repite la contraseña de arriba.'}
                     </span>}
                     aria-invalid={Boolean(confirmation && !matches)} required disabled={busy} error={fieldMessage(errors.password_confirmation)} />
-                {error && <p role="alert" className={styles.error}>{error}</p>}
+                {error && <p ref={errorMessage} tabIndex={-1} role="alert" className={styles.error}>{error}</p>}
                 <Button type="submit" loading={busy} loadingLabel="Creando cuenta…">Crear cuenta</Button>
             </form>
             <p className={styles.switchPage}>¿Ya tienes cuenta? <Link to="/login">Iniciar sesión</Link></p>

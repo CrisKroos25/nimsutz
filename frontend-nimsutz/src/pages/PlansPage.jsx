@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthContext';
-import { readPlanPreference, readPlanIntent, savePlanIntent, clearPlanPreference } from '@shared/auth/accessFlow';
+import { readPlanPreference, readPlanIntent, savePlanIntent, clearPlanPreference, resolvePlanSelection } from '@shared/auth/accessFlow';
 import { getPlans, getPreference, setPreference, getSubscription, validateSubscription, activateFree, serviceMessage } from '@shared/api/accountApi';
 import Button from '@shared/components/Button/Button';
 import { PLAN_INFORMATION } from '@shared/planInformation';
@@ -26,15 +26,13 @@ export default function PlansPage() {
                 const subscription = validateSubscription(current);
                 const local = readPlanPreference();
                 const code = readPlanIntent();
-                const version = local || preference?.preferred_plan_version_id;
-                const selected = !local && !code && preference.is_current === false ? null :
-                    plans.find((plan) => code ? plan.code === code : String(plan.version_id) === String(version)) || null;
+                const { selected, needsReselection } = resolvePlanSelection(plans, preference, local, code);
                 if ((local || code) && selected && active) {
                     await setPreference(selected.version_id);
                     if (active) clearPlanPreference();
                 }
                 if (active) setState({ loading: false, plans, subscription, selected, error: '',
-                    notice: (version || code) && !selected ? 'El plan elegido cambió o ya no está disponible. Revisa las condiciones y selecciona de nuevo.' : '' });
+                    notice: needsReselection ? 'El plan elegido cambió o ya no está disponible. Revisa las condiciones y selecciona de nuevo.' : '' });
             } catch (failure) {
                 if (active) setState({ loading: false, plans: [], subscription: null, selected: null,
                     error: serviceMessage(failure, 'La consulta de planes'), notice: '' });
