@@ -164,11 +164,30 @@ STATIC_URL = 'static/'
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+# Correo: sin EMAIL_HOST el mensaje se imprime en consola (docker compose logs backend).
+# Con EMAIL_HOST definido se envia por SMTP (p. ej. smtp.gmail.com).
+_smtp_host = os.getenv("EMAIL_HOST", "").strip()  # no llamarlo EMAIL_HOST: Django 6.1 lo prohibe junto a MAILERS
+
+if _smtp_host:
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+            'OPTIONS': {
+                'host': _smtp_host,
+                'port': int(os.getenv("EMAIL_PORT", 587)),
+                'username': os.getenv("EMAIL_HOST_USER", ""),
+                'password': os.getenv("EMAIL_HOST_PASSWORD", ""),
+                'use_tls': os.getenv("EMAIL_USE_TLS", "true").lower() == "true",
+                'timeout': int(os.getenv("EMAIL_TIMEOUT", 10)),
+            },
+        },
+    }
+else:
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        },
+    }
 
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@nimsutz.local")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
