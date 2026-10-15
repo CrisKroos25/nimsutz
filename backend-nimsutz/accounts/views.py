@@ -1,4 +1,5 @@
-# accounts/views.py
+import logging
+
 from django.contrib.auth import login as django_login, logout as django_logout
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
@@ -11,10 +12,14 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.serializers import Serializer, CharField, EmailField
-from subscriptions.services import resolve_destination
+from subscriptions.services import resolve_destination, set_preference
+from subscriptions.errors import SubscriptionError
 
 from . import services, emails
 from .models import User
+
+logger = logging.getLogger(__name__)
+
 from .serializers import (
     LoginSerializer,
     UserSerializer,
@@ -142,9 +147,29 @@ class RegisterView(APIView):
         # Guardar usuario
         user = serializer.save()
 
-        # TODO: Asociar preferred_plan_version_id al registro (Tarea de integración con Cristian)
-        # preferred_plan_version_id = serializer.validated_data.get("preferred_plan_version_id")
-        
+        # Guardar preferencia de plan usando el servicio de Cristian
+        preferred_plan_version_id = serializer.validated_data.get("preferred_plan_version_id")
+        preference_saved = False
+        if preferred_plan_version_id:
+            try:
+                set_preference(user=user, plan_version_id=preferred_plan_version_id)
+                preference_saved = True
+            except SubscriptionError as exc:
+                logger.warning(
+                    "No se pudo guardar la preferencia para el usuario %s (plan_version_id=%s): %s",
+                    user.email,
+                    preferred_plan_version_id,
+                    exc,
+                )
+                preference_saved = False
+            except Exception as exc:
+                logger.error(
+                    "Error inesperado al guardar la preferencia para %s: %s",
+                    user.email,
+                    exc,
+                )
+                preference_saved = False
+
         base_url = request.headers.get('Origin', 'http://localhost:5173')
         token = services.generate_verification_token(user)
         verification_link = f'{base_url}/verify-email?token={token}'
@@ -153,11 +178,9 @@ class RegisterView(APIView):
         try:
             services.send_verification_email(user.email, user.name, verification_link)
             email_sent = True
-        except Exception:
-            pass # Si falla el correo, queda en email_sent = False
-
-        # Simulamos que se guardó la preferencia porque aún Cristian no ha integrado subscriptions
-        preference_saved = serializer.validated_data.get("preferred_plan_version_id") is not None
+        except Exception as exc:
+            logger.warning("No se pudo entregar el correo de verificación a %s: %s", user.email, exc)
+            email_sent = False
 
         response_data = UserSerializer(user).data
         response_data["status"] = "pending_verification"
@@ -200,10 +223,13 @@ class ResendVerificationView(APIView):
         # Como es una demo, la construimos temporalmente hardcodeada o de Origin
         base_url = request.headers.get("Origin", "http://localhost:5173")
         
-        services.resend_verification_email(
-            email=serializer.validated_data["email"],
-            base_url=base_url
-        )
+        try:
+            services.resend_verification_email(
+                email=serializer.validated_data["email"],
+                base_url=base_url
+            )
+        except Exception as exc:
+            logger.warning("Fallo al reenviar correo de verificación a %s: %s", serializer.validated_data["email"], exc)
         
         return Response({
             "detail": "Si el correo está registrado y pendiente, se ha enviado un nuevo enlace."

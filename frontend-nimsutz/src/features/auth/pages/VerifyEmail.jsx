@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, CheckCircle, XCircle, AlertTriangle, Mail } from 'lucide-react';
 import { verificationApi } from '../api/verificationApi';
@@ -8,44 +8,57 @@ import styles from './VerifyEmail.module.css';
  * Pantalla M02 - Verificación de Correo (Tarea R3 - Rodrigo)
  *
  * Lee el token de la URL y valida la cuenta.
- * Maneja los estados: verificando, confirmado, inválido, vencido, usado.
- * Permite reenviar el correo en caso de expiración.
+ * Maneja los estados: verificando, confirmado, inválido, vencido, usado, error de red.
+ * Permite reenviar el correo en caso de expiración o reintentar ante fallos de conexión.
  */
 export default function VerifyEmail() {
-    const [status, setStatus] = useState('pending'); // pending, success, error, resend_prompt
+    const [status, setStatus] = useState('pending'); // pending, success, error, resend_prompt, network_error
     const [errorCode, setErrorCode] = useState(null); // 'invalid_token', 'expired_token', 'used_token'
     const [emailForResend, setEmailForResend] = useState('');
     const [isResending, setIsResending] = useState(false);
     const [resendMessage, setResendMessage] = useState(null);
+    const verificationStarted = useRef(false);
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
-
-        if (!token) {
+    const verifyToken = async (targetToken) => {
+        if (!targetToken) {
             setStatus('error');
             setErrorCode('invalid_token');
             return;
         }
 
-        const verify = async () => {
-            try {
-                await verificationApi.verifyEmail(token);
-                setStatus('success');
-            } catch (err) {
-                // El backend de Fase 3 devuelve: { code: 'expired_token', detail: '...' }
-                const code = err.code || 'invalid_token';
-                setErrorCode(code);
-                
-                if (code === 'expired_token') {
-                    setStatus('resend_prompt');
-                } else {
-                    setStatus('error');
-                }
-            }
-        };
+        setStatus('pending');
+        setErrorCode(null);
 
-        verify();
+        try {
+            await verificationApi.verifyEmail(targetToken);
+            setStatus('success');
+        } catch (err) {
+            // Distinguir fallos de conexión a internet o caída del servidor (5xx / network offline)
+            const isConnectionOrServerError = !err.status || err.status >= 500;
+            if (isConnectionOrServerError) {
+                setStatus('network_error');
+                return;
+            }
+
+            const code = err.code || 'invalid_token';
+            setErrorCode(code);
+            
+            if (code === 'expired_token') {
+                setStatus('resend_prompt');
+            } else {
+                setStatus('error');
+            }
+        }
+    };
+
+    useEffect(() => {
+        // Evitar doble ejecución concurrente bajo React.StrictMode
+        if (verificationStarted.current) return;
+        verificationStarted.current = true;
+
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        verifyToken(token);
     }, []);
 
     const handleResend = async (e) => {
@@ -58,7 +71,7 @@ export default function VerifyEmail() {
             await verificationApi.resendVerification(emailForResend);
             setResendMessage('Si el correo está registrado, se ha enviado un nuevo enlace.');
             setEmailForResend('');
-        } catch (err) {
+        } catch {
             setResendMessage('Ocurrió un error al intentar reenviar el correo.');
         } finally {
             setIsResending(false);
@@ -152,6 +165,39 @@ export default function VerifyEmail() {
                             </Link>
                         </div>
                     </form>
+                </div>
+            </div>
+        );
+    }
+
+    if (status === 'network_error') {
+        return (
+            <div className={styles.container}>
+                <div className={styles.card}>
+                    <div className={`${styles.icon} ${styles.warning}`}>
+                        <AlertTriangle size={48} />
+                    </div>
+                    <h1 className={styles.title}>Error de conexión</h1>
+                    <p className={styles.message}>
+                        No pudimos establecer conexión con el servidor para verificar tu cuenta. 
+                        Comprueba tu conexión a internet o intenta de nuevo.
+                    </p>
+                    <div className={styles.actions}>
+                        <button 
+                            type="button" 
+                            className={styles.primaryBtn}
+                            onClick={() => {
+                                const params = new URLSearchParams(window.location.search);
+                                const token = params.get('token');
+                                verifyToken(token);
+                            }}
+                        >
+                            Reintentar comprobación
+                        </button>
+                        <Link to="/login" className={styles.secondaryBtn} style={{ textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                            Ir al inicio de sesión
+                        </Link>
+                    </div>
                 </div>
             </div>
         );

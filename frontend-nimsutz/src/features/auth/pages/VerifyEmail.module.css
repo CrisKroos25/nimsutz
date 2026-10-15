@@ -29,6 +29,10 @@
     color: var(--color-danger, #ef4444);
 }
 
+.icon.warning svg {
+    color: var(--color-warning-text, #f59e0b);
+}
+
 .title {
     font-size: var(--font-size-xl, 1.5rem);
     font-weight: var(--font-weight-bold, 600);

@@ -41,3 +41,17 @@ def send_password_reset_email(*, user, token):
             "Si no fuiste tú, ignora este mensaje."
         ),
     )
+
+
+def send_verification_email(*, to_email, user_name, verification_link):
+    _send(
+        to_email=to_email,
+        subject="Verificación de cuenta - Nim sutz'",
+        body=(
+            f"Hola {user_name},\n\n"
+            "Gracias por registrarte en Nim sutz'. Para activar tu cuenta, haz clic en el siguiente enlace:\n\n"
+            f"{verification_link}\n\n"
+            "Este enlace es válido por 24 horas y solo puede utilizarse una vez.\n"
+            "Si no creaste esta cuenta, ignora este mensaje."
+        ),
+    )

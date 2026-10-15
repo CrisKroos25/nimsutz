@@ -59,11 +59,8 @@ class RegisterSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        # preferred_plan_version_id is extracted but not passed to user creation yet
-        # It will be handled in the view later or passed to Cristian's service.
-        validated_data.pop("password_confirmation")
-        validated_data.pop("preferred_plan_version_id", None)
-        
-        # user manager's create_user forces role Client and status Pending
-        user = User.objects.create_user(**validated_data)
+        create_data = validated_data.copy()
+        create_data.pop("password_confirmation", None)
+        create_data.pop("preferred_plan_version_id", None)
+        user = User.objects.create_user(**create_data)
         return user

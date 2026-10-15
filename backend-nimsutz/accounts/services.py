@@ -97,11 +97,12 @@ def confirm_password_reset(*, token, new_password):
 
 def send_verification_email(user_email: str, user_name: str, verification_link: str) -> None:
     """
-    MOCK: Envía el correo con la plantilla de verificación.
-    Miguel debe implementar esta función real.
+    Envía el correo de verificación a través del módulo centralizado emails.py.
+    Lanza EmailDeliveryError si el envío falla.
     """
-    print(f"MOCK EMAIL a {user_email}: Activa tu cuenta en {verification_link}")
-    pass
+    from .emails import send_verification_email as _dispatch_email
+    _dispatch_email(to_email=user_email, user_name=user_name, verification_link=verification_link)
+
 
 
 class TokenError(Exception):

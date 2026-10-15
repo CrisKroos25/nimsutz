@@ -441,3 +441,103 @@ class RegistrationAndVerificationTests(TestCase):
             HTTP_X_CSRFTOKEN=csrf_token,
         )
         self.assertEqual(res_login.status_code, 401)
+
+    def test_registration_delivers_real_email_and_sets_email_sent_true(self):
+        mail.outbox.clear()
+        data = {
+            "name": "Lucia Real",
+            "email": "lucia@example.test",
+            "password": "Password123!",
+            "password_confirmation": "Password123!",
+        }
+        response = self.client.post("/api/auth/register/", data=json.dumps(data), content_type="application/json")
+        self.assertEqual(response.status_code, 201)
+        res_data = response.json()
+        self.assertTrue(res_data["email_sent"])
+
+        # Verificar que Django mail puso el correo en el outbox
+        self.assertEqual(len(mail.outbox), 1)
+        sent_email = mail.outbox[0]
+        self.assertEqual(sent_email.to, ["lucia@example.test"])
+        self.assertIn("Verificación de cuenta", sent_email.subject)
+        self.assertIn("/verify-email?token=", sent_email.body)
+
+    def test_registration_email_sent_false_on_delivery_failure(self):
+        mail.outbox.clear()
+        data = {
+            "name": "Failed Mail",
+            "email": "failedmail@example.test",
+            "password": "Password123!",
+            "password_confirmation": "Password123!",
+        }
+        with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("Conexión rechazada")):
+            response = self.client.post("/api/auth/register/", data=json.dumps(data), content_type="application/json")
+            self.assertEqual(response.status_code, 201)
+            res_data = response.json()
+            # La cuenta se crea, pero email_sent refleja que no se pudo enviar
+            self.assertFalse(res_data["email_sent"])
+
+        # La cuenta existe en estado pendiente para permitir reintento
+        user = get_user_model().objects.get(email="failedmail@example.test")
+        self.assertEqual(user.account_status, get_user_model().AccountStatus.PENDING_VERIFICATION)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_registration_persists_valid_plan_preference(self):
+        from subscriptions.models import Plan, PlanVersion, SubscriptionPreference
+        plan = Plan.objects.create(code="pro", name="Pro", is_available=True)
+        version = PlanVersion.objects.create(
+            plan=plan, version_number=1, price=50, capacity_bytes=1073741824, duration_days=30
+        )
+        data = {
+            "name": "User With Plan",
+            "email": "withplan@example.test",
+            "password": "Password123!",
+            "password_confirmation": "Password123!",
+            "preferred_plan_version_id": version.id,
+        }
+        response = self.client.post("/api/auth/register/", data=json.dumps(data), content_type="application/json")
+        self.assertEqual(response.status_code, 201)
+        res_data = response.json()
+        self.assertTrue(res_data["preference_saved"])
+
+        # Verificar en base de datos que se guardó en SubscriptionPreference
+        user = get_user_model().objects.get(email="withplan@example.test")
+        pref = SubscriptionPreference.objects.filter(user=user).first()
+        self.assertIsNotNone(pref)
+        self.assertEqual(pref.plan_version_id, version.id)
+
+    def test_registration_without_plan_preference_sets_preference_saved_false(self):
+        from subscriptions.models import SubscriptionPreference
+        data = {
+            "name": "No Plan",
+            "email": "noplan@example.test",
+            "password": "Password123!",
+            "password_confirmation": "Password123!",
+        }
+        response = self.client.post("/api/auth/register/", data=json.dumps(data), content_type="application/json")
+        self.assertEqual(response.status_code, 201)
+        res_data = response.json()
+        self.assertFalse(res_data["preference_saved"])
+
+        user = get_user_model().objects.get(email="noplan@example.test")
+        self.assertFalse(SubscriptionPreference.objects.filter(user=user).exists())
+
+    def test_registration_with_invalid_plan_preference_sets_preference_saved_false(self):
+        from subscriptions.models import SubscriptionPreference
+        data = {
+            "name": "Invalid Plan",
+            "email": "invalidplan@example.test",
+            "password": "Password123!",
+            "password_confirmation": "Password123!",
+            "preferred_plan_version_id": 999999,
+        }
+        response = self.client.post("/api/auth/register/", data=json.dumps(data), content_type="application/json")
+        self.assertEqual(response.status_code, 201)
+        res_data = response.json()
+        self.assertFalse(res_data["preference_saved"])
+
+        # El usuario aún así fue creado de forma segura
+        user = get_user_model().objects.get(email="invalidplan@example.test")
+        self.assertEqual(user.account_status, get_user_model().AccountStatus.PENDING_VERIFICATION)
+        self.assertFalse(SubscriptionPreference.objects.filter(user=user).exists())
+
