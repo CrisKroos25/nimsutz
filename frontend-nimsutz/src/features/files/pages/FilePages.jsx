@@ -172,7 +172,7 @@ export function FilesPage() {
                 </nav><h1 id="files-title">{breadcrumb.at(-1)?.name || 'Mis archivos'}</h1></div>
                 <div className={styles.actions}>
                     <Button variant="secondary" onClick={() => setCreateOpen(true)}><FolderPlus size={16} />Nueva carpeta</Button>
-                    <Button disabled={folderId == null} title={folderId == null ? 'Abre una carpeta para subir archivos' : undefined} onClick={() => setUploadOpen(true)}><Upload size={16} />Subir archivo</Button>
+                    <Button onClick={() => setUploadOpen(true)}><Upload size={16} />Subir archivo</Button>
                 </div>
             </div>
             <div className={styles.toolbar}>

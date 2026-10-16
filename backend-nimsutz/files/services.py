@@ -88,7 +88,7 @@ def request_upload(*, owner, folder, original_name, content_type, size_bytes):
     if get_active_subscription(owner) is None:
         raise ValidationError("Necesitas un plan activo para subir archivos.")  # sin plan = sin almacenamiento
 
-    if folder.owner_id != owner.id:
+    if folder is not None and folder.owner_id != owner.id:
         raise ValidationError("La carpeta no pertenece al usuario.")  # RN-E3-04/05
 
     if content_type not in settings.ALLOWED_CONTENT_TYPES:
@@ -99,6 +99,7 @@ def request_upload(*, owner, folder, original_name, content_type, size_bytes):
 
     normalized_name = original_name.strip()
     name_taken = File.objects.filter(
+        owner=owner,
         folder=folder,
         original_name__iexact=normalized_name,
         status__in=[File.Status.UPLOADING, File.Status.AVAILABLE],
@@ -215,6 +216,7 @@ def restore_file(*, file, owner, new_name=None):
 
     conflict = (
         File.objects.filter(
+            owner=owner,
             folder=file.folder,
             original_name__iexact=target_name,
             status__in=[File.Status.UPLOADING, File.Status.AVAILABLE],

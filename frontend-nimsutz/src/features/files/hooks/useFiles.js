@@ -32,11 +32,11 @@ export function useFiles(folderId) {
         setLoading(true);
         setError(null);
         try {
-            // A nivel raíz no hay archivos posibles: todo archivo pertenece
-            // siempre a una carpeta (el modelo File.folder no es nulo).
+            // Permite archivos con idFolder null (raíz) o con idFolder = folderId. 
+            // También trae TODAS las carpetas del usuario para reconstruir la ruta de migas de pan.
             const [folderList, fileList, allFolders] = await Promise.all([
                 filesApi.listFolders(folderId),
-                folderId == null ? Promise.resolve([]) : filesApi.listFiles(folderId),
+                filesApi.listFiles(folderId),
                 filesApi.listAllFolders(),
             ]);
             setFolders(folderList);

@@ -76,10 +76,12 @@ class FileListView(generics.ListAPIView):
 
     def get_queryset(self):
         queryset = File.objects.filter(owner=self.request.user)
-        folder_id = self.request.query_params.get("folder")
+        folder_param = self.request.query_params.get("folder")
         status_param = self.request.query_params.get("status", File.Status.AVAILABLE)
-        if folder_id:
-            queryset = queryset.filter(folder_id=folder_id)
+        if folder_param == "root":
+            queryset = queryset.filter(folder__isnull=True)
+        elif folder_param:
+            queryset = queryset.filter(folder_id=folder_param)
         return queryset.filter(status=status_param)
 
 

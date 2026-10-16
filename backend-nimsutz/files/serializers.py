@@ -26,7 +26,9 @@ class FileSerializer(serializers.ModelSerializer):
 
 
 class RequestUploadSerializer(serializers.Serializer):
-    folder = serializers.PrimaryKeyRelatedField(queryset=Folder.objects.all())
+    folder = serializers.PrimaryKeyRelatedField(
+            queryset=Folder.objects.all(), allow_null=True, default=None
+    )    
     original_name = serializers.CharField(max_length=255)
     content_type = serializers.CharField(max_length=100)
     size_bytes = serializers.IntegerField(min_value=1)

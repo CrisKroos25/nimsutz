@@ -19,7 +19,14 @@ class Folder(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["owner", "parent", "name"], name="unique_folder_name_per_location"
+                fields=["owner", "parent", "name"],
+                condition=models.Q(parent__isnull=False),
+                name="unique_folder_name_per_location",
+            ),
+            models.UniqueConstraint(
+                fields=["owner", "name"],
+                condition=models.Q(parent__isnull=True),
+                name="unique_root_folder_name_per_owner",
             ),
         ]
 
@@ -37,7 +44,9 @@ class File(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="files"
     )
-    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, related_name="files")
+    folder = models.ForeignKey(
+            Folder, null=True, blank=True, on_delete=models.CASCADE, related_name="files"
+    )    
     storage_key = models.CharField(max_length=255, unique=True)
     original_name = models.CharField(max_length=255)
     content_type = models.CharField(max_length=100)
@@ -55,8 +64,13 @@ class File(models.Model):
             # el nombre. Ver RN-E3-15 vs RN-E3-29.
             models.UniqueConstraint(
                 fields=["folder", "original_name"],
-                condition=models.Q(status__in=["uploading", "available"]),
-                name="unique_visible_file_name_per_folder",
+                condition=models.Q(status__in=["uploading", "available"], folder__isnull=False),
+                name="unique_visible_file_name_in_folder",
+            ),
+            models.UniqueConstraint(
+                fields=["owner", "original_name"],
+                condition=models.Q(status__in=["uploading", "available"], folder__isnull=True),
+                name="unique_visible_file_name_at_root",
             ),
         ]
 
