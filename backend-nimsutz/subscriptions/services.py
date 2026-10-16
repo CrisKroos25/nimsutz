@@ -94,8 +94,18 @@ def subscription_payload(sub):
     }
 
 
+def _validate_confirmed_free_version(version, plan_version_id):
+    if version.price != 0 or (plan_version_id is not None and version.pk != plan_version_id):
+        raise SubscriptionError(
+            "plan_conditions_changed",
+            "Las condiciones del plan cambiaron. Revisa el plan y confirma nuevamente.",
+            {"plan_version_id": "La versión confirmada no corresponde a Gratis."},
+        )
+
+
 @transaction.atomic
-def activate_free(*, user):
+def activate_free(*, user, plan_version_id=None):
+    """La API exige la versión confirmada; llamadas internas conservan su contrato."""
     if not user.can_use_private_features:
         raise SubscriptionError(
             "account_not_eligible", "La cuenta debe estar verificada y activa para elegir un plan."
@@ -106,10 +116,12 @@ def activate_free(*, user):
     current = get_active_subscription(user)
     if current is not None:
         if current.plan_version.plan.code == FREE_PLAN_CODE:
-            return current, False  # idempotente
+            _validate_confirmed_free_version(current.plan_version, plan_version_id)
+            return current, False  # idempotente, conserva las condiciones contratadas
         raise SubscriptionError("coverage_conflict", "Ya tienes una cobertura activa distinta a Gratis.")
 
     version = get_current_version(FREE_PLAN_CODE)
+    _validate_confirmed_free_version(version, plan_version_id)
     subscription = Subscription.objects.create(
         user=user, plan_version=version, started_at=timezone.now(), expires_at=None
     )
