@@ -8,6 +8,8 @@ from django.db.utils import DataError
 from django.utils import timezone
 from django.db.models import Sum
 
+from subscriptions.services import get_active_subscription
+
 from . import storage
 from .models import Folder, File, QuotaReservation
 
@@ -67,12 +69,25 @@ def get_used_bytes(owner):
         status__in=[QuotaReservation.Status.PENDING, QuotaReservation.Status.CONFIRMED],
     ).aggregate(total=Sum("reserved_bytes"))["total"] or 0
 
+def get_capacity_bytes(owner):
+    """Capacidad contratada por la cobertura efectiva (suscripcion activa y vigente).
+    Sin cobertura no hay almacenamiento: devuelve 0."""
+    subscription = get_active_subscription(owner)
+    if subscription is None:
+        return 0
+    return subscription.plan_version.capacity_bytes
+
+
 def get_available_quota(owner):
-    """RN-E3-22/23/24: consumo = archivos activos + reservas pendientes (incluye papelera)."""
-    return settings.SIMULATED_QUOTA_BYTES - get_used_bytes(owner)
+    """RN-E3-22/23/24: disponible = capacidad de la cobertura - consumo
+    (archivos activos + reservas pendientes, incluye papelera)."""
+    return get_capacity_bytes(owner) - get_used_bytes(owner)
 
 
 def request_upload(*, owner, folder, original_name, content_type, size_bytes):
+    if get_active_subscription(owner) is None:
+        raise ValidationError("Necesitas un plan activo para subir archivos.")  # sin plan = sin almacenamiento
+
     if folder.owner_id != owner.id:
         raise ValidationError("La carpeta no pertenece al usuario.")  # RN-E3-04/05
 

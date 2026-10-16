@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.conf import settings
+from .emails import EmailDeliveryError, send_verification_email
 from .models import PasswordResetToken
 
 from .models import User
@@ -95,15 +96,6 @@ def confirm_password_reset(*, token, new_password):
     reset_token.mark_used()
     return user
 
-def send_verification_email(user_email: str, user_name: str, verification_link: str) -> None:
-    """
-    Envía el correo de verificación a través del módulo centralizado emails.py.
-    Lanza EmailDeliveryError si el envío falla.
-    """
-    from .emails import send_verification_email as _dispatch_email
-    _dispatch_email(to_email=user_email, user_name=user_name, verification_link=verification_link)
-
-
 
 class TokenError(Exception):
     def __init__(self, code, detail):
@@ -184,4 +176,7 @@ def resend_verification_email(email: str, base_url: str):
     token = generate_verification_token(user)
     verification_link = f"{base_url}/verify-email?token={token}"
     
-    send_verification_email(user.email, user.name, verification_link)
+    try:
+        send_verification_email(user.email, user.name, verification_link)
+    except EmailDeliveryError:
+        pass  # ya quedo registrado en el log; la respuesta sigue siendo generica
