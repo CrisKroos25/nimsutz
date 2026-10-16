@@ -40,8 +40,8 @@ class SessionView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        user_data = UserSerializer(request.user).data if request.user.is_authenticated else None
-        return Response({"user": user_data, "csrfToken": get_token(request)})
+        user = request.user if request.user.is_authenticated else None
+        return Response(_auth_payload(request, user))
 
 
 @method_decorator(csrf_protect, name="dispatch")
@@ -58,7 +58,7 @@ class LoginView(APIView):
             return Response({"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
         django_login(request, user)
-        return Response({"user": UserSerializer(user).data, "csrfToken": get_token(request)})
+        return Response(_auth_payload(request, user))
 
 
 @method_decorator(csrf_protect, name="dispatch")
