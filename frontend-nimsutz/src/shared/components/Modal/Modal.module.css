@@ -64,6 +64,7 @@
 @media (max-width: 480px) {
     .dialog {
         padding: var(--space-4);
+        width: min(var(--modal-width), calc(100% - 24px));
     }
     .withIcon .content {
         padding-left: 0;
@@ -78,3 +79,15 @@
         flex-shrink: 0;
     }
 }
+
+@media (max-width: 375px) {
+    .dialog {
+        padding: 16px 12px;
+        width: calc(100% - 16px);
+        border-radius: var(--radius);
+    }
+    .heading h2 {
+        font-size: var(--font-size-md);
+    }
+}
+

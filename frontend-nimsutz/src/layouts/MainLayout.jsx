@@ -11,7 +11,7 @@ export default function MainLayout({ theme, toggleTheme }) {
             </a>
             <Sidebar theme={theme} toggleTheme={toggleTheme} />
             <div className={styles.workspace}>
-                <Header />
+                <Header theme={theme} toggleTheme={toggleTheme} />
                 <main id="main-content" className={styles.content}>
                     <Outlet />
                 </main>

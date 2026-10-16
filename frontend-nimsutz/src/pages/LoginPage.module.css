@@ -18,3 +18,18 @@
 .requirements > span > span { display: flex; align-items: baseline; gap: var(--space-2); }
 .requirements svg { flex-shrink: 0; }
 .valid { color: var(--color-success-text); }
+
+@media (max-width: 480px) {
+    .page { gap: var(--space-3); }
+    .page form { gap: var(--space-3); }
+    .logo { margin-bottom: var(--space-3); }
+    .logo img { width: 56px; height: 56px; border-radius: 12px; }
+    .notice { padding: var(--space-3); }
+}
+
+@media (max-width: 375px) {
+    .page h1 { font-size: 1.35rem; }
+    .logo img { width: 48px; height: 48px; }
+    .requirements { font-size: 12px; }
+}
+

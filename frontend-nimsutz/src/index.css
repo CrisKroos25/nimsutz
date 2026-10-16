@@ -63,6 +63,9 @@
     --disabled-opacity: 0.45;
     --sidebar-width: 240px;
     --header-height: 64px;
+    --bottom-nav-height: 60px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
 }
 
 :root[data-theme='dark'] {

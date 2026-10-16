@@ -134,3 +134,24 @@
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+
+@media (max-width: 480px) {
+    .primaryBtn, .secondaryBtn {
+        padding: 11px 16px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 375px) {
+    .title {
+        font-size: 1.25rem;
+    }
+    .message {
+        font-size: 0.875rem;
+    }
+    .primaryBtn, .secondaryBtn {
+        padding: 10px 14px;
+        font-size: 0.875rem;
+    }
+}
+

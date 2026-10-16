@@ -1,9 +1,10 @@
 import { useAuth } from '@shared/auth/AuthContext';
 import { useLocation } from 'react-router-dom';
+import ThemeToggle from './ThemeToggle';
 import AccountMenu from './AccountMenu';
 import styles from './Layouts.module.css';
 
-export default function Header() {
+export default function Header({ theme, toggleTheme }) {
     const { user } = useAuth();
     const { pathname } = useLocation();
     const title = pathname.startsWith('/profile')
@@ -13,8 +14,15 @@ export default function Header() {
 
     return (
         <header className={styles.header}>
-            <span>{title}</span>
-            {user && <AccountMenu key={user.id} />}
+            <div className={styles.headerTitleWrap}>
+                <span className={styles.headerTitle}>{title}</span>
+            </div>
+            <div className={styles.headerEnd}>
+                <div className={styles.mobileTheme}>
+                    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                </div>
+                {user && <AccountMenu key={user.id} />}
+            </div>
         </header>
     );
 }
