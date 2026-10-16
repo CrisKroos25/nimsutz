@@ -459,7 +459,7 @@ class RegistrationAndVerificationTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         sent_email = mail.outbox[0]
         self.assertEqual(sent_email.to, ["lucia@example.test"])
-        self.assertIn("Verificación de cuenta", sent_email.subject)
+        self.assertIn("Verifica tu correo", sent_email.subject)
         self.assertIn("/verify-email?token=", sent_email.body)
 
     def test_registration_email_sent_false_on_delivery_failure(self):
