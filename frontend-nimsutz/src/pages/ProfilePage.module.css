@@ -20,10 +20,49 @@
 .meter progress::-webkit-progress-bar { background: var(--color-bg); border-radius: var(--radius-pill); }
 .meter progress::-webkit-progress-value { background: var(--color-secondary); border-radius: var(--radius-pill); }
 .meter progress::-moz-progress-bar { background: var(--color-secondary); border-radius: var(--radius-pill); }
-@media (max-width: 760px) {
-    .summary { grid-template-columns: minmax(0, 1fr); }
-    .identity { align-items: flex-start; flex-direction: column; gap: var(--space-3); }
-    .fields { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
-    .fields dd + dt { margin-top: var(--space-2); }
-    .card { padding: var(--space-4); }
+/* Mobile (< 768px: 6.8", 6.4", 5.8" phones) */
+@media (max-width: 767px) {
+    .summary {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-3);
+    }
+    .identity {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: var(--space-3);
+        margin-top: var(--space-3);
+    }
+    .fields {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-1);
+    }
+    .fields dd + dt {
+        margin-top: var(--space-3);
+    }
+    .card {
+        padding: var(--space-4);
+    }
+    .plan {
+        margin-top: var(--space-3);
+    }
 }
+
+/* Compact Mobile (<= 375px: 5.8" phones) */
+@media (max-width: 375px) {
+    .card {
+        padding: var(--space-3);
+        border-radius: var(--radius);
+    }
+    .avatar {
+        width: 68px;
+        height: 68px;
+        font-size: 1.5rem;
+    }
+    .planName {
+        font-size: var(--font-size-lg);
+    }
+    .fields {
+        font-size: 13px;
+    }
+}
+

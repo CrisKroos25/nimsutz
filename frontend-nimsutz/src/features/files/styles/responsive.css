@@ -26,8 +26,8 @@
     /* Nombre del archivo (Fila 1 completa) */
     [data-cell="name"] {
         flex: 1 1 100% !important;
-        margin-bottom: 8px;
-        max-width: calc(100% - 90px) !important; /* Espacio para acciones absolutas */
+        margin-bottom: 6px;
+        max-width: 100% !important;
     }
 
     /* Metadatos (Fila 2) */
@@ -49,14 +49,22 @@
         display: none !important; /* Ocultar propietario en móvil para ahorrar espacio */
     }
 
-    /* Acciones alineadas a la derecha */
+    /* Acciones al pie de la tarjeta para evitar solapamientos */
     [data-cell="actions"] {
-        position: absolute !important;
-        right: 16px;
-        top: 16px;
-        display: flex;
-        gap: 8px;
+        position: static !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        gap: 8px !important;
+        margin-top: 8px !important;
+        padding-top: 8px !important;
+        border-top: 1px dashed var(--color-border);
         flex-direction: row !important;
+    }
+
+    [data-cell="actions"] button {
+        flex: 0 1 auto;
+        min-height: 38px;
     }
 
     /* ----- BARRA DE HERRAMIENTAS ----- */

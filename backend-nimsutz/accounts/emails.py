@@ -42,17 +42,19 @@ def send_password_reset_email(*, user, token):
         ),
     )
 
-
-def send_verification_email(user_email: str, user_name: str, verification_link: str) -> None:
+def send_verification_email(user_email: str = None, user_name: str = None, verification_link: str = None, *, to_email: str = None) -> None:
     """Contrato de contratos_fase_1.md. Lanza EmailDeliveryError si el proveedor falla."""
+    target_email = to_email or user_email
     _send(
-        to_email=user_email,
+        to_email=target_email,
         subject="Verifica tu correo - Nim sutz'",
         body=(
             f"Hola {user_name},\n\n"
             "Gracias por crear tu cuenta en Nim sutz'.\n"
             "Confirma tu correo con este enlace (tiene una vigencia limitada):\n\n"
             f"{verification_link}\n\n"
+            "Este enlace es válido por 24 horas y solo puede utilizarse una vez.\n"
             "Si no creaste esta cuenta, ignora este mensaje."
         ),
     )
+

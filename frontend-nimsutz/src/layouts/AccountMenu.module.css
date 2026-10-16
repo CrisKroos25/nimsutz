@@ -60,3 +60,24 @@
 .panel nav a:hover, .panel nav button:hover { background: var(--color-bg); }
 .panel nav button:disabled { opacity: var(--disabled-opacity); cursor: wait; }
 .error { color: var(--color-danger); padding: var(--space-2); font-size: var(--font-size-xs); }
+
+@media (max-width: 640px) {
+    .trigger {
+        max-width: 160px;
+        font-size: var(--font-size-xs);
+        padding-right: var(--space-2);
+    }
+    .panel {
+        width: min(280px, calc(100vw - 24px));
+    }
+}
+
+@media (max-width: 375px) {
+    .trigger {
+        max-width: 120px;
+    }
+    .name {
+        max-width: 65px;
+    }
+}
+
