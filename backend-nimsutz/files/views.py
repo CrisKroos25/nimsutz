@@ -1,6 +1,7 @@
 # files/views.py
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
@@ -176,3 +177,15 @@ class FilePermanentDeleteView(APIView):
         except DjangoValidationError as e:
             raise DRFValidationError({"detail": e.messages})
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ---------- Reglas de archivo ----------
+
+class UploadRulesView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            "max_file_size_bytes": settings.MAX_FILE_SIZE_BYTES,
+            "allowed_content_types": settings.ALLOWED_CONTENT_TYPES,
+        })

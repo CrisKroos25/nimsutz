@@ -101,18 +101,19 @@ STORAGE_BACKEND_CONFIG = {
     "public_endpoint_url": os.environ['MINIO_PUBLIC_ENDPOINT'],
 }
 
-MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # RN-E3-17
+MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # RN-E3-17
 ALLOWED_CONTENT_TYPES = [               # RN-E3-18
     "application/pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "text/plain",
     "image/png",
     "image/jpeg",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # .xlsx
+    "application/vnd.ms-excel", 
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",  # .pptx
 ]
-RESERVATION_TTL_MINUTES = 15
-SIMULATED_QUOTA_BYTES = int(
-    os.getenv("SIMULATED_QUOTA_BYTES", 500 * 1024 * 1024)
-)
+
+RESERVATION_TTL_MINUTES = 10
 
 PAID_PLANS_ENABLED = os.getenv("PAID_PLANS_ENABLED", "false").lower() == "true"
 

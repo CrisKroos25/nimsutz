@@ -14,4 +14,7 @@ urlpatterns = [
     path("files/<int:pk>/trash/", views.FileTrashView.as_view()),
     path("files/<int:pk>/restore/", views.FileRestoreView.as_view()),
     path("files/<int:pk>/permanent/", views.FilePermanentDeleteView.as_view()),
+
+    path("files/upload-rules/", views.UploadRulesView.as_view()),
+
 ]
