@@ -1,0 +1,181 @@
+.shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    min-height: 100dvh;
+    background: var(--color-surface);
+}
+
+/* ---------- Panel izquierdo (mismo degradado del hero) ---------- */
+.aside {
+    --aside-ink: #1e1b4b;
+    --aside-muted: #43415d;
+    --aside-accent: #6d28d9;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: var(--space-6) clamp(32px, 6vw, 96px);
+    overflow: hidden;
+    color: var(--aside-ink);
+    background: radial-gradient(ellipse at 85% 10%, #a78bfa 0, transparent 60%),
+        linear-gradient(160deg, #ffedd5, #fb923c 55%, #7c3aed);
+}
+:global([data-theme='dark']) .aside {
+    --aside-ink: #f1f0ff;
+    --aside-muted: #e0ddee;
+    --aside-accent: #c4b5fd;
+    background: radial-gradient(ellipse at 90% 5%, #6d28d9 0, transparent 65%),
+        linear-gradient(160deg, #1a1740, #743e48 55%, #4c1d95);
+}
+.asideContent { position: relative; z-index: 1; display: grid; gap: var(--space-4); max-width: 460px; }
+.eyebrow { color: var(--aside-accent); font-size: 11px; font-weight: 600; letter-spacing: 2px; }
+.aside h2 { font-size: clamp(28px, 3vw, 44px); line-height: 1.15; letter-spacing: -1.5px; font-weight: var(--font-weight-bold); }
+.aside h2 span { color: var(--aside-accent); }
+.asideLead { color: var(--aside-muted); font-size: var(--font-size-sm); line-height: 1.8; }
+
+.highlights { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.highlights li { display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--font-size-sm); line-height: 1.5; }
+.highlights li > span:last-child { display: grid; gap: 2px; }
+.highlights strong { font-weight: var(--font-weight-semibold); }
+.highlights li > span:last-child > span { color: var(--aside-muted); }
+.highlightIcon {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--aside-ink) 12%, transparent);
+    color: var(--aside-ink);
+}
+
+.deco {
+    position: absolute;
+    left: 8%;
+    right: -6%;
+    bottom: 40px;
+    padding: 22px 16px;
+    border-radius: 14px;
+    background: #1e1b4b;
+    color: #fff7ed;
+    text-align: center;
+    font-size: 13px;
+    transform: rotate(4deg);
+    box-shadow: 0 20px 40px #1e1b4b30;
+    opacity: 0.9;
+}
+
+/* ---------- Panel derecho ---------- */
+.main { display: flex; flex-direction: column; min-width: 0; padding: var(--space-4) clamp(24px, 5vw, 64px) var(--space-6); }
+.topbar {
+    display: flex;
+    justify-content: end;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+.topbar a { font-weight: var(--font-weight-semibold); }
+.back { text-decoration: none; }
+.back:hover { text-decoration: underline; }
+.content { display: grid; gap: var(--space-4); width: 100%; max-width: 380px; margin: auto; padding-block: var(--space-5); }
+.mobileBrand { display: none; color: var(--color-secondary); font-size: 11px; font-weight: 600; letter-spacing: 2px; }
+.heading h1 { font-size: var(--font-size-xl); line-height: 1.3; }
+.heading p { margin-top: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.form { display: grid; gap: var(--space-3); }
+.form button[type='submit'] { width: 100%; }
+.legal { color: var(--color-text-muted); font-size: var(--font-size-xs); line-height: 1.6; }
+.logo {
+    position: absolute;
+    top: clamp(24px, 4vw, 48px);
+    right: clamp(24px, 4vw, 56px);
+    z-index: 2;
+    width: clamp(56px, 6vw, 80px);
+    height: clamp(56px, 6vw, 80px);
+    border-radius: var(--radius-panel);
+    object-fit: contain;
+}
+/* ---------- Estado: cuenta pendiente de verificación ---------- */
+.verifyIcon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    margin-bottom: var(--space-3);
+    border-radius: var(--radius-panel);
+    background: color-mix(in srgb, var(--color-secondary) 14%, transparent);
+    color: var(--color-secondary);
+}
+.verify { display: grid; gap: var(--space-3); }
+.pending {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: fit-content;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-warning-text) 14%, transparent);
+    color: var(--color-warning-text);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+}
+.pending::before {
+    content: '';
+    width: var(--status-dot-size);
+    height: var(--status-dot-size);
+    border-radius: 50%;
+    background: currentColor;
+}
+.verifyText { color: var(--color-text-muted); font-size: var(--font-size-sm); line-height: 1.7; overflow-wrap: anywhere; }
+.verifyText strong { color: var(--color-text); font-weight: var(--font-weight-semibold); }
+.verifyNote {
+    padding-left: var(--space-3);
+    border-left: 2px solid color-mix(in srgb, var(--color-secondary) 45%, transparent);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+}
+.verifyActions { display: grid; gap: var(--space-3); margin-top: var(--space-2); }
+.verifyActions button { width: 100%; }
+.resendOk { color: var(--color-success-text); font-size: var(--font-size-sm); }
+.verifyLink { text-align: center; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); text-decoration: none; }
+.verifyLink:hover { text-decoration: underline; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+
+    /* El panel de marca pasa a ser un banner superior */
+    .aside {
+        display: flex;
+        justify-content: flex-start;
+        overflow: visible; /* permite que el logo sobresalga */
+        padding: var(--space-5) var(--space-4) calc(36px + var(--space-4));
+    }
+    .asideContent { gap: var(--space-2); max-width: none; }
+    .aside h2 { font-size: clamp(24px, 6vw, 32px); letter-spacing: -1px; }
+    .highlights,
+    .deco { display: none; }
+
+    /* Logo centrado, mitad sobre el banner y mitad sobre el formulario */
+    .logo {
+        top: auto;
+        right: auto;
+        left: 50%;
+        bottom: 0;
+        width: 72px;
+        height: 72px;
+        transform: translate(-50%, 50%);
+    }
+
+    /* Espacio para la mitad del logo que cae sobre el formulario */
+    .main { padding-top: calc(36px + var(--space-3)); }
+    .mobileBrand { display: none; } /* el banner ya muestra la marca */
+    .content { margin-block: 0; padding-block: var(--space-4); }
+}
+@media (max-width: 480px) {
+    .main { padding-inline: var(--space-3); }
+    .topbar { justify-content: center; }
+    .topActions { justify-content: center; }
+}

@@ -36,13 +36,15 @@ export default function AppRouter() {
                             }
                         />
                     </Route>
+
+                    <Route path="register" element={<RegisterPage {...theme} />} />
                     <Route element={<AuthLayout {...theme} />}>
                         <Route path="login" element={<LoginPage />} />
-                        <Route path="register" element={<RegisterPage />} />
                         <Route path="verify-email" element={<VerifyEmail />} />
                         <Route path="forgot-password" element={<ForgotPassword />} />
                         <Route path="reset-password" element={<ResetPassword />} />
                     </Route>
+                    
                     <Route element={<MainLayout {...theme} />}>
                         <Route element={<RequireSession />}>
                             <Route path="files/*" element={<FilesPage />} />
