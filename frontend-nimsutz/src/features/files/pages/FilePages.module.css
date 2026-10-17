@@ -39,10 +39,6 @@
 .fileName { font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
 .muted { color: var(--color-text-muted); font-size: 11px; }
 .iconBadge { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0; font-size: 8px; font-weight: 700; }
-.typePdf { color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 12%, transparent); }
-.typeDoc, .typePpt { color: var(--color-secondary); background: color-mix(in srgb, var(--color-secondary) 12%, transparent); }
-.typeExcel { color: var(--color-success); background: color-mix(in srgb, var(--color-success) 12%, transparent); }
-.typeImage, .typeDefault, .typeZip { color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 12%, transparent); }
 .fileGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .fileCard { padding: 16px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); display: grid; gap: 14px; }
 .fileCard:has(button[aria-pressed='true']) { border-color: var(--color-primary); }

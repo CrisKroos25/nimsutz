@@ -4,8 +4,9 @@ import { transfersApi } from '../api/transfersApi';
 import FileActions from './FileActions/FileActions';
 import Badge from '@shared/components/Badge/Badge';
 import styles from '../pages/FilePages.module.css';
+import { formatStorage, formatDate } from '@shared/utils/planFormat';
 
-export default function FileDetails({ file, folderName, owner, formatBytes, formatDate, onClose, onChanged }) {
+export default function FileDetails({ file, folderName, owner, onClose, onChanged }) {
     const [preview, setPreview] = useState(null);
     const [previewFailed, setPreviewFailed] = useState(false);
     useEffect(() => {
@@ -27,7 +28,7 @@ export default function FileDetails({ file, folderName, owner, formatBytes, form
         <h3 className={styles.sectionTitle}>Información</h3>
         <dl className={styles.metadata}>
             <dt>Tipo</dt><dd>{file.content_type}</dd>
-            <dt>Tamaño</dt><dd>{formatBytes(file.size_bytes)}</dd>
+            <dt>Tamaño</dt><dd>{formatStorage(file.size_bytes)}</dd>
             <dt>Propietario</dt><dd>{owner || 'Tú'}</dd>
             <dt>Carpeta</dt><dd>{folderName || '—'}</dd>
             <dt>Creación</dt><dd>{formatDate(file.created_at)}</dd>

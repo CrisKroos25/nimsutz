@@ -1,19 +1,5 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-    Folder as FolderIcon,
-    FolderPlus,
-    Pencil,
-    Trash2,
-    Loader2,
-    FileText,
-    Image as ImageIcon,
-    File as FileGenericIcon,
-    Search,
-    List,
-    LayoutGrid,
-    Upload,
-} from 'lucide-react';
 import { useFiles } from '@features/files/hooks/useFiles';
 import { useAuth } from '@shared/auth/AuthContext';
 import Table from '@shared/components/Table/Table';
@@ -22,91 +8,24 @@ import FolderFormModal from '@features/files/components/FolderFormModal';
 import ConfirmDialog from '@features/files/components/ConfirmDialog';
 import UploadPanel from '@features/files/components/UploadPanel/UploadPanel';
 import FileActions from '@features/files/components/FileActions/FileActions';
-
+import { getFileTypeInfo } from '@features/files/utils/fileTypes';
+import { formatStorage, formatDate } from '@shared/utils/planFormat';
 
 import Button from '@shared/components/Button/Button';
 import Badge from '@shared/components/Badge/Badge';
 import styles from './FilePages.module.css';
 
-function formatBytes(bytes) {
-    if (!bytes || bytes <= 0 || isNaN(Number(bytes))) return '0 B';
-    const num = Number(bytes);
-    const units = ['B', 'KB', 'MB', 'GB'];
-    const exponent = Math.min(
-        Math.floor(Math.log(num) / Math.log(1024)),
-        units.length - 1,
-    );
-    if (exponent < 0) return '0 B';
-    const value = num / 1024 ** exponent;
-    return `${value.toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
-}
-
-function formatDate(isoString) {
-    if (!isoString) return '—';
-    try {
-        const d = new Date(isoString);
-        if (isNaN(d.getTime())) return '—';
-        return d.toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-        });
-    } catch {
-        return '—';
-    }
-}
-
-function getFileTypeInfo(contentType, fileName = '') {
-    const safeName = String(fileName || '');
-    const ext = safeName.split('.').pop()?.toUpperCase() || '';
-    const safeType = String(contentType || '').toLowerCase();
-
-    if (safeType.includes('pdf') || ext === 'PDF') {
-        return { label: 'PDF', icon: FileText, className: styles.typePdf };
-    }
-    if (safeType.includes('presentation') || ['PPT', 'PPTX'].includes(ext)) {
-        return {
-            label: ext || 'PPTX',
-            icon: FileText,
-            className: styles.typePpt,
-        };
-    }
-    if (
-        safeType.includes('image') ||
-        ['PNG', 'JPG', 'JPEG', 'WEBP', 'SVG'].includes(ext)
-    ) {
-        return {
-            label: ext || 'IMG',
-            icon: ImageIcon,
-            className: styles.typeImage,
-        };
-    }
-    if (safeType.includes('word') || ['DOC', 'DOCX'].includes(ext)) {
-        return { label: 'DOCX', icon: FileText, className: styles.typeDoc };
-    }
-    if (
-        safeType.includes('spreadsheet') ||
-        ['XLS', 'XLSX', 'CSV'].includes(ext)
-    ) {
-        return {
-            label: ext || 'XLSX',
-            icon: FileText,
-            className: styles.typeExcel,
-        };
-    }
-    if (safeType.includes('zip') || ['ZIP', 'RAR', 'TAR', 'GZ'].includes(ext)) {
-        return {
-            label: ext || 'ZIP',
-            icon: FileText,
-            className: styles.typeZip,
-        };
-    }
-    return {
-        label: ext || 'FILE',
-        icon: FileGenericIcon,
-        className: styles.typeDefault,
-    };
-}
+import {
+    Folder as FolderIcon,
+    FolderPlus,
+    Pencil,
+    Trash2,
+    Loader2,
+    Search,
+    List,
+    LayoutGrid,
+    Upload,
+} from 'lucide-react';
 
 function buildBreadcrumb(folderIndex, folderId) {
     const path = [];
@@ -157,7 +76,7 @@ export function FilesPage() {
     }
     const columns = [
         { key: 'original_name', label: 'Nombre', render: fileName },
-        { key: 'size_bytes', label: 'Tamaño', render: file => formatBytes(file.size_bytes) },
+        { key: 'size_bytes', label: 'Tamaño', render: file => formatStorage(file.size_bytes) },
         { key: 'updated_at', label: 'Fecha', render: file => formatDate(file.updated_at) },
         { key: 'owner', label: 'Propietario', render: () => <span title={user?.email}>Tú</span> },
         { key: 'status', label: 'Estado', render: () => <Badge tone="success">Disponible</Badge> },
@@ -197,11 +116,11 @@ export function FilesPage() {
             </section>
             <section className={styles.filesSection} aria-labelledby="documents-heading"><h2 className={styles.sectionTitle} id="documents-heading">Archivos</h2>
                 {view === 'list' || loading || error || visibleFiles.length === 0 ? <Table columns={columns} rows={visibleFiles} caption="Archivos de la carpeta actual" loading={loading} error={error} emptyMessage={query || kind !== 'all' ? 'No hay archivos que coincidan con los filtros.' : 'No hay archivos en esta ubicación.'} /> : <div className={styles.fileGrid}>
-                    {visibleFiles.map(file => <article key={file.id} className={styles.fileCard}>{fileName(file)}<p className={styles.muted}>{formatBytes(file.size_bytes)} · {formatDate(file.updated_at)}</p><div className={styles.cardFooter}><Badge tone="success">Disponible</Badge><FileActions file={file} onChanged={reload} /></div></article>)}
+                    {visibleFiles.map(file => <article key={file.id} className={styles.fileCard}>{fileName(file)}<p className={styles.muted}>{formatStorage(file.size_bytes)} · {formatDate(file.updated_at)}</p><div className={styles.cardFooter}><Badge tone="success">Disponible</Badge><FileActions file={file} onChanged={reload} /></div></article>)}
                 </div>}
             </section>
         </div>
-        {selected && <FileDetails key={selected.id} file={selected} folderName={folderIndex.get(selected.folder)?.name} owner={user?.email} formatBytes={formatBytes} formatDate={formatDate} onClose={() => setSelectedId(null)} onChanged={reload} />}
+        {selected && <FileDetails key={selected.id} file={selected} folderName={folderIndex.get(selected.folder)?.name} owner={user?.email} onClose={() => setSelectedId(null)} onChanged={reload} />}
         <FolderFormModal open={createOpen} onClose={() => setCreateOpen(false)} onSubmit={createFolder} />
         <FolderFormModal open={Boolean(renameTarget)} onClose={() => setRenameTarget(null)} folder={renameTarget} onSubmit={name => renameFolder(renameTarget.id, name)} />
         <ConfirmDialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title="Eliminar carpeta" description={'Esta acción no se puede deshacer. La carpeta "' + (deleteTarget?.name || '') + '" debe estar vacía.'} onConfirm={() => deleteFolder(deleteTarget.id)} />
