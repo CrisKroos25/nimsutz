@@ -13,6 +13,24 @@ function json(body) {
 
 export const transfersApi = {
     /**
+     * Obtiene las reglas de carga vigentes del servidor (tamaño máximo y
+     * tipos permitidos). El front las usa solo para validar antes de subir;
+     * la validación que protege es la del backend.
+     * @returns {{ max_file_size_bytes: number, allowed_content_types: string[] }}
+     */
+    obtenerReglas: async () => {
+        const data = await apiRequest('/api/files/upload-rules/');
+        if (
+            !Number.isFinite(data?.max_file_size_bytes) ||
+            data.max_file_size_bytes <= 0 ||
+            !Array.isArray(data?.allowed_content_types)
+        ) {
+            throw new Error('No se pudieron obtener las reglas de carga.');
+        }
+        return data;
+    },
+
+    /**
      * Paso 1: Solicita una reserva de cuota y la URL firmada para subir.
      * @param {{ folder: number, original_name: string, content_type: string, size_bytes: number }} data
      * @returns {{ file: object, upload_url: string }}
