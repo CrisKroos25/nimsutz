@@ -8,7 +8,7 @@ from accounts.serializers import UserSerializer
 from . import services
 from .errors import SubscriptionError
 from .overview import build_account_overview
-from .serializers import PreferenceInputSerializer
+from .serializers import PlanVersionInputSerializer
 
 
 def _error(error):
@@ -29,7 +29,7 @@ class PreferenceView(APIView):
         return Response({"preference": services.get_preference(request.user)})
 
     def put(self, request):
-        serializer = PreferenceInputSerializer(data=request.data)
+        serializer = PlanVersionInputSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(
                 {"detail": "Datos inválidos.", "code": "invalid_request", "field_errors": serializer.errors},
@@ -56,8 +56,16 @@ class ActivateFreeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        serializer = PlanVersionInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"detail": "Datos inválidos.", "code": "invalid_request", "field_errors": serializer.errors},
+                status=400,
+            )
         try:
-            subscription, created = services.activate_free(user=request.user)
+            subscription, created = services.activate_free(
+                user=request.user, plan_version_id=serializer.validated_data["plan_version_id"]
+            )
         except SubscriptionError as e:
             return _error(e)
         return Response(
