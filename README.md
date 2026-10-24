@@ -187,7 +187,7 @@ Variables de entorno (en `.env`; todas tienen valor por defecto en `docker-compo
 | Variable | Para que sirve | Defecto |
 |---|---|---|
 | `DEFAULT_FROM_EMAIL` | Remitente de los correos | `no-reply@nimsutz.local` |
-| `FRONTEND_URL` | URL publica usada en los enlaces de los correos | `http://localhost:5173` |
+| `FRONTEND_URL` | URL base de los enlaces de verificacion y recuperacion. La verificacion no usa el encabezado `Origin`. | `http://localhost:5173` |
 | `PASSWORD_RESET_TOKEN_TTL_MINUTES` | Vigencia del enlace de recuperacion | `30` |
 
 Por defecto el backend de correo es el de consola (`MAILERS` en `config/settings.py`): el mensaje aparece en `docker compose logs backend`. Para enviar correo real basta definir `EMAIL_HOST` en el `.env`; no se requiere cola ni infraestructura adicional. Variables SMTP (todas opcionales):

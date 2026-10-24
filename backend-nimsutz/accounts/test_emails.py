@@ -49,12 +49,24 @@ class VerificationEmailIntegrationTests(TestCase):
         )
 
     def test_register_sends_real_email_with_verification_link(self):
-        response = self.register()
+        with override_settings(FRONTEND_URL="https://app.example.test/"):
+            response = self.client.post(
+                "/api/auth/register/",
+                data=json.dumps({
+                    "name": "Nuevo",
+                    "email": "nuevo@example.test",
+                    "password": "Password123!",
+                    "password_confirmation": "Password123!",
+                }),
+                content_type="application/json",
+                HTTP_ORIGIN="http://localhost:5173",
+            )
         self.assertEqual(response.status_code, 201)
         self.assertTrue(response.json()["email_sent"])
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["nuevo@example.test"])
-        self.assertIn("/verify-email?token=", mail.outbox[0].body)
+        self.assertIn("https://app.example.test/verify-email?token=", mail.outbox[0].body)
+        self.assertNotIn("localhost", mail.outbox[0].body)
 
     def test_register_survives_provider_failure_and_reports_it(self):
         with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("caido")):
@@ -66,13 +78,17 @@ class VerificationEmailIntegrationTests(TestCase):
     def test_resend_sends_email_to_pending_account(self):
         self.register()
         mail.outbox.clear()
-        response = self.client.post(
-            "/api/auth/resend-verification/",
-            data=json.dumps({"email": "nuevo@example.test"}),
-            content_type="application/json",
-        )
+        with override_settings(FRONTEND_URL="https://app.example.test/"):
+            response = self.client.post(
+                "/api/auth/resend-verification/",
+                data=json.dumps({"email": "nuevo@example.test"}),
+                content_type="application/json",
+                HTTP_ORIGIN="http://localhost:5173",
+            )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("https://app.example.test/verify-email?token=", mail.outbox[0].body)
+        self.assertNotIn("localhost", mail.outbox[0].body)
 
     def test_resend_survives_provider_failure_with_generic_answer(self):
         self.register()

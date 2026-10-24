@@ -170,9 +170,8 @@ class RegisterView(APIView):
                 )
                 preference_saved = False
 
-        base_url = request.headers.get('Origin', 'http://localhost:5173')
         token = services.generate_verification_token(user)
-        verification_link = f'{base_url}/verify-email?token={token}'
+        verification_link = services.build_verification_link(token)
         
         email_sent = False
         try:
@@ -219,14 +218,9 @@ class ResendVerificationView(APIView):
         serializer = ResendVerificationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Obtenemos la base_url del frontend desde request o de settings
-        # Como es una demo, la construimos temporalmente hardcodeada o de Origin
-        base_url = request.headers.get("Origin", "http://localhost:5173")
-        
         try:
             services.resend_verification_email(
-                email=serializer.validated_data["email"],
-                base_url=base_url
+                email=serializer.validated_data["email"]
             )
         except Exception as exc:
             logger.warning("Fallo al reenviar correo de verificación a %s: %s", serializer.validated_data["email"], exc)

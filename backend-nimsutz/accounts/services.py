@@ -104,6 +104,10 @@ class TokenError(Exception):
         super().__init__(detail)
 
 
+def build_verification_link(token: str) -> str:
+    return f"{settings.FRONTEND_URL.rstrip('/')}/verify-email?token={token}"
+
+
 def generate_verification_token(user: User) -> str:
     """
     Genera un token firmado con Timestamp.
@@ -157,7 +161,7 @@ def verify_email_with_token(token: str) -> User:
     return user
 
 
-def resend_verification_email(email: str, base_url: str):
+def resend_verification_email(email: str):
     """
     Reenvía el correo de verificación si la cuenta está pendiente.
     Invalida el enlace anterior.
@@ -174,7 +178,7 @@ def resend_verification_email(email: str, base_url: str):
         return
 
     token = generate_verification_token(user)
-    verification_link = f"{base_url}/verify-email?token={token}"
+    verification_link = build_verification_link(token)
     
     try:
         send_verification_email(user.email, user.name, verification_link)
