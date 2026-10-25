@@ -118,3 +118,32 @@
     .formActions { grid-template-columns: 1fr; }
     .resultCard h1 { font-size: var(--font-size-xl); }
 }
+.approvedDialog {
+    width: min(560px, calc(100% - var(--space-5)));
+    max-height: calc(100dvh - var(--space-5));
+}
+.approvedDialog > div { gap: var(--space-3); }
+.approvedDialog h2 { display: grid; gap: var(--space-3); text-align: center; font-size: 1.75rem; letter-spacing: -0.025em; }
+.approvedDialog > div > p { text-align: center; }
+.approvedDialog .detailRow { grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.5fr); }
+.approvedDialog .statusIcon { margin-top: var(--space-2); }
+.closeDialog {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    width: var(--button-height);
+    height: var(--button-height);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+.closeDialog:hover { background: color-mix(in srgb, var(--color-text) 8%, transparent); color: var(--color-text); }
+@media (max-width: 480px) {
+    .approvedDialog h2 { font-size: var(--font-size-xl); }
+    .closeDialog { top: var(--space-2); right: var(--space-2); }
+}

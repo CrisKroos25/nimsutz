@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Check, CreditCard, Info, X } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../shared/auth/AuthContext';
 import Button from '../../shared/components/Button/Button';
 import Input from '../../shared/components/Input/Input';
+import Modal from '../../shared/components/Modal/Modal';
 import { formatStorage } from '../../shared/utils/planFormat';
 import { getPaymentResult, getQuote } from './api/paymentsApi';
 import usePaymentAttempt from './hooks/usePaymentAttempt';
@@ -71,13 +72,14 @@ function CardFields({ disabled, fields }) {
     </fieldset>;
 }
 
-function Checkout({ quoteId, userId }) {
+function Checkout({ quoteId, userId, initialQuote }) {
     const navigate = useNavigate();
-    const [quote, setQuote] = useState(null);
+    const [quote, setQuote] = useState(initialQuote || null);
     const [loadError, setLoadError] = useState('');
     const [reload, setReload] = useState(0);
     const { pending, hasRequest, busy, error, fields, run } = usePaymentAttempt(`${userId}:${quoteId}`);
     useEffect(() => {
+        if (initialQuote) return;
         let active = true;
         getQuote(quoteId).then(data => {
             if (!data?.quote?.plan || !Array.isArray(data.quote.lines) || !data.quote.effect) {
@@ -86,7 +88,7 @@ function Checkout({ quoteId, userId }) {
             if (active) { setQuote(data.quote); setLoadError(''); }
         }).catch(error => { if (active) setLoadError(error.message); });
         return () => { active = false; };
-    }, [quoteId, reload]);
+    }, [quoteId, reload, initialQuote]);
 
     async function process(body) {
         const result = await run(body);
@@ -94,7 +96,7 @@ function Checkout({ quoteId, userId }) {
         try {
             sessionStorage.setItem(`payment-result:${userId}:${result.payment.id}`, quoteId);
         } catch { /* El resultado sigue disponible en el servidor aunque no se conserve el enlace de reintento. */ }
-        navigate(`/payments/result/${result.payment.id}`, { replace: true });
+        navigate(`/payments/result/${result.payment.id}`, { replace: true, state: { checkoutQuote: quote } });
     }
     function submit(event) {
         event.preventDefault();
@@ -152,6 +154,7 @@ export function CheckoutPage() {
 
 function PaymentResult({ paymentId }) {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, refresh } = useAuth();
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
@@ -178,36 +181,69 @@ function PaymentResult({ paymentId }) {
                 : subscription ? `Tu plan ${subscription.plan.name} está activo.` : 'Tu pago se completó correctamente.'
         : reasons[result?.payment.reason_code] || 'No pudimos completar el pago. Revisa los datos e inténtalo de nuevo.';
 
+    const paymentDetails = result && <>
+        <dl className={styles.details}>
+            <DetailRow label="Referencia"><span className={styles.reference}>{result.payment.reference}</span></DetailRow>
+            <DetailRow label={approved ? 'Monto cobrado' : 'Importe solicitado'}>
+                {paymentAmount(result.payment.amount, result.payment.currency)} <span className={styles.currency}>{result.payment.currency}</span>
+            </DetailRow>
+            <DetailRow label="Tarjeta">{result.payment.card_last4 ? `•••• ${result.payment.card_last4}` : 'No disponible'}</DetailRow>
+            {subscription && <>
+                <DetailRow label={approved ? 'Plan' : 'Plan actual'}>{subscription.plan.name} · {formatStorage(subscription.plan.capacity_bytes)}</DetailRow>
+                <DetailRow label="Vigencia">{paymentPeriod(subscription.started_at, subscription.expires_at)}</DetailRow>
+            </>}
+        </dl>
+        <p className={styles.note}>{dateTime(result.payment.created_at)}</p>
+    </>;
+
+    if (approved) {
+        const backgroundQuote = location.state?.checkoutQuote;
+        return <>
+            <div inert aria-hidden="true">
+                {backgroundQuote ? <Checkout quoteId={backgroundQuote.id} userId={user.id} initialQuote={backgroundQuote} />
+                    : <section className={styles.page}>
+                        <p className={styles.eyebrow}>Planes y suscripciones</p>
+                        <h1>Tu suscripción</h1>
+                        {subscription && <div className={styles.card}>
+                            <h2>Plan {subscription.plan.name}</h2>
+                            <p>{formatStorage(subscription.plan.capacity_bytes)}</p>
+                        </div>}
+                    </section>}
+            </div>
+            <Modal open onClose={() => navigate('/')} className={styles.approvedDialog}
+                title={<>
+                    <span className={`${styles.statusIcon} ${styles.approved}`} aria-hidden="true"><Check size={30} strokeWidth={2} /></span>
+                    <span>Pago aprobado</span>
+                </>}
+                description={message}>
+                {paymentDetails}
+                <Button className={styles.pillButton} onClick={continueToAccount} loading={continuing}>
+                    {result.destination === 'files' ? 'Ir a mis archivos' : 'Continuar'}
+                </Button>
+                <Link className={styles.secondaryAction} to="/">Volver al inicio</Link>
+                <button type="button" className={styles.closeDialog} onClick={() => navigate('/')} aria-label="Cerrar y volver al inicio">
+                    <X size={20} aria-hidden="true" />
+                </button>
+            </Modal>
+        </>;
+    }
+
     return <section className={styles.page}>
         <p className={styles.eyebrow}>Resultado del pago</p>
         <div className={`${styles.card} ${styles.resultCard}`}>
-            {result && <div className={`${styles.statusIcon} ${approved ? styles.approved : styles.rejected}`} aria-hidden="true">
-                {approved ? <Check size={30} strokeWidth={2} /> : <X size={28} strokeWidth={2} />}
+            {result && <div className={`${styles.statusIcon} ${styles.rejected}`} aria-hidden="true">
+                <X size={28} strokeWidth={2} />
             </div>}
-            <h1>{result ? approved ? 'Pago aprobado' : 'Pago rechazado' : 'Resultado del pago'}</h1>
+            <h1>{result ? 'Pago rechazado' : 'Resultado del pago'}</h1>
             {error && <><p className={styles.alert} role="alert">{error}</p><Button variant="secondary" onClick={() => setAttempt(attempt + 1)}>Consultar nuevamente</Button></>}
             {!result && !error && <p className={styles.resultDescription} role="status">Consultando resultado…</p>}
             {result && <>
                 <p className={styles.resultDescription}>{message}</p>
-                <dl className={styles.details}>
-                    <DetailRow label="Referencia"><span className={styles.reference}>{result.payment.reference}</span></DetailRow>
-                    <DetailRow label={approved ? 'Monto cobrado' : 'Importe solicitado'}>
-                        {paymentAmount(result.payment.amount, result.payment.currency)} <span className={styles.currency}>{result.payment.currency}</span>
-                    </DetailRow>
-                    <DetailRow label="Tarjeta">{result.payment.card_last4 ? `•••• ${result.payment.card_last4}` : 'No disponible'}</DetailRow>
-                    {subscription && <>
-                        <DetailRow label={approved ? 'Plan' : 'Plan actual'}>{subscription.plan.name} · {formatStorage(subscription.plan.capacity_bytes)}</DetailRow>
-                        <DetailRow label="Vigencia">{paymentPeriod(subscription.started_at, subscription.expires_at)}</DetailRow>
-                    </>}
-                </dl>
-                <p className={styles.note}>{dateTime(result.payment.created_at)}</p>
-                {!approved && <p className={styles.note}>No se realizó ningún cargo ni se modificó tu plan.</p>}
-                {approved && <Button className={styles.pillButton} onClick={continueToAccount} loading={continuing}>
-                    {result.destination === 'files' ? 'Ir a mis archivos' : 'Continuar'}
-                </Button>}
-                {!approved && <Link className={styles.primaryAction} to={quoteId ? `/payments/checkout/${quoteId}` : '/plans/summary'}>
+                {paymentDetails}
+                <p className={styles.note}>No se realizó ningún cargo ni se modificó tu plan.</p>
+                <Link className={styles.primaryAction} to={quoteId ? `/payments/checkout/${quoteId}` : '/plans/summary'}>
                     {quoteId ? 'Corregir datos e intentar de nuevo' : 'Volver a elegir mi plan'}
-                </Link>}
+                </Link>
             </>}
             <Link className={styles.secondaryAction} to="/">Volver al inicio</Link>
         </div>

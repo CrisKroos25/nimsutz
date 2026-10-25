@@ -74,3 +74,9 @@ Se conserva la composición del mockup: formulario y resumen en dos columnas, y 
 Se retiraron las etiquetas de prueba de las pantallas. El procesamiento continúa siendo el simulador; no se añadieron cobros ni proveedores reales. El número se presenta en grupos de cuatro y el vencimiento en MM/AA; se envían sin espacios y como mes/año al contrato existente. Se muestra el importe del servidor en el botón, el CVV permanece oculto y los errores conservan la recuperación del intento.
 
 Verificación adicional: 10 pruebas de frontend aprobadas, lint de payments y Header aprobado, build aprobado. En navegador se revisaron checkout/resultado en claro y oscuro, rechazo y ancho móvil de 390 px sin desbordamiento horizontal. Se comprobó navegación por teclado entre los campos y un doble clic con un único envío, con el cuerpo exacto esperado por la API. Las respuestas fueron interceptadas exclusivamente en el navegador de pruebas: las capturas no demuestran contratación pagada real ni sustituyen la integración pendiente con Rodrigo.
+
+## Aprobación en ventana emergente
+
+El resultado aprobado se presenta mediante el Modal nativo compartido, sobre el checkout atenuado y desenfocado. Conserva referencia, importe, tarjeta enmascarada, plan, vigencia y acciones. La X y Escape vuelven al inicio; el botón principal actualiza la sesión y continúa al destino autorizado. La aprobación se consulta al servidor también al recargar o abrir la ruta directamente. El estado de navegación conserva únicamente la cotización para mostrar el fondo, sin datos de tarjeta.
+
+Verificado en navegador con respuestas controladas: claro/oscuro, ancho móvil de 390 px, fondo no interactivo, foco inicial dentro del diálogo, tabulación sin acceso al fondo, cierre por Escape y restauración del scroll. Lint de los archivos modificados y build aprobados.
