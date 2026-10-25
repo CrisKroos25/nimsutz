@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'accounts',
     'files',
-    'subscriptions'
+    'subscriptions',
+    'payments'
 ]
 
 MIDDLEWARE = [
@@ -206,3 +207,6 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
+
+# Clave independiente para identificar reintentos sin guardar datos de tarjeta.
+PAYMENTS_IDEMPOTENCY_SECRET = os.getenv("PAYMENTS_IDEMPOTENCY_SECRET", "")
