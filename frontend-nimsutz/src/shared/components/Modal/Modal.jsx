@@ -7,6 +7,7 @@ export default function Modal({
     title,
     description,
     icon,
+    className = '',
     children,
 }) {
     const dialogRef = useRef(null);
@@ -31,7 +32,7 @@ export default function Modal({
     return (
         <dialog
             ref={dialogRef}
-            className={`${styles.dialog} ${icon ? styles.withIcon : ''}`}
+            className={`${styles.dialog} ${icon ? styles.withIcon : ''} ${className}`}
             aria-labelledby={titleId}
             aria-describedby={description ? descriptionId : undefined}
             onCancel={(event) => {
