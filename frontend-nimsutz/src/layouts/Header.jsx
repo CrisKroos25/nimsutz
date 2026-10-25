@@ -9,6 +9,8 @@ export default function Header({ theme, toggleTheme }) {
     const { pathname } = useLocation();
     const title = pathname.startsWith('/profile')
         ? 'Mi perfil'
+        : pathname.startsWith('/payments/checkout') ? 'Confirma tu plan'
+        : pathname.startsWith('/payments/result') ? 'Resultado del pago'
         : pathname.startsWith('/plans') ? 'Planes'
         : pathname.startsWith('/trash') ? 'Papelera' : 'Mis archivos';
 

@@ -33,7 +33,7 @@ class CheckoutView(PaymentView):
         services.require_customer(request.user)
         serializer = CheckoutInputSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response({"code": "invalid_request", "detail": "Revisa los datos de prueba.",
+            return Response({"code": "invalid_request", "detail": "Revisa los datos de la tarjeta.",
                              "field_errors": serializer.errors}, status=400)
         try:
             key = UUID(request.headers.get("Idempotency-Key", ""))
