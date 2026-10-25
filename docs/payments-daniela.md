@@ -48,7 +48,7 @@ Backend: `docker compose exec backend python manage.py test payments subscriptio
 Frontend, desde frontend-nimsutz:
 
 ```text
-node --test src/features/payments/paymentAttempt.test.mjs
+node --test src/features/payments/paymentAttempt.test.mjs src/features/payments/paymentPresentation.test.mjs
 npx --no-install eslint src/features/payments src/router/AppRouter.jsx
 npm run build
 ```
@@ -61,7 +61,16 @@ Pendiente antes de la entrega integrada:
 
 - Integrar y verificar los servicios y cotizaciones reales de Rodrigo; hacer contratación, renovación y mejora con dos conceptos.
 - Ejecutar concurrencia con PostgreSQL y migraciones sobre una copia con datos previos.
-- Verificar manualmente claro/oscuro, móvil, teclado, red interrumpida, reintento y navegación después de aprobación/rechazo. No hay evidencia visual completa todavía.
+- Completar el recorrido con el backend real: red interrumpida, reintento y navegación después de aprobación/rechazo. Las comprobaciones visuales con respuestas controladas se documentan debajo.
 - Abrir PR hacia develop después de comprobar el remoto y obtener revisión de un compañero.
 
 Resultados locales de esta revisión: 46 pruebas de backend descubiertas entre payments y subscriptions, 43 aprobadas y 3 de concurrencia omitidas por SQLite; 7 pruebas de recuperación/idempotencia del frontend aprobadas; lint de payments y router aprobado; build de Vite aprobado. Las advertencias W042 de claves primarias corresponden a las apps existentes. Estas comprobaciones no certifican Docker/PostgreSQL ni el flujo comercial integrado.
+
+
+## Ajuste visual a los mockups M08 y M09
+
+Se conserva la composición del mockup: formulario y resumen en dos columnas, y resultado centrado con icono de estado, detalles alineados y botones redondeados. Los temas claro/oscuro usan los tokens existentes. En móvil el resumen aparece antes del formulario y los botones se adaptan al ancho.
+
+Se retiraron las etiquetas de prueba de las pantallas. El procesamiento continúa siendo el simulador; no se añadieron cobros ni proveedores reales. El número se presenta en grupos de cuatro y el vencimiento en MM/AA; se envían sin espacios y como mes/año al contrato existente. Se muestra el importe del servidor en el botón, el CVV permanece oculto y los errores conservan la recuperación del intento.
+
+Verificación adicional: 10 pruebas de frontend aprobadas, lint de payments y Header aprobado, build aprobado. En navegador se revisaron checkout/resultado en claro y oscuro, rechazo y ancho móvil de 390 px sin desbordamiento horizontal. Se comprobó navegación por teclado entre los campos y un doble clic con un único envío, con el cuerpo exacto esperado por la API. Las respuestas fueron interceptadas exclusivamente en el navegador de pruebas: las capturas no demuestran contratación pagada real ni sustituyen la integración pendiente con Rodrigo.
