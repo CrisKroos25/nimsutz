@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.conf import settings
-from .emails import EmailDeliveryError, send_verification_email
+from .emails import send_verification_email
 from .models import PasswordResetToken
 
 from .models import User
@@ -128,8 +128,8 @@ def verify_email_with_token(token: str) -> User:
     """
     signer = TimestampSigner()
     try:
-        # Expiración: 24 horas (86400 segundos)
-        payload = signer.unsign(token, max_age=86400)
+        max_age = settings.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES * 60
+        payload = signer.unsign(token, max_age=max_age)
     except SignatureExpired:
         raise TokenError("expired_token", "El enlace de verificación ya expiró.")
     except BadSignature:
@@ -180,7 +180,4 @@ def resend_verification_email(email: str):
     token = generate_verification_token(user)
     verification_link = build_verification_link(token)
     
-    try:
-        send_verification_email(user.email, user.name, verification_link)
-    except EmailDeliveryError:
-        pass  # ya quedo registrado en el log; la respuesta sigue siendo generica
+    send_verification_email(user.email, user.name, verification_link)

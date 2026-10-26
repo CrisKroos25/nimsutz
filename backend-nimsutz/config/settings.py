@@ -193,6 +193,9 @@ else:
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@nimsutz.local")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 PASSWORD_RESET_TOKEN_TTL_MINUTES = int(os.getenv("PASSWORD_RESET_TOKEN_TTL_MINUTES", 30))
+EMAIL_VERIFICATION_TOKEN_TTL_MINUTES = int(
+    os.getenv("EMAIL_VERIFICATION_TOKEN_TTL_MINUTES", 1440)
+)
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",

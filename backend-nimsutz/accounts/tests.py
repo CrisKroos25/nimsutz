@@ -380,6 +380,21 @@ class RegistrationAndVerificationTests(TestCase):
         self.assertEqual(user.account_status, get_user_model().AccountStatus.ACTIVE)
         self.assertTrue(user.email_verified)
 
+    def test_verify_email_uses_configured_ttl(self):
+        from accounts import services
+
+        user = get_user_model().objects.create_user(
+            name="TTL User", email="ttl@example.test", password="Password123!"
+        )
+        payload = f"{user.pk}:{user.updated_at.timestamp()}"
+        with override_settings(EMAIL_VERIFICATION_TOKEN_TTL_MINUTES=45):
+            with mock.patch(
+                "accounts.services.TimestampSigner.unsign", return_value=payload
+            ) as unsign:
+                services.verify_email_with_token("signed-token")
+
+        unsign.assert_called_once_with("signed-token", max_age=45 * 60)
+
     def test_verify_email_invalid_and_used_tokens(self):
         from accounts import services
         user = get_user_model().objects.create_user(

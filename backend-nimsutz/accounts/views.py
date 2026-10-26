@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib.auth import login as django_login, logout as django_logout
+from django.db import transaction
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
@@ -108,7 +109,7 @@ class PasswordResetRequestView(APIView):
             try:
                 emails.send_password_reset_email(user=token.user, token=token.token)
             except emails.EmailDeliveryError:
-                pass
+                logger.warning("No se pudo enviar el correo de recuperacion.")
 
         return Response(
             {"detail": "Si el correo existe, se envio un enlace de recuperacion."}
@@ -132,6 +133,7 @@ class PasswordResetConfirmView(APIView):
 
         return Response({"detail": "Contraseña actualizada correctamente."})
 
+@method_decorator(transaction.non_atomic_requests, name="dispatch")
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -144,8 +146,9 @@ class RegisterView(APIView):
                 "field_errors": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Guardar usuario
-        user = serializer.save()
+        # Confirmar la cuenta antes del envío, incluso si ATOMIC_REQUESTS está habilitado.
+        with transaction.atomic():
+            user = serializer.save()
 
         # Guardar preferencia de plan usando el servicio de Cristian
         preferred_plan_version_id = serializer.validated_data.get("preferred_plan_version_id")
@@ -177,8 +180,8 @@ class RegisterView(APIView):
         try:
             services.send_verification_email(user.email, user.name, verification_link)
             email_sent = True
-        except Exception as exc:
-            logger.warning("No se pudo entregar el correo de verificación a %s: %s", user.email, exc)
+        except emails.EmailDeliveryError:
+            logger.warning("No se pudo enviar el correo de verificacion del usuario %s.", user.pk)
             email_sent = False
 
         response_data = UserSerializer(user).data
@@ -222,8 +225,8 @@ class ResendVerificationView(APIView):
             services.resend_verification_email(
                 email=serializer.validated_data["email"]
             )
-        except Exception as exc:
-            logger.warning("Fallo al reenviar correo de verificación a %s: %s", serializer.validated_data["email"], exc)
+        except emails.EmailDeliveryError:
+            logger.warning("No se pudo reenviar el correo de verificacion.")
         
         return Response({
             "detail": "Si el correo está registrado y pendiente, se ha enviado un nuevo enlace."

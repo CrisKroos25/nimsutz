@@ -189,6 +189,7 @@ Variables de entorno (en `.env`; todas tienen valor por defecto en `docker-compo
 | `DEFAULT_FROM_EMAIL` | Remitente de los correos | `no-reply@nimsutz.local` |
 | `FRONTEND_URL` | URL base de los enlaces de verificacion y recuperacion. La verificacion no usa el encabezado `Origin`. | `http://localhost:5173` |
 | `PASSWORD_RESET_TOKEN_TTL_MINUTES` | Vigencia del enlace de recuperacion | `30` |
+| `EMAIL_VERIFICATION_TOKEN_TTL_MINUTES` | Vigencia del enlace de verificacion (el mensaje y el token usan este valor) | `1440` |
 
 Por defecto el backend de correo es el de consola (`MAILERS` en `config/settings.py`): el mensaje aparece en `docker compose logs backend`. Para enviar correo real basta definir `EMAIL_HOST` en el `.env`; no se requiere cola ni infraestructura adicional. Variables SMTP (todas opcionales):
 
@@ -199,6 +200,7 @@ Por defecto el backend de correo es el de consola (`MAILERS` en `config/settings
 | `EMAIL_USE_TLS` | STARTTLS | `true` |
 | `EMAIL_HOST_USER` | Usuario SMTP | vacio |
 | `EMAIL_HOST_PASSWORD` | Contrasena SMTP | vacio |
+| `EMAIL_TIMEOUT` | Tiempo maximo de espera SMTP en segundos | `10` |
 
 Ejemplo con Gmail (cuenta con verificacion en dos pasos y una contrasena de aplicacion): `EMAIL_HOST=smtp.gmail.com`, `EMAIL_HOST_USER=<cuenta>@gmail.com`, `EMAIL_HOST_PASSWORD=<contrasena de aplicacion>` y `DEFAULT_FROM_EMAIL=<la misma cuenta>`. Las credenciales viven solo en el `.env` local; nunca se suben al repositorio. Tras cambiar el `.env` hay que recrear el contenedor: `docker compose up -d --force-recreate backend`.
 

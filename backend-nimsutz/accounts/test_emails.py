@@ -24,8 +24,24 @@ class VerificationEmailTests(TestCase):
         self.assertIn("Ana", message.body)
         self.assertIn(LINK, message.body)
 
+    def test_verification_message_uses_configured_token_ttl(self):
+        with override_settings(EMAIL_VERIFICATION_TOKEN_TTL_MINUTES=45):
+            send_verification_email("ana@example.test", "Ana", LINK)
+        self.assertIn("válido por 45 minutos", mail.outbox[0].body)
+
+    def test_verification_requires_a_recipient(self):
+        with self.assertRaisesRegex(ValueError, "user_email o to_email"):
+            send_verification_email(user_name="Ana", verification_link=LINK)
+
     def test_provider_failure_raises_specific_error_and_is_logged(self):
         with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("caido")):
+            with self.assertLogs("accounts.emails", level="ERROR") as logs:
+                with self.assertRaises(EmailDeliveryError):
+                    send_verification_email("ana@example.test", "Ana", LINK)
+        self.assertNotIn("ana@example.test", "\n".join(logs.output))
+
+    def test_zero_delivered_messages_raise_delivery_error(self):
+        with mock.patch("accounts.emails.send_mail", return_value=0):
             with self.assertLogs("accounts.emails", level="ERROR"):
                 with self.assertRaises(EmailDeliveryError):
                     send_verification_email("ana@example.test", "Ana", LINK)
@@ -74,6 +90,12 @@ class VerificationEmailIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertFalse(response.json()["email_sent"])
         self.assertTrue(get_user_model().objects.filter(email="nuevo@example.test").exists())
+
+    def test_register_view_is_outside_request_wide_transactions(self):
+        from accounts.views import RegisterView
+
+        view = RegisterView.as_view()
+        self.assertIn("default", view._non_atomic_requests)
 
     def test_resend_sends_email_to_pending_account(self):
         self.register()
