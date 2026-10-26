@@ -1,11 +1,11 @@
 # accounts/services.py
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
-from django.contrib.auth.password_validation import validate_password
 from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.conf import settings
 from .emails import send_verification_email
 from .models import PasswordResetToken
+from .passwords import validate_new_password
 
 from .models import User
 
@@ -90,7 +90,7 @@ def confirm_password_reset(*, token, new_password):
         raise AuthenticationError("El enlace de recuperación venció o ya fue usado.")
 
     user = reset_token.user
-    validate_password(new_password, user)  # lanza ValidationError si es débil
+    validate_new_password(new_password, user)
     user.set_password(new_password)
     user.save(update_fields=["password"])
     reset_token.mark_used()

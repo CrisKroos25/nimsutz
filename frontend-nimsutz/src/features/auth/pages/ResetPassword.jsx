@@ -31,7 +31,8 @@ export default function ResetPassword() {
 
     function validate() {
         const found = {};
-        if (!requirements[0].met) found.password = 'Usa al menos ocho caracteres.';
+        if (!requirements[2].met) found.password = 'La contraseña no puede estar vacía ni contener solo espacios.';
+        else if (!requirements[0].met) found.password = 'Usa al menos ocho caracteres.';
         else if (!requirements[1].met) found.password = 'La contraseña no puede contener únicamente números.';
         if (!confirmation) found.confirmation = 'Confirma tu contraseña.';
         else if (confirmation !== password) found.confirmation = 'Las contraseñas no coinciden.';

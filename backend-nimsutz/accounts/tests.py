@@ -234,6 +234,38 @@ class PasswordResetTests(TestCase):
         token = PasswordResetToken.objects.get(user=self.user)
         self.assertEqual(self.confirm(token.token, "corta").status_code, 400)
 
+    def test_confirm_rejects_whitespace_only_password_without_consuming_token(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+
+        response = self.confirm(token.token, "            ")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("solo espacios", str(response.json()["new_password"]))
+        token.refresh_from_db()
+        self.assertIsNone(token.used_at)
+
+    def test_confirm_preserves_leading_and_trailing_password_spaces(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+        new_password = "  New-P@ssword-493!  "
+
+        response = self.confirm(token.token, new_password)
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(new_password))
+
+    def test_confirm_rejects_password_similar_to_user_email(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+
+        response = self.confirm(token.token, "ana@example.test")
+
+        self.assertEqual(response.status_code, 400)
+        token.refresh_from_db()
+        self.assertIsNone(token.used_at)
+
     def test_reset_does_not_change_account_status_or_role(self):
         self.request_reset()
         token = PasswordResetToken.objects.get(user=self.user)
@@ -291,6 +323,24 @@ class PasswordResetTests(TestCase):
 class RegistrationAndVerificationTests(TestCase):
     def setUp(self):
         self.client = Client()
+
+    def test_login_preserves_password_spaces(self):
+        password = "  Existing-P@ssword-493!  "
+        get_user_model().objects.create_user(
+            name="Space Login",
+            email="space-login@example.test",
+            password=password,
+            account_status=get_user_model().AccountStatus.ACTIVE,
+            email_verified=True,
+        )
+
+        response = self.client.post(
+            "/api/auth/login/",
+            data=json.dumps({"email": "space-login@example.test", "password": password}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
 
     def test_registration_creates_pending_client(self):
         data = {
@@ -361,6 +411,54 @@ class RegistrationAndVerificationTests(TestCase):
         response = self.client.post("/api/auth/register/", data=json.dumps(data), content_type="application/json")
         self.assertEqual(response.status_code, 400)
         self.assertIn("password_confirmation", response.json()["field_errors"])
+
+    def test_registration_rejects_password_similar_to_email(self):
+        data = {
+            "name": "Ana Prueba",
+            "email": "ana@example.test",
+            "password": "ana@example.test",
+            "password_confirmation": "ana@example.test",
+        }
+
+        response = self.client.post(
+            "/api/auth/register/", data=json.dumps(data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("password", response.json()["field_errors"])
+        self.assertFalse(get_user_model().objects.filter(email=data["email"]).exists())
+
+    def test_registration_rejects_password_with_only_spaces(self):
+        data = {
+            "name": "Space User",
+            "email": "spaces@example.test",
+            "password": "            ",
+            "password_confirmation": "            ",
+        }
+
+        response = self.client.post(
+            "/api/auth/register/", data=json.dumps(data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("solo espacios", str(response.json()["field_errors"]["password"]))
+
+    def test_registration_preserves_leading_and_trailing_password_spaces(self):
+        password = "  Strong-P@ssword-493!  "
+        data = {
+            "name": "Space User",
+            "email": "spaces@example.test",
+            "password": password,
+            "password_confirmation": password,
+        }
+
+        response = self.client.post(
+            "/api/auth/register/", data=json.dumps(data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 201)
+        user = get_user_model().objects.get(email=data["email"])
+        self.assertTrue(user.check_password(password))
 
     def test_verify_email_success(self):
         from accounts import services
