@@ -143,6 +143,22 @@ class AdminActionsTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)  # estaba activa, no suspendida
 
+    def test_old_session_does_not_revive_after_reactivation(self):
+        target_client, _ = self.login_as("cliente@example.test")
+        self.assertEqual(target_client.get("/api/folders/").status_code, 200)
+
+        admin_client, admin_token = self.login_as("admin@example.test")
+        admin_client.post(
+            f"/api/admin/users/{self.client_user.pk}/suspend/", HTTP_X_CSRFTOKEN=admin_token
+        )
+        admin_client.post(
+            f"/api/admin/users/{self.client_user.pk}/reactivate/", HTTP_X_CSRFTOKEN=admin_token
+        )
+
+        # El cliente nunca hizo una petición mientras estuvo suspendido,
+        # así que solo la invalidación de sesiones impide que la cookie vieja funcione.
+        self.assertEqual(target_client.get("/api/folders/").status_code, 403)
+
 class PasswordResetTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -653,4 +669,4 @@ class RegistrationAndVerificationTests(TestCase):
         user = get_user_model().objects.get(email="invalidplan@example.test")
         self.assertEqual(user.account_status, get_user_model().AccountStatus.PENDING_VERIFICATION)
         self.assertFalse(SubscriptionPreference.objects.filter(user=user).exists())
-
+

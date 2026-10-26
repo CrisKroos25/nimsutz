@@ -1,5 +1,8 @@
 # accounts/services.py
-from django.contrib.auth import authenticate
+from django.contrib.auth import SESSION_KEY, authenticate
+from django.contrib.sessions.models import Session
+from django.db import transaction
+from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.conf import settings
@@ -35,6 +38,12 @@ def authenticate_user(*, email, password):
 class AuthorizationError(Exception):
     """El usuario está autenticado pero no tiene permiso para esta acción (403)."""
 
+def invalidate_user_sessions(user):
+    """Elimina todas las sesiones vigentes de `user` (sesiones en base de datos)."""
+    target = str(user.pk)
+    for session in Session.objects.filter(expire_date__gt=timezone.now()).iterator():
+        if session.get_decoded().get(SESSION_KEY) == target:
+            session.delete()
 
 def suspend_account(*, actor, target):
     if actor.role != User.Role.ADMINISTRADOR:
@@ -49,8 +58,10 @@ def suspend_account(*, actor, target):
     if target.account_status == User.AccountStatus.SUSPENDED:
         return target  # idempotente, mismo criterio que trash_file en files
 
-    target.account_status = User.AccountStatus.SUSPENDED
-    target.save(update_fields=["account_status", "updated_at"])
+    with transaction.atomic():
+        target.account_status = User.AccountStatus.SUSPENDED
+        target.save(update_fields=["account_status", "updated_at"])
+        invalidate_user_sessions(target)
     # RN-E4-05: no se tocan archivos, carpetas, suscripciones ni pagos del usuario.
     return target
 
@@ -62,8 +73,10 @@ def reactivate_account(*, actor, target):
     if target.account_status != User.AccountStatus.SUSPENDED:
         raise ValidationError("Solo una cuenta suspendida puede reactivarse.")
 
-    target.account_status = User.AccountStatus.ACTIVE
-    target.save(update_fields=["account_status", "updated_at"])
+    with transaction.atomic():
+        target.account_status = User.AccountStatus.ACTIVE
+        target.save(update_fields=["account_status", "updated_at"])
+        invalidate_user_sessions(target)
     return target
 
 def request_password_reset(*, email):

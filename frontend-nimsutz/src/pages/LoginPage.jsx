@@ -8,6 +8,7 @@ import { Link, Navigate, useLocation } from 'react-router-dom';
 import Input from '../shared/components/Input/Input';
 import Button from '../shared/components/Button/Button';
 import styles from './LoginPage.module.css';
+import SessionLoader from '@shared/auth/SessionLoader';
 
 export default function LoginPage() {
     const { user, loading, signIn, destination } = useAuth();
@@ -30,7 +31,7 @@ export default function LoginPage() {
         catch (failure) { setError(failure.message); setErrors(failure.fieldErrors || {}); }
         finally { submitting.current = false; setBusy(false); }
     }
-    if (loading) return <p role="status">Comprobando sesión…</p>;
+    if (loading) return <SessionLoader />;
     const returnTo = ['/profile', '/plans', '/plans/summary', '/trash', '/files'].includes(location.state?.returnTo) ? location.state.returnTo : null;
     if (user) return <Navigate to={destination === '/files' && returnTo ? returnTo : destination} replace />;
     return (
