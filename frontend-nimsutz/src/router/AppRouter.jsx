@@ -16,6 +16,7 @@ import TrashPage from '@features/files/pages/Trash';
 import ForgotPassword from '@features/auth/pages/ForgotPassword';
 import ResetPassword from '@features/auth/pages/ResetPassword';
 import VerifyEmail from '@features/auth/pages/VerifyEmail';
+import { CheckoutPage, PaymentResultPage } from '@features/payments/PaymentPages';
 
 export default function AppRouter() {
     const theme = useTheme();
@@ -52,6 +53,8 @@ export default function AppRouter() {
                             <Route path="profile" element={<ProfilePage />} />
                             <Route path="plans" element={<PlansPage />} />
                             <Route path="plans/summary" element={<PlansPage />} />
+                            <Route path="payments/checkout/:quoteId" element={<CheckoutPage />} />
+                            <Route path="payments/result/:paymentId" element={<PaymentResultPage />} />
                         </Route>
                     </Route>
                 </Routes>

@@ -4,6 +4,7 @@ from accounts.urls import auth_urlpatterns, admin_urlpatterns
 from subscriptions.urls import plan_urlpatterns, subscription_urlpatterns, account_urlpatterns
 
 urlpatterns = [
+    path("api/payments/", include("payments.urls")),
     path('api/', include('files.urls')),    
     path("api/plans/", include(plan_urlpatterns)),
     path("api/subscriptions/", include(subscription_urlpatterns)),
