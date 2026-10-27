@@ -566,3 +566,200 @@ def get_quote(*, user, quote_id):
         quote.save(update_fields=["status"])
         raise SubscriptionError("quote_expired", "La cotizaciÃ³n ha expirado. Solicita una nueva.")
     return quote
+
+
+def validate_quote_for_execution(*, user, quote_id):
+    """
+    R3 / Contrato 7.3 y 7.6:
+    Valida la cotización bajo bloqueo antes del cobro en payments.
+    Verifica propiedad, vigencia, estado y que las condiciones comerciales no hayan cambiado.
+    Devuelve un Mapping (dict) con los campos públicos requeridos por payments.
+    """
+    # 1. Bloqueo de la cotización
+    quote = (
+        Quote.objects.select_for_update()
+        .select_related("plan_version__plan")
+        .filter(pk=quote_id, user=user)
+        .first()
+    )
+    if quote is None:
+        raise SubscriptionError("not_found", "Cotización no encontrada.")
+
+    if quote.status != Quote.Status.PENDING:
+        if quote.status == Quote.Status.EXECUTED:
+            raise SubscriptionError("quote_already_processed", "Esta cotización ya fue ejecutada.")
+        raise SubscriptionError("quote_expired", "La cotización ya no está disponible.")
+
+    now = timezone.now()
+    if now > quote.expires_at:
+        quote.status = Quote.Status.EXPIRED
+        quote.save(update_fields=["status"])
+        raise SubscriptionError("quote_expired", "La cotización ha expirado. Solicita una nueva.")
+
+    # 2. Revalidar condiciones del catálogo
+    target_plan = quote.plan_version.plan
+    if not target_plan.is_available:
+        raise SubscriptionError("plan_unavailable", "El plan seleccionado ya no está disponible.")
+
+    # En contrataciones y cambios, revalidar que la versión siga siendo la vigente en el catálogo
+    if quote.operation in (Quote.Operation.CONTRACT, Quote.Operation.CHANGE):
+        current_catalog_version = get_current_version(target_plan.code)
+        if quote.plan_version_id != current_catalog_version.pk:
+            raise SubscriptionError("plan_conditions_changed", "Las condiciones del plan han cambiado.")
+
+    # 3. Bloqueo y revalidación de la suscripción actual del usuario
+    current_sub = (
+        Subscription.objects.select_for_update()
+        .select_related("plan_version__plan")
+        .filter(user=user, status=Subscription.Status.ACTIVE)
+        .first()
+    )
+
+    if quote.operation == Quote.Operation.CONTRACT:
+        if current_sub is not None and current_sub.plan_version.plan.code != FREE_PLAN_CODE:
+            raise SubscriptionError("coverage_conflict", "Ya existe una cobertura pagada activa.")
+
+    elif quote.operation == Quote.Operation.RENEW:
+        if current_sub is None or current_sub.plan_version.plan.code == FREE_PLAN_CODE:
+            raise SubscriptionError("coverage_conflict", "No hay una suscripción activa para renovar.")
+        if current_sub.next_cycle_starts_at is not None:
+            raise SubscriptionError("renewal_limit_reached", "Ya existe un siguiente ciclo contratado.")
+        # La versión contratada original debe coincidir
+        if current_sub.plan_version_id != quote.plan_version_id:
+            raise SubscriptionError("plan_conditions_changed", "La versión de suscripción no coincide.")
+
+    elif quote.operation == Quote.Operation.CHANGE:
+        if current_sub is None or current_sub.plan_version.plan.code == FREE_PLAN_CODE:
+            pass  # de gratis a pagado es contrato
+        else:
+            if current_sub.plan_version.plan.code == quote.plan_version.plan.code:
+                raise SubscriptionError("coverage_conflict", "Ya tienes contratado este plan.")
+            from files.services import get_used_bytes
+            used_bytes = get_used_bytes(user)
+            if used_bytes > quote.plan_version.capacity_bytes:
+                raise SubscriptionError("quota_exceeded", "El consumo actual supera la capacidad del plan destino.")
+
+    return quote_payload(quote)
+
+
+def apply_approved_quote(*, user, quote, payment, approved_at=None):
+    """
+    R2, R5, R6 / Contrato 7.6:
+    Aplica los derechos comerciales de una cotización aprobada.
+    Participa dentro de la transacción de checkout de Daniela.
+    Devuelve la instancia de Subscription resultante.
+    """
+    approval_time = approved_at or timezone.now()
+    quote_id = quote["id"]
+    quote_obj = Quote.objects.select_for_update().get(pk=quote_id)
+
+    target_version = quote_obj.plan_version
+    anchor_day = sub_calendar.to_guatemala(approval_time).day
+
+    current_sub = (
+        Subscription.objects.select_for_update()
+        .select_related("plan_version__plan")
+        .filter(user=user, status=Subscription.Status.ACTIVE)
+        .first()
+    )
+
+    if quote_obj.operation == Quote.Operation.CONTRACT:
+        # Inicio inmediato de ciclo desde aprobación
+        starts_local, ends_local = sub_calendar.calculate_cycle_interval(approval_time, anchor_day)
+        if current_sub is not None:
+            # Reutilizar registro de suscripción existente (evolución de identidad única)
+            current_sub.plan_version = target_version
+            current_sub.started_at = starts_local
+            current_sub.expires_at = ends_local
+            current_sub.cycle_anchor_day = anchor_day
+            current_sub.coverage_end = ends_local
+            current_sub.next_cycle_starts_at = None
+            current_sub.next_cycle_ends_at = None
+            current_sub.next_cycle_plan_version = None
+            current_sub.save()
+            sub_result = current_sub
+        else:
+            sub_result = Subscription.objects.create(
+                user=user,
+                plan_version=target_version,
+                started_at=starts_local,
+                expires_at=ends_local,
+                cycle_anchor_day=anchor_day,
+                coverage_end=ends_local,
+            )
+
+    elif quote_obj.operation == Quote.Operation.RENEW:
+        # R5: Agrega exactamente un siguiente ciclo anticipado pagado
+        anchor = current_sub.cycle_anchor_day or current_sub.started_at.day
+        cycle_start = current_sub.expires_at
+        _, cycle_end = sub_calendar.calculate_cycle_interval(cycle_start, anchor)
+
+        current_sub.next_cycle_starts_at = cycle_start
+        current_sub.next_cycle_ends_at = cycle_end
+        current_sub.next_cycle_plan_version = target_version
+        current_sub.coverage_end = cycle_end
+        current_sub.save(update_fields=[
+            "next_cycle_starts_at", "next_cycle_ends_at", "next_cycle_plan_version", "coverage_end"
+        ])
+        sub_result = current_sub
+
+    elif quote_obj.operation == Quote.Operation.CHANGE:
+        # R6: Mejora inmediata
+        current_sub.plan_version = target_version
+        if current_sub.next_cycle_plan_version_id is not None:
+            current_sub.next_cycle_plan_version = target_version
+        current_sub.save(update_fields=["plan_version", "next_cycle_plan_version"])
+        sub_result = current_sub
+
+    else:
+        raise SubscriptionError("invalid_request", f"Operación '{quote_obj.operation}' no válida para pago.")
+
+    quote_obj.status = Quote.Status.EXECUTED
+    quote_obj.save(update_fields=["status"])
+    return sub_result
+
+
+def confirm_scheduled_quote(*, user, quote_id, operation_key=None):
+    """
+    Contrato 7.4:
+    Confirma una cotización diferida (schedule_downgrade o schedule_free).
+    Solo acepta cotizaciones con requires_payment=False.
+    Crea o actualiza ScheduledChange sin activar anticipadamente ni cobrar.
+    """
+    quote = get_quote(user=user, quote_id=quote_id)
+    if quote.requires_payment:
+        raise SubscriptionError("invalid_request", "Esta cotización requiere pago. Usa checkout.")
+
+    current_sub = get_active_subscription(user)
+    if current_sub is None:
+        raise SubscriptionError("coverage_conflict", "No tienes una suscripción activa.")
+
+    from files.services import get_used_bytes
+    used_bytes = get_used_bytes(user)
+    if used_bytes > quote.plan_version.capacity_bytes:
+        raise SubscriptionError(
+            "quota_exceeded",
+            f"Tu consumo ({used_bytes} bytes) excede la capacidad del plan destino ({quote.plan_version.capacity_bytes} bytes).",
+        )
+
+    coverage_end = current_sub.coverage_end or current_sub.expires_at
+    scheduled, _ = ScheduledChange.objects.update_or_create(
+        user=user,
+        defaults={
+            "subscription": current_sub,
+            "target_plan_version": quote.plan_version,
+            "effective_at": coverage_end,
+            "requires_payment": False,
+        },
+    )
+    quote.status = Quote.Status.CONFIRMED
+    quote.save(update_fields=["status"])
+    return scheduled, current_sub
+
+
+def cancel_scheduled_change(*, user):
+    """
+    Contrato 7.4:
+    Cancela la programación pendiente del propietario. Idempotente.
+    """
+    ScheduledChange.objects.filter(user=user).delete()
