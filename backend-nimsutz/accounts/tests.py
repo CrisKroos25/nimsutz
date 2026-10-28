@@ -291,11 +291,12 @@ class PasswordResetTests(TestCase):
         self.assertEqual(self.user.role, "cliente")
         self.assertTrue(self.user.email_verified)
 
-    def test_request_survives_email_provider_failure(self):
+    def test_request_reports_email_provider_failure(self):
         with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("caido")):
             with self.assertLogs("accounts.emails", level="ERROR"):
                 response = self.request_reset()
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["code"], "email_delivery_failed")
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(PasswordResetToken.objects.filter(user=self.user).count(), 1)
 
@@ -537,12 +538,14 @@ class RegistrationAndVerificationTests(TestCase):
         )
         token_antiguo = services.generate_verification_token(user)
 
-        # Reenviar correo genera nuevo token e invalida el anterior
-        res_resend = self.client.post(
-            "/api/auth/resend-verification/",
-            data=json.dumps({"email": "resend@example.test"}),
-            content_type="application/json"
-        )
+        # Se adelanta el reloj para saltar el cooldown de 60 s
+        future = timezone.now() + timedelta(seconds=61)
+        with mock.patch("django.utils.timezone.now", return_value=future):
+            res_resend = self.client.post(
+                "/api/auth/resend-verification/",
+                data=json.dumps({"email": "resend@example.test"}),
+                content_type="application/json"
+            )
         self.assertEqual(res_resend.status_code, 200)
 
         # El token antiguo ahora debe fallar
@@ -591,7 +594,7 @@ class RegistrationAndVerificationTests(TestCase):
         self.assertIn("Verifica tu correo", sent_email.subject)
         self.assertIn("/verify-email?token=", sent_email.body)
 
-    def test_registration_email_sent_false_on_delivery_failure(self):
+    def test_registration_returns_503_but_keeps_pending_account_on_delivery_failure(self):
         mail.outbox.clear()
         data = {
             "name": "Failed Mail",
@@ -601,12 +604,9 @@ class RegistrationAndVerificationTests(TestCase):
         }
         with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("Conexión rechazada")):
             response = self.client.post("/api/auth/register/", data=json.dumps(data), content_type="application/json")
-            self.assertEqual(response.status_code, 201)
-            res_data = response.json()
-            # La cuenta se crea, pero email_sent refleja que no se pudo enviar
-            self.assertFalse(res_data["email_sent"])
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["code"], "email_delivery_failed")
 
-        # La cuenta existe en estado pendiente para permitir reintento
         user = get_user_model().objects.get(email="failedmail@example.test")
         self.assertEqual(user.account_status, get_user_model().AccountStatus.PENDING_VERIFICATION)
         self.assertEqual(len(mail.outbox), 0)
@@ -669,4 +669,56 @@ class RegistrationAndVerificationTests(TestCase):
         user = get_user_model().objects.get(email="invalidplan@example.test")
         self.assertEqual(user.account_status, get_user_model().AccountStatus.PENDING_VERIFICATION)
         self.assertFalse(SubscriptionPreference.objects.filter(user=user).exists())
+
+    def _resend(self, email):
+        return self.client.post(
+            "/api/auth/resend-verification/",
+            data=json.dumps({"email": email}),
+            content_type="application/json",
+        )
+
+    def test_resend_within_cooldown_returns_429(self):
+        from accounts import services
+        user = get_user_model().objects.create_user(
+            name="Cool", email="cool@example.test", password="Password123!"
+        )
+        services.generate_verification_token(user)
+        mail.outbox.clear()
+
+        response = self._resend("cool@example.test")
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json()["code"], "resend_cooldown")
+        self.assertGreater(response.json()["retry_after"], 0)
+        self.assertIn("Retry-After", response)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_resend_after_cooldown_sends_email(self):
+        from accounts import services
+        user = get_user_model().objects.create_user(
+            name="Later", email="later@example.test", password="Password123!"
+        )
+        services.generate_verification_token(user)
+        mail.outbox.clear()
+
+        future = timezone.now() + timedelta(seconds=61)
+        with mock.patch("django.utils.timezone.now", return_value=future):
+            response = self._resend("later@example.test")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_resend_reports_delivery_failure(self):
+        from accounts import services
+        user = get_user_model().objects.create_user(
+            name="Fail", email="fail@example.test", password="Password123!"
+        )
+        services.generate_verification_token(user)
+
+        future = timezone.now() + timedelta(seconds=61)
+        with mock.patch("django.utils.timezone.now", return_value=future):
+            with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("caido")):
+                response = self._resend("fail@example.test")
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["code"], "email_delivery_failed")
+        user.refresh_from_db()
+        self.assertEqual(user.account_status, get_user_model().AccountStatus.PENDING_VERIFICATION)
 

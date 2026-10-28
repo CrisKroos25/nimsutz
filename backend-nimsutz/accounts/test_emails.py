@@ -1,15 +1,25 @@
 import json
 import smtplib
+from datetime import timedelta
 from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import Client, TestCase, override_settings
+from django.utils import timezone
 
 from . import services
 from .emails import EmailDeliveryError, send_verification_email
 
 LINK = "http://localhost:5173/verify-email?token=abc"
+
+
+def after_cooldown():
+    """Adelanta el reloj de Django 61 s para saltarse la espera del reenvío."""
+    return mock.patch(
+        "django.utils.timezone.now",
+        return_value=timezone.now() + timedelta(seconds=61),
+    )
 
 
 class VerificationEmailTests(TestCase):
@@ -64,6 +74,14 @@ class VerificationEmailIntegrationTests(TestCase):
             "/api/auth/register/", data=json.dumps(data), content_type="application/json"
         )
 
+    def resend(self, email="nuevo@example.test", **extra):
+        return self.client.post(
+            "/api/auth/resend-verification/",
+            data=json.dumps({"email": email}),
+            content_type="application/json",
+            **extra,
+        )
+
     def test_register_sends_real_email_with_verification_link(self):
         with override_settings(FRONTEND_URL="https://app.example.test/"):
             response = self.client.post(
@@ -84,12 +102,15 @@ class VerificationEmailIntegrationTests(TestCase):
         self.assertIn("https://app.example.test/verify-email?token=", mail.outbox[0].body)
         self.assertNotIn("localhost", mail.outbox[0].body)
 
-    def test_register_survives_provider_failure_and_reports_it(self):
+    def test_register_reports_provider_failure_and_keeps_pending_account(self):
         with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("caido")):
             response = self.register()
-        self.assertEqual(response.status_code, 201)
-        self.assertFalse(response.json()["email_sent"])
-        self.assertTrue(get_user_model().objects.filter(email="nuevo@example.test").exists())
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["code"], "email_delivery_failed")
+        self.assertEqual(len(mail.outbox), 0)
+
+        user = get_user_model().objects.get(email="nuevo@example.test")
+        self.assertEqual(user.account_status, get_user_model().AccountStatus.PENDING_VERIFICATION)
 
     def test_register_view_is_outside_request_wide_transactions(self):
         from accounts.views import RegisterView
@@ -101,32 +122,36 @@ class VerificationEmailIntegrationTests(TestCase):
         self.register()
         mail.outbox.clear()
         with override_settings(FRONTEND_URL="https://app.example.test/"):
-            response = self.client.post(
-                "/api/auth/resend-verification/",
-                data=json.dumps({"email": "nuevo@example.test"}),
-                content_type="application/json",
-                HTTP_ORIGIN="http://localhost:5173",
-            )
+            with after_cooldown():
+                response = self.resend(HTTP_ORIGIN="http://localhost:5173")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("https://app.example.test/verify-email?token=", mail.outbox[0].body)
         self.assertNotIn("localhost", mail.outbox[0].body)
 
-    def test_resend_survives_provider_failure_with_generic_answer(self):
+    def test_resend_right_after_register_returns_429(self):
         self.register()
-        with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("caido")):
-            response = self.client.post(
-                "/api/auth/resend-verification/",
-                data=json.dumps({"email": "nuevo@example.test"}),
-                content_type="application/json",
-            )
-        self.assertEqual(response.status_code, 200)
+        mail.outbox.clear()
+        response = self.resend()
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json()["code"], "resend_cooldown")
+        self.assertGreater(response.json()["retry_after"], 0)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_resend_reports_provider_failure(self):
+        self.register()
+        mail.outbox.clear()
+        with after_cooldown():
+            with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("caido")):
+                response = self.resend()
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["code"], "email_delivery_failed")
+        self.assertEqual(len(mail.outbox), 0)
+
+        user = get_user_model().objects.get(email="nuevo@example.test")
+        self.assertEqual(user.account_status, get_user_model().AccountStatus.PENDING_VERIFICATION)
 
     def test_resend_unknown_email_sends_nothing(self):
-        response = self.client.post(
-            "/api/auth/resend-verification/",
-            data=json.dumps({"email": "nadie@example.test"}),
-            content_type="application/json",
-        )
+        response = self.resend(email="nadie@example.test")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(mail.outbox), 0)

@@ -35,6 +35,7 @@ export async function apiRequest(path, options = {}) {
         const error = new Error(detail || 'No se pudo completar la solicitud. Inténtalo de nuevo.');
         error.status = response.status;
         error.code = data?.code;
+        error.retryAfter = Number(data?.retry_after) || null;
         // DRF devuelve campos en la raíz; el contrato nuevo también permite field_errors.
         error.fieldErrors = data?.field_errors || Object.fromEntries(
             Object.entries(data || {}).filter(([key]) => !['detail', 'code'].includes(key)),

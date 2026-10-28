@@ -1,7 +1,7 @@
 import logging
 
 from django.contrib.auth import login as django_login, logout as django_logout
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
@@ -36,6 +36,16 @@ def _auth_payload(request, user):
         "destination": resolve_destination(user) if user else None,
         "csrfToken": get_token(request),
     }
+
+def _email_delivery_failed_response():
+    return Response(
+        {
+            "code": "email_delivery_failed",
+            "detail": "No pudimos enviar el correo. Intenta de nuevo en un momento.",
+            "field_errors": {},
+        },
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
 
 class SessionView(APIView):
     permission_classes = [AllowAny]
@@ -109,7 +119,10 @@ class PasswordResetRequestView(APIView):
             try:
                 emails.send_password_reset_email(user=token.user, token=token.token)
             except emails.EmailDeliveryError:
-                logger.warning("No se pudo enviar el correo de recuperacion.")
+                logger.warning(
+                    "No se pudo enviar el correo de recuperacion del usuario %s.", token.user_id
+                )
+                return _email_delivery_failed_response()
 
         return Response(
             {"detail": "Si el correo existe, se envio un enlace de recuperacion."}
@@ -146,9 +159,16 @@ class RegisterView(APIView):
                 "field_errors": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Confirmar la cuenta antes del envío, incluso si ATOMIC_REQUESTS está habilitado.
-        with transaction.atomic():
-            user = serializer.save()
+        try:
+            with transaction.atomic():
+                user = serializer.save()
+        except IntegrityError:
+            # Dos registros simultáneos con el mismo correo: gana el primero.
+            return Response({
+                "code": "validation_error",
+                "detail": "Datos inválidos",
+                "field_errors": {"email": ["El correo ingresado ya se encuentra en uso."]},
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # Guardar preferencia de plan usando el servicio de Cristian
         preferred_plan_version_id = serializer.validated_data.get("preferred_plan_version_id")
@@ -160,39 +180,38 @@ class RegisterView(APIView):
             except SubscriptionError as exc:
                 logger.warning(
                     "No se pudo guardar la preferencia para el usuario %s (plan_version_id=%s): %s",
-                    user.email,
+                    user.pk,
                     preferred_plan_version_id,
                     exc,
                 )
-                preference_saved = False
-            except Exception as exc:
-                logger.error(
-                    "Error inesperado al guardar la preferencia para %s: %s",
-                    user.email,
-                    exc,
+            except Exception:
+                logger.exception(
+                    "Error inesperado al guardar la preferencia del usuario %s.", user.pk
                 )
-                preference_saved = False
 
         token = services.generate_verification_token(user)
         verification_link = services.build_verification_link(token)
-        
-        email_sent = False
+
         try:
             services.send_verification_email(user.email, user.name, verification_link)
-            email_sent = True
         except emails.EmailDeliveryError:
             logger.warning("No se pudo enviar el correo de verificacion del usuario %s.", user.pk)
-            email_sent = False
+            # La cuenta ya está confirmada y queda pendiente: el usuario puede reintentar el envío.
+            return Response(
+                {
+                    "code": "email_delivery_failed",
+                    "detail": "Tu cuenta quedó creada, pero no pudimos enviar el correo. Reintenta el envío.",
+                    "field_errors": {},
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
         response_data = UserSerializer(user).data
         response_data["status"] = "pending_verification"
-        response_data["email_sent"] = email_sent
+        response_data["email_sent"] = True
         response_data["preference_saved"] = preference_saved
 
-        return Response(
-            response_data,
-            status=status.HTTP_201_CREATED
-        )
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
 class VerifyEmailSerializer(Serializer):
     token = CharField(required=True)
@@ -220,14 +239,26 @@ class ResendVerificationView(APIView):
     def post(self, request):
         serializer = ResendVerificationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             services.resend_verification_email(
                 email=serializer.validated_data["email"]
             )
+        except services.ResendCooldownError as exc:
+            return Response(
+                {
+                    "code": "resend_cooldown",
+                    "detail": str(exc),
+                    "field_errors": {},
+                    "retry_after": exc.retry_after,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+                headers={"Retry-After": str(exc.retry_after)},
+            )
         except emails.EmailDeliveryError:
             logger.warning("No se pudo reenviar el correo de verificacion.")
-        
+            return _email_delivery_failed_response()
+
         return Response({
             "detail": "Si el correo está registrado y pendiente, se ha enviado un nuevo enlace."
         })

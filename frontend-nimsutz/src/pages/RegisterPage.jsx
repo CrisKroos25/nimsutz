@@ -18,6 +18,7 @@ const HIGHLIGHTS = [
     { icon: FolderOpen, title: 'Organiza a tu manera', text: 'Agrupa documentos en carpetas para encontrar lo que necesitas.' },
     { icon: Download, title: 'Tenlos a mano', text: 'Consulta tus archivos y descarga una copia cuando la necesites.' },
 ];
+const RESEND_COOLDOWN_SECONDS = 60; // debe coincidir con RESEND_COOLDOWN_SECONDS del backend
 
 export default function RegisterPage() {
     const { user, loading, destination } = useAuth();
@@ -53,9 +54,18 @@ export default function RegisterPage() {
         try {
             await verificationApi.resendVerification(registered.email);
             setResendMessage('Solicitud aceptada. Revisa tu bandeja y la carpeta de spam; usa el enlace más reciente.');
-            setCooldown(30);
+            setCooldown(RESEND_COOLDOWN_SECONDS);
         } catch (failure) {
-            setError(serviceMessage(failure, 'El reenvío de verificación'));
+            if (failure.code === 'resend_cooldown') {
+                // Demasiado pronto: se muestra la cuenta regresiva que indica el servidor.
+                setCooldown(failure.retryAfter || RESEND_COOLDOWN_SECONDS);
+            } else if (failure.code === 'email_delivery_failed') {
+                // El servidor ya consumió la espera de este intento.
+                setCooldown(RESEND_COOLDOWN_SECONDS);
+                setError(failure.message);
+            } else {
+                setError(serviceMessage(failure, 'El reenvío de verificación'));
+            }
         } finally { submitting.current = false; setBusy(false); }
     }
 
@@ -90,12 +100,22 @@ export default function RegisterPage() {
             if (result?.status !== 'pending_verification') throw new Error('No se pudo confirmar el registro. Intenta iniciar sesión antes de repetirlo.');
             // La preferencia se conserva hasta que el endpoint autenticado confirme su guardado.
             setRegistered({ email: values.email.trim(), emailSent: result.email_sent === true });
+            setCooldown(RESEND_COOLDOWN_SECONDS);
             setPassword('');
             setConfirmation('');
             form.reset();
         } catch (failure) {
-            setErrors(failure.fieldErrors || {});
-            setError(serviceMessage(failure, 'El registro'));
+            if (failure.code === 'email_delivery_failed') {
+                // La cuenta quedó creada y pendiente: se pasa a la pantalla de verificación para reenviar.
+                setRegistered({ email: values.email.trim(), emailSent: false });
+                setCooldown(RESEND_COOLDOWN_SECONDS);
+                setPassword('');
+                setConfirmation('');
+                form.reset();
+            } else {
+                setErrors(failure.fieldErrors || {});
+                setError(serviceMessage(failure, 'El registro'));
+            }
         } finally { submitting.current = false; setBusy(false); }
     }
 
@@ -137,7 +157,7 @@ export default function RegisterPage() {
                     <p className={layout.verifyText} role="status">
                         {registered.emailSent
                             ? <>Enviamos un enlace a <strong>{registered.email}</strong>. Ábrelo para verificar tu cuenta.</>
-                            : <>La cuenta <strong>{registered.email}</strong> está creada, pero no pudimos confirmar el envío del correo. La verificación sigue pendiente.</>}
+                            : <>La cuenta <strong>{registered.email}</strong> está creada, pero no pudimos enviar el correo de verificación. Podrás reenviarlo en unos segundos.</>}
                     </p>
                     <p className={layout.verifyNote}>Después de verificar, inicia sesión para confirmar tu plan.</p>
                     <div className={layout.verifyActions}>
