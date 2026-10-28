@@ -30,7 +30,7 @@ def _latest_version(plan):
 def get_current_version(plan_code):
     plan = Plan.objects.filter(code=plan_code, is_available=True).first()
     if plan is None:
-        raise SubscriptionError("plan_unavailable", "El plan no está disponible.")  # RN-E2-05
+        raise SubscriptionError("plan_unavailable", "El plan no estÃ¡ disponible.")  # RN-E2-05
     version = _latest_version(plan)
     if version is None:
         raise SubscriptionError(
@@ -41,7 +41,7 @@ def get_current_version(plan_code):
 
 
 def is_contractable(version):
-    # Los planes pagados se pueden cotizar y contratar si el plan está disponible
+    # Los planes pagados se pueden cotizar y contratar si el plan estÃ¡ disponible
     return version.plan.is_available and (version.price == 0 or getattr(settings, "PAID_PLANS_ENABLED", True))
 
 
@@ -66,8 +66,8 @@ def list_catalog():
     for plan in plans:
         version = _latest_version(plan)
         if version is None:
-            logger.warning("Plan '%s' está disponible pero no tiene versiones.", plan.code)
-            continue  # situación inválida: un plan sin condiciones no se publica
+            logger.warning("Plan '%s' estÃ¡ disponible pero no tiene versiones.", plan.code)
+            continue  # situaciÃ³n invÃ¡lida: un plan sin condiciones no se publica
         version.plan = plan
         items.append(version_payload(version))
     return items
@@ -75,12 +75,12 @@ def list_catalog():
 
 def resolve_effective_subscription(user, at=None):
     """
-    R8: Resolución efectiva de la cobertura. Comprueba expiración de cobertura
-    e idempotentemente realiza la transición que corresponda:
-    1. Si aún está vigente, devuelve la suscripción actual.
-    2. Si venció y existe un next_cycle pagado, avanza al siguiente ciclo.
-    3. Si venció y existe un ScheduledChange, aplica el cambio programado.
-    4. Si venció y no hay ciclo pagado ni cambio, retorna automáticamente a Gratis
+    R8: ResoluciÃ³n efectiva de la cobertura. Comprueba expiraciÃ³n de cobertura
+    e idempotentemente realiza la transiciÃ³n que corresponda:
+    1. Si aÃºn estÃ¡ vigente, devuelve la suscripciÃ³n actual.
+    2. Si venciÃ³ y existe un next_cycle pagado, avanza al siguiente ciclo.
+    3. Si venciÃ³ y existe un ScheduledChange, aplica el cambio programado.
+    4. Si venciÃ³ y no hay ciclo pagado ni cambio, retorna automÃ¡ticamente a Gratis
        (conservando archivos).
     """
     reference_time = at or timezone.now()
@@ -92,15 +92,15 @@ def resolve_effective_subscription(user, at=None):
     if sub is None:
         return None
 
-    # Si no tiene fecha de vencimiento (plan Gratis), está vigente indefinidamente
+    # Si no tiene fecha de vencimiento (plan Gratis), estÃ¡ vigente indefinidamente
     if sub.expires_at is None:
         return sub
 
-    # Si la fecha de vencimiento aún no ha llegado, sigue vigente
+    # Si la fecha de vencimiento aÃºn no ha llegado, sigue vigente
     if sub.expires_at > reference_time:
         return sub
 
-    # Cobertura vencida: resolver transición
+    # Cobertura vencida: resolver transiciÃ³n
     with transaction.atomic():
         sub_locked = (
             Subscription.objects.select_for_update()
@@ -110,7 +110,7 @@ def resolve_effective_subscription(user, at=None):
         if sub_locked is None or (sub_locked.expires_at and sub_locked.expires_at > reference_time):
             return sub_locked
 
-        # Caso A: Había un siguiente ciclo anticipado ya pagado (R5)
+        # Caso A: HabÃ­a un siguiente ciclo anticipado ya pagado (R5)
         if sub_locked.next_cycle_starts_at and sub_locked.next_cycle_ends_at and sub_locked.next_cycle_plan_version:
             sub_locked.plan_version = sub_locked.next_cycle_plan_version
             sub_locked.started_at = sub_locked.next_cycle_starts_at
@@ -148,7 +148,7 @@ def resolve_effective_subscription(user, at=None):
             scheduled.delete()
             return sub_locked
 
-        # Caso C: Retorno automático a Gratis (R8)
+        # Caso C: Retorno automÃ¡tico a Gratis (R8)
         free_version = get_current_version(FREE_PLAN_CODE)
         sub_locked.plan_version = free_version
         sub_locked.expires_at = None
@@ -229,7 +229,7 @@ def get_allowed_actions(sub, user):
     
     # Cobertura pagada
     actions = ["change"]
-    # Renovación: permitida si aún no tiene un ciclo futuro anticipado pagado
+    # RenovaciÃ³n: permitida si aÃºn no tiene un ciclo futuro anticipado pagado
     if not sub.next_cycle_starts_at:
         actions.append("renew")
     return actions
@@ -259,13 +259,13 @@ def _validate_confirmed_free_version(version, plan_version_id):
         raise SubscriptionError(
             "plan_conditions_changed",
             "Las condiciones del plan cambiaron. Revisa el plan y confirma nuevamente.",
-            {"plan_version_id": "La versión confirmada no corresponde a Gratis."},
+            {"plan_version_id": "La versiÃ³n confirmada no corresponde a Gratis."},
         )
 
 
 @transaction.atomic
 def activate_free(*, user, plan_version_id=None):
-    """La API exige la versión confirmada; llamadas internas conservan su contrato."""
+    """La API exige la versiÃ³n confirmada; llamadas internas conservan su contrato."""
     if not user.can_use_private_features:
         raise SubscriptionError(
             "account_not_eligible", "La cuenta debe estar verificada y activa para elegir un plan."
@@ -293,14 +293,14 @@ def set_preference(*, user, plan_version_id):
     if version is None or not version.plan.is_available:
         raise SubscriptionError(
             "plan_unavailable",
-            "El plan seleccionado no está disponible.",
+            "El plan seleccionado no estÃ¡ disponible.",
             {"plan_version_id": "Plan no disponible."},
         )
     if version.pk != get_current_version(version.plan.code).pk:
         raise SubscriptionError(
             "plan_conditions_changed",
             "Las condiciones del plan cambiaron. Vuelve a elegirlo.",
-            {"plan_version_id": "Versión desactualizada."},
+            {"plan_version_id": "VersiÃ³n desactualizada."},
         )
     preference, _ = SubscriptionPreference.objects.update_or_create(
         user=user, defaults={"plan_version": version}
@@ -331,13 +331,13 @@ def resolve_destination(user):
 
 
 # ---------------------------------------------------------------------------
-# R3, R4, R5, R6, R7: MOTOR DE COTIZACIONES Y LÓGICA COMERCIAL
+# R3, R4, R5, R6, R7: MOTOR DE COTIZACIONES Y LÃGICA COMERCIAL
 # ---------------------------------------------------------------------------
 
 def prepare_quote(*, user, operation, plan_version_id=None):
     """
-    R3 / Contrato 7.3: Emite una cotización comercial temporal (15 min).
-    Valida cobertura, versiones, capacidades y calcula líneas e importes exactos.
+    R3 / Contrato 7.3: Emite una cotizaciÃ³n comercial temporal (15 min).
+    Valida cobertura, versiones, capacidades y calcula lÃ­neas e importes exactos.
     """
     if not user.can_use_private_features:
         raise SubscriptionError(
@@ -358,7 +358,7 @@ def prepare_quote(*, user, operation, plan_version_id=None):
 
         target_version = PlanVersion.objects.select_related("plan").filter(pk=plan_version_id).first()
         if target_version is None or not target_version.plan.is_available:
-            raise SubscriptionError("plan_unavailable", "El plan seleccionado no está disponible.")
+            raise SubscriptionError("plan_unavailable", "El plan seleccionado no estÃ¡ disponible.")
         latest_version = get_current_version(target_version.plan.code)
         if target_version.pk != latest_version.pk:
             raise SubscriptionError("plan_conditions_changed", "Las condiciones del plan han cambiado.")
@@ -392,16 +392,16 @@ def prepare_quote(*, user, operation, plan_version_id=None):
         return quote
 
     elif operation == Quote.Operation.RENEW:
-        # R5: Renovación manual conservando la versión contratada
+        # R5: RenovaciÃ³n manual conservando la versiÃ³n contratada
         if current_sub is None or current_sub.plan_version.plan.code == FREE_PLAN_CODE:
-            raise SubscriptionError("coverage_conflict", "No tienes una suscripción pagada que renovar.")
+            raise SubscriptionError("coverage_conflict", "No tienes una suscripciÃ³n pagada que renovar.")
         if current_sub.next_cycle_starts_at is not None:
             raise SubscriptionError(
                 "renewal_limit_reached",
-                "Ya tienes un siguiente ciclo anticipado contratado. Máximo 1 ciclo de renovación.",
+                "Ya tienes un siguiente ciclo anticipado contratado. MÃ¡ximo 1 ciclo de renovaciÃ³n.",
             )
 
-        # Conserva la versión contratada originalmente, sin importar si el catálogo cambió
+        # Conserva la versiÃ³n contratada originalmente, sin importar si el catÃ¡logo cambiÃ³
         contracted_version = current_sub.plan_version
         anchor_day = current_sub.cycle_anchor_day or current_sub.started_at.day
         cycle_start = current_sub.expires_at
@@ -409,7 +409,7 @@ def prepare_quote(*, user, operation, plan_version_id=None):
 
         lines = [{
             "code": "renewal_cycle",
-            "description": f"Renovación ciclo {contracted_version.plan.name}",
+            "description": f"RenovaciÃ³n ciclo {contracted_version.plan.name}",
             "amount": f"{contracted_version.price:.2f}",
         }]
         effect = {
@@ -439,12 +439,12 @@ def prepare_quote(*, user, operation, plan_version_id=None):
 
         target_version = PlanVersion.objects.select_related("plan").filter(pk=plan_version_id).first()
         if target_version is None or not target_version.plan.is_available:
-            raise SubscriptionError("plan_unavailable", "El plan seleccionado no está disponible.")
+            raise SubscriptionError("plan_unavailable", "El plan seleccionado no estÃ¡ disponible.")
         latest_version = get_current_version(target_version.plan.code)
         if target_version.pk != latest_version.pk:
             raise SubscriptionError("plan_conditions_changed", "Las condiciones del plan han cambiado.")
 
-        # Si el usuario está en Gratis, un cambio a pagado es un contrato inicial
+        # Si el usuario estÃ¡ en Gratis, un cambio a pagado es un contrato inicial
         if current_sub is None or current_sub.plan_version.plan.code == FREE_PLAN_CODE:
             if target_version.plan.code == FREE_PLAN_CODE:
                 raise SubscriptionError("coverage_conflict", "Ya te encuentras en el plan Gratis.")
@@ -462,7 +462,7 @@ def prepare_quote(*, user, operation, plan_version_id=None):
         is_upgrade = target_version.price > current_version.price
 
         if is_upgrade:
-            # R6: Mejora inmediata (Básico a Premium)
+            # R6: Mejora inmediata (BÃ¡sico a Premium)
             # 1. Ajuste proporcional del ciclo actual
             cycle_start = current_sub.started_at
             cycle_end = current_sub.expires_at
@@ -481,7 +481,7 @@ def prepare_quote(*, user, operation, plan_version_id=None):
             }]
             total = current_adj
 
-            # 2. Si ya pagó el siguiente ciclo anticipado, cobrar la diferencia completa de ese ciclo
+            # 2. Si ya pagÃ³ el siguiente ciclo anticipado, cobrar la diferencia completa de ese ciclo
             if current_sub.next_cycle_starts_at is not None:
                 next_diff = round_money(target_version.price - current_version.price)
                 lines.append({
@@ -527,7 +527,7 @@ def prepare_quote(*, user, operation, plan_version_id=None):
 
             lines = [{
                 "code": "schedule_change",
-                "description": f"Programación cambio a {target_version.plan.name} al terminar cobertura",
+                "description": f"ProgramaciÃ³n cambio a {target_version.plan.name} al terminar cobertura",
                 "amount": "0.00",
             }]
             effect = {
@@ -553,29 +553,29 @@ def prepare_quote(*, user, operation, plan_version_id=None):
             return quote
 
     else:
-        raise SubscriptionError("invalid_request", f"Operación '{operation}' no soportada.")
+        raise SubscriptionError("invalid_request", f"OperaciÃ³n '{operation}' no soportada.")
 
 
 def get_quote(*, user, quote_id):
-    """Contrato 7.3: Devuelve la cotización si pertenece al usuario y no ha expirado."""
+    """Contrato 7.3: Devuelve la cotizaciÃ³n si pertenece al usuario y no ha expirado."""
     quote = Quote.objects.select_related("plan_version__plan").filter(pk=quote_id, user=user).first()
     if quote is None:
-        raise SubscriptionError("not_found", "Cotización no encontrada.")
+        raise SubscriptionError("not_found", "CotizaciÃ³n no encontrada.")
     if timezone.now() > quote.expires_at:
         quote.status = Quote.Status.EXPIRED
         quote.save(update_fields=["status"])
-        raise SubscriptionError("quote_expired", "La cotización ha expirado. Solicita una nueva.")
+        raise SubscriptionError("quote_expired", "La cotizaciÃ³n ha expirado. Solicita una nueva.")
     return quote
 
 
 def validate_quote_for_execution(*, user, quote_id):
     """
     R3 / Contrato 7.3 y 7.6:
-    Valida la cotizaci�n bajo bloqueo antes del cobro en payments.
+    Valida la cotización bajo bloqueo antes del cobro en payments.
     Verifica propiedad, vigencia, estado y que las condiciones comerciales no hayan cambiado.
-    Devuelve un Mapping (dict) con los campos p�blicos requeridos por payments.
+    Devuelve un Mapping (dict) con los campos públicos requeridos por payments.
     """
-    # 1. Bloqueo de la cotizaci�n
+    # 1. Bloqueo de la cotización
     quote = (
         Quote.objects.select_for_update()
         .select_related("plan_version__plan")
@@ -583,31 +583,31 @@ def validate_quote_for_execution(*, user, quote_id):
         .first()
     )
     if quote is None:
-        raise SubscriptionError("not_found", "Cotizaci�n no encontrada.")
+        raise SubscriptionError("not_found", "Cotización no encontrada.")
 
     if quote.status != Quote.Status.PENDING:
         if quote.status == Quote.Status.EXECUTED:
-            raise SubscriptionError("quote_already_processed", "Esta cotizaci�n ya fue ejecutada.")
-        raise SubscriptionError("quote_expired", "La cotizaci�n ya no est� disponible.")
+            raise SubscriptionError("quote_already_processed", "Esta cotización ya fue ejecutada.")
+        raise SubscriptionError("quote_expired", "La cotización ya no está disponible.")
 
     now = timezone.now()
     if now > quote.expires_at:
         quote.status = Quote.Status.EXPIRED
         quote.save(update_fields=["status"])
-        raise SubscriptionError("quote_expired", "La cotizaci�n ha expirado. Solicita una nueva.")
+        raise SubscriptionError("quote_expired", "La cotización ha expirado. Solicita una nueva.")
 
-    # 2. Revalidar condiciones del cat�logo
+    # 2. Revalidar condiciones del catálogo
     target_plan = quote.plan_version.plan
     if not target_plan.is_available:
-        raise SubscriptionError("plan_unavailable", "El plan seleccionado ya no est� disponible.")
+        raise SubscriptionError("plan_unavailable", "El plan seleccionado ya no está disponible.")
 
-    # En contrataciones y cambios, revalidar que la versi�n siga siendo la vigente en el cat�logo
+    # En contrataciones y cambios, revalidar que la versión siga siendo la vigente en el catálogo
     if quote.operation in (Quote.Operation.CONTRACT, Quote.Operation.CHANGE):
         current_catalog_version = get_current_version(target_plan.code)
         if quote.plan_version_id != current_catalog_version.pk:
             raise SubscriptionError("plan_conditions_changed", "Las condiciones del plan han cambiado.")
 
-    # 3. Bloqueo y revalidaci�n de la suscripci�n actual del usuario
+    # 3. Bloqueo y revalidación de la suscripción actual del usuario
     current_sub = (
         Subscription.objects.select_for_update()
         .select_related("plan_version__plan")
@@ -621,12 +621,12 @@ def validate_quote_for_execution(*, user, quote_id):
 
     elif quote.operation == Quote.Operation.RENEW:
         if current_sub is None or current_sub.plan_version.plan.code == FREE_PLAN_CODE:
-            raise SubscriptionError("coverage_conflict", "No hay una suscripci�n activa para renovar.")
+            raise SubscriptionError("coverage_conflict", "No hay una suscripción activa para renovar.")
         if current_sub.next_cycle_starts_at is not None:
             raise SubscriptionError("renewal_limit_reached", "Ya existe un siguiente ciclo contratado.")
-        # La versi�n contratada original debe coincidir
+        # La versión contratada original debe coincidir
         if current_sub.plan_version_id != quote.plan_version_id:
-            raise SubscriptionError("plan_conditions_changed", "La versi�n de suscripci�n no coincide.")
+            raise SubscriptionError("plan_conditions_changed", "La versión de suscripción no coincide.")
 
     elif quote.operation == Quote.Operation.CHANGE:
         if current_sub is None or current_sub.plan_version.plan.code == FREE_PLAN_CODE:
@@ -645,8 +645,8 @@ def validate_quote_for_execution(*, user, quote_id):
 def apply_approved_quote(*, user, quote, payment, approved_at=None):
     """
     R2, R5, R6 / Contrato 7.6:
-    Aplica los derechos comerciales de una cotizaci�n aprobada.
-    Participa dentro de la transacci�n de checkout de Daniela.
+    Aplica los derechos comerciales de una cotización aprobada.
+    Participa dentro de la transacción de checkout de Daniela.
     Devuelve la instancia de Subscription resultante.
     """
     approval_time = approved_at or timezone.now()
@@ -664,10 +664,10 @@ def apply_approved_quote(*, user, quote, payment, approved_at=None):
     )
 
     if quote_obj.operation == Quote.Operation.CONTRACT:
-        # Inicio inmediato de ciclo desde aprobaci�n
+        # Inicio inmediato de ciclo desde aprobación
         starts_local, ends_local = sub_calendar.calculate_cycle_interval(approval_time, anchor_day)
         if current_sub is not None:
-            # Reutilizar registro de suscripci�n existente (evoluci�n de identidad �nica)
+            # Reutilizar registro de suscripción existente (evolución de identidad única)
             current_sub.plan_version = target_version
             current_sub.started_at = starts_local
             current_sub.expires_at = ends_local
@@ -712,7 +712,7 @@ def apply_approved_quote(*, user, quote, payment, approved_at=None):
         sub_result = current_sub
 
     else:
-        raise SubscriptionError("invalid_request", f"Operaci�n '{quote_obj.operation}' no v�lida para pago.")
+        raise SubscriptionError("invalid_request", f"Operación '{quote_obj.operation}' no válida para pago.")
 
     quote_obj.status = Quote.Status.EXECUTED
     quote_obj.save(update_fields=["status"])
@@ -722,17 +722,17 @@ def apply_approved_quote(*, user, quote, payment, approved_at=None):
 def confirm_scheduled_quote(*, user, quote_id, operation_key=None):
     """
     Contrato 7.4:
-    Confirma una cotizaci�n diferida (schedule_downgrade o schedule_free).
+    Confirma una cotización diferida (schedule_downgrade o schedule_free).
     Solo acepta cotizaciones con requires_payment=False.
     Crea o actualiza ScheduledChange sin activar anticipadamente ni cobrar.
     """
     quote = get_quote(user=user, quote_id=quote_id)
     if quote.requires_payment:
-        raise SubscriptionError("invalid_request", "Esta cotizaci�n requiere pago. Usa checkout.")
+        raise SubscriptionError("invalid_request", "Esta cotización requiere pago. Usa checkout.")
 
     current_sub = get_active_subscription(user)
     if current_sub is None:
-        raise SubscriptionError("coverage_conflict", "No tienes una suscripci�n activa.")
+        raise SubscriptionError("coverage_conflict", "No tienes una suscripción activa.")
 
     from files.services import get_used_bytes
     used_bytes = get_used_bytes(user)
@@ -760,6 +760,6 @@ def confirm_scheduled_quote(*, user, quote_id, operation_key=None):
 def cancel_scheduled_change(*, user):
     """
     Contrato 7.4:
-    Cancela la programaci�n pendiente del propietario. Idempotente.
+    Cancela la programación pendiente del propietario. Idempotente.
     """
     ScheduledChange.objects.filter(user=user).delete()
