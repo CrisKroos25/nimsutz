@@ -12,6 +12,7 @@ import styles from './LoginPage.module.css';
 import layout from './RegisterPage.module.css';
 import Brand from '@layouts/Brand';
 import logo from "../assets/nube.png";
+import SessionLoader from '@shared/auth/SessionLoader';
 
 const HIGHLIGHTS = [
     { icon: CloudUpload, title: 'Carga tus archivos', text: 'Un espacio para tus documentos, con información clara sobre cada carga.' },
@@ -21,7 +22,7 @@ const HIGHLIGHTS = [
 const RESEND_COOLDOWN_SECONDS = 60; // debe coincidir con RESEND_COOLDOWN_SECONDS del backend
 
 export default function RegisterPage() {
-    const { user, loading, destination } = useAuth();
+    const { user, loading, destination, error: sessionError } = useAuth();
     const submitting = useRef(false);
     const resultHeading = useRef(null);
     const errorMessage = useRef(null);
@@ -119,7 +120,7 @@ export default function RegisterPage() {
         } finally { submitting.current = false; setBusy(false); }
     }
 
-    if (loading) return <p role="status">Comprobando sesión…</p>;
+    if (loading) return <SessionLoader fullScreen />;
     if (user) return <Navigate to={destination} replace />;
     return <div className={layout.shell}>
         <aside className={layout.aside}>
@@ -169,6 +170,9 @@ export default function RegisterPage() {
                         <Link to="/login" className={layout.verifyLink}>Ir a iniciar sesión</Link>
                     </div>
                 </div> : <>
+                    {sessionError && <p role="status" className={layout.error}>
+                        No pudimos conectar con el servicio. Si el registro falla, inténtalo de nuevo en unos minutos.
+                    </p>}
                     <form className={layout.form} onSubmit={submit} noValidate>
                         <Input label="Nombre completo" name="name" placeholder="Tu nombre completo" autoComplete="name" maxLength={200} required disabled={busy} error={fieldMessage(errors.name)} />
                         <Input label="Correo electrónico" type="email" name="email" placeholder="correo@ejemplo.com" autoComplete="email" maxLength={254} required disabled={busy} error={fieldMessage(errors.email)} />
