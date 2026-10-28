@@ -11,6 +11,8 @@ export default function Header({ theme, toggleTheme }) {
         ? 'Mi perfil'
         : pathname.startsWith('/payments/checkout') ? 'Confirma tu plan'
         : pathname.startsWith('/payments/result') ? 'Resultado del pago'
+        : pathname.startsWith('/payments/history') ? 'Historial de pagos'
+        : pathname.startsWith('/subscription') ? 'Mi suscripción'
         : pathname.startsWith('/plans') ? 'Planes'
         : pathname.startsWith('/trash') ? 'Papelera' : 'Mis archivos';
 

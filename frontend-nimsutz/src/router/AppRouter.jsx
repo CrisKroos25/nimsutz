@@ -17,6 +17,8 @@ import ForgotPassword from '@features/auth/pages/ForgotPassword';
 import ResetPassword from '@features/auth/pages/ResetPassword';
 import VerifyEmail from '@features/auth/pages/VerifyEmail';
 import { CheckoutPage, PaymentResultPage } from '@features/payments/PaymentPages';
+import { PaymentHistoryPage, PaymentDetailPage } from '@features/payments/history/PaymentHistoryPages';
+import { SubscriptionPage, RenewPage, ChangePlanPage } from '@features/subscription/SubscriptionPages';
 
 export default function AppRouter() {
     const theme = useTheme();
@@ -55,6 +57,11 @@ export default function AppRouter() {
                             <Route path="plans/summary" element={<PlansPage />} />
                             <Route path="payments/checkout/:quoteId" element={<CheckoutPage />} />
                             <Route path="payments/result/:paymentId" element={<PaymentResultPage />} />
+                            <Route path="payments/history" element={<PaymentHistoryPage />} />
+                            <Route path="payments/history/:paymentId" element={<PaymentDetailPage />} />
+                            <Route path="subscription" element={<SubscriptionPage />} />
+                            <Route path="subscription/renew" element={<RenewPage />} />
+                            <Route path="subscription/change" element={<ChangePlanPage />} />
                         </Route>
                     </Route>
                 </Routes>

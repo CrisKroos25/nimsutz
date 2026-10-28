@@ -1,4 +1,4 @@
-import { Folder, Trash2 } from 'lucide-react';
+import { Folder, Receipt, Trash2, Wallet } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import Brand from './Brand';
 import ThemeToggle from './ThemeToggle';
@@ -7,6 +7,8 @@ import styles from './Layouts.module.css';
 const ITEMS = [
     { to: '/files', label: 'Mis archivos', icon: Folder },
     { to: '/trash', label: 'Papelera', icon: Trash2 },
+    { to: '/subscription', label: 'Suscripción', icon: Wallet },
+    { to: '/payments/history', label: 'Pagos', icon: Receipt },
 ];
 
 export default function Sidebar({ theme, toggleTheme }) {

@@ -59,7 +59,12 @@ test('la selección pública no necesita catálogo ni inventa una versión contr
     assert.equal(readPlanPreference(), null);
     clearPlanPreference();
     assert.equal(readPlanIntent(), null);
-    assert.throws(() => savePlanIntent('un-plan-inexistente'));
+    for (const malformed of ['', 'Un Plan!', '../x', 'a'.repeat(40), null, undefined]) {
+        assert.throws(() => savePlanIntent(malformed), undefined, String(malformed));
+    }
+    assert.doesNotThrow(() => savePlanIntent('plan-nuevo-del-catalogo'));
+    assert.deepEqual(resolvePlanSelection([{ code: 'gratis', version_id: 1 }], null, null, 'plan-nuevo-del-catalogo'),
+        { selected: null, needsReselection: true });
 });
 test('una respuesta incompleta no se confunde con Sin plan activo', () => {
     for (const value of [null, {}, { subscription: 'gratis' }, { subscription: {} }]) assert.throws(() => validateSubscription(value));

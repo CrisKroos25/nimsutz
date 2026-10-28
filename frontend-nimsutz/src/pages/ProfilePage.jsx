@@ -75,6 +75,10 @@ export default function ProfilePage() {
                         <Link to="/plans">Elegir plan</Link>
                     </section>}
             {(state.loading || state.error || subscription) && <Link to="/plans">Consultar planes</Link>}
+            {subscription && <nav aria-label="Suscripción y pagos" className={styles.summary}>
+                <Link to="/subscription">Mi suscripción</Link>
+                <Link to="/payments/history">Historial de pagos</Link>
+            </nav>}
         </section>
     );
 }
