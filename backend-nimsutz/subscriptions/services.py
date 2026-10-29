@@ -161,16 +161,7 @@ def resolve_effective_subscription(user, at=None):
 
 
 def get_active_subscription(user):
-    sub = (
-        Subscription.objects.select_related("plan_version__plan")
-        .filter(user=user, status=Subscription.Status.ACTIVE)
-        .first()
-    )
-    if sub and sub.expires_at is not None and sub.expires_at <= timezone.now():
-        sub.status = Subscription.Status.EXPIRED
-        sub.save(update_fields=["status"])
-        return None
-    return sub
+    return resolve_effective_subscription(user)
 
 
 def _format_iso(dt):
@@ -334,6 +325,29 @@ def resolve_destination(user):
 # R3, R4, R5, R6, R7: MOTOR DE COTIZACIONES Y LÃGICA COMERCIAL
 # ---------------------------------------------------------------------------
 
+def _execution_context(user, subscription, version):
+    """Congela los términos que afectan el importe y los derechos ofrecidos."""
+    change = ScheduledChange.objects.filter(user=user).first()
+    return {
+        "subscription": None if subscription is None else {
+            "id": subscription.pk, "version_id": subscription.plan_version_id,
+            "started_at": _format_iso(subscription.started_at),
+            "expires_at": _format_iso(subscription.expires_at),
+            "coverage_end": _format_iso(subscription.coverage_end),
+            "next_starts_at": _format_iso(subscription.next_cycle_starts_at),
+            "next_ends_at": _format_iso(subscription.next_cycle_ends_at),
+            "next_version_id": subscription.next_cycle_plan_version_id,
+        },
+        "target": {"version_id": version.pk, "price": str(version.price),
+                   "currency": version.currency, "capacity_bytes": version.capacity_bytes,
+                   "name": version.plan.name},
+        "scheduled_change": None if change is None else {
+            "id": change.pk, "version_id": change.target_plan_version_id,
+            "effective_at": _format_iso(change.effective_at),
+        },
+    }
+
+
 def prepare_quote(*, user, operation, plan_version_id=None):
     """
     R3 / Contrato 7.3: Emite una cotizaciÃ³n comercial temporal (15 min).
@@ -387,6 +401,7 @@ def prepare_quote(*, user, operation, plan_version_id=None):
             requires_payment=True,
             lines=lines,
             effect=effect,
+            execution_context=_execution_context(user, current_sub, target_version),
             expires_at=expires_at,
         )
         return quote
@@ -416,7 +431,7 @@ def prepare_quote(*, user, operation, plan_version_id=None):
             "kind": "renew",
             "starts_at": _format_iso(cycle_start),
             "ends_at": _format_iso(cycle_end),
-            "scheduled_change_at": None,
+            "scheduled_change_at": _format_iso(cycle_end) if ScheduledChange.objects.filter(user=user).exists() else None,
         }
         quote = Quote.objects.create(
             id=uuid.uuid4(),
@@ -428,6 +443,7 @@ def prepare_quote(*, user, operation, plan_version_id=None):
             requires_payment=True,
             lines=lines,
             effect=effect,
+            execution_context=_execution_context(user, current_sub, contracted_version),
             expires_at=expires_at,
         )
         return quote
@@ -508,6 +524,7 @@ def prepare_quote(*, user, operation, plan_version_id=None):
                 requires_payment=True,
                 lines=lines,
                 effect=effect,
+                execution_context=_execution_context(user, current_sub, target_version),
                 expires_at=expires_at,
             )
             return quote
@@ -548,6 +565,7 @@ def prepare_quote(*, user, operation, plan_version_id=None):
                 requires_payment=False,
                 lines=lines,
                 effect=effect,
+                execution_context=_execution_context(user, current_sub, target_version),
                 expires_at=expires_at,
             )
             return quote
@@ -598,7 +616,7 @@ def validate_quote_for_execution(*, user, quote_id):
 
     # 2. Revalidar condiciones del catálogo
     target_plan = quote.plan_version.plan
-    if not target_plan.is_available:
+    if quote.operation != Quote.Operation.RENEW and not target_plan.is_available:
         raise SubscriptionError("plan_unavailable", "El plan seleccionado ya no está disponible.")
 
     # En contrataciones y cambios, revalidar que la versión siga siendo la vigente en el catálogo
@@ -607,13 +625,20 @@ def validate_quote_for_execution(*, user, quote_id):
         if quote.plan_version_id != current_catalog_version.pk:
             raise SubscriptionError("plan_conditions_changed", "Las condiciones del plan han cambiado.")
 
-    # 3. Bloqueo y revalidación de la suscripción actual del usuario
+    # 3. Resolver cobertura efectiva antes de comparar el ciclo confirmado.
+    resolve_effective_subscription(user)
+    # Bloqueo y revalidación de la suscripción actual del usuario.
     current_sub = (
         Subscription.objects.select_for_update()
         .select_related("plan_version__plan")
         .filter(user=user, status=Subscription.Status.ACTIVE)
         .first()
     )
+
+    # Las cotizaciones previas a este control requieren nueva confirmación.
+    # El importe emitido conserva su referencia temporal; no se recalcula al cobrar.
+    if quote.execution_context != _execution_context(user, current_sub, quote.plan_version):
+        raise SubscriptionError("plan_conditions_changed", "La cobertura o las condiciones cambiaron. Solicita otro resumen.")
 
     if quote.operation == Quote.Operation.CONTRACT:
         if current_sub is not None and current_sub.plan_version.plan.code != FREE_PLAN_CODE:
@@ -701,6 +726,7 @@ def apply_approved_quote(*, user, quote, payment, approved_at=None):
         current_sub.save(update_fields=[
             "next_cycle_starts_at", "next_cycle_ends_at", "next_cycle_plan_version", "coverage_end"
         ])
+        ScheduledChange.objects.filter(user=user).update(effective_at=cycle_end)
         sub_result = current_sub
 
     elif quote_obj.operation == Quote.Operation.CHANGE:
