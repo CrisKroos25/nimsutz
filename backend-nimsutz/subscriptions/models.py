@@ -55,16 +55,77 @@ class Subscription(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)  # null = sin vencimiento
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # R1 / R4: Día ancla del mes calendario en America/Guatemala y fin total de cobertura
+    cycle_anchor_day = models.PositiveSmallIntegerField(null=True, blank=True)
+    coverage_end = models.DateTimeField(null=True, blank=True)
+
+    # R5: Próximo ciclo anticipado (máximo 1 ciclo siguiente ya pagado)
+    next_cycle_starts_at = models.DateTimeField(null=True, blank=True)
+    next_cycle_ends_at = models.DateTimeField(null=True, blank=True)
+    next_cycle_plan_version = models.ForeignKey(
+        PlanVersion, on_delete=models.PROTECT, null=True, blank=True, related_name="future_subscriptions"
+    )
+
     class Meta:
         constraints = [
-            # RN-E2-09: respaldo a nivel de base de datos. Aunque dos peticiones
-            # simultáneas se salten la validación en Python, Postgres rechaza la segunda.
+            # RN-E2-09: respaldo a nivel de base de datos.
             models.UniqueConstraint(
                 fields=["user"],
                 condition=Q(status="active"),
                 name="one_active_subscription_per_user",
             ),
         ]
+
+    def __str__(self):
+        return f"Subscription #{self.pk} - {self.user} - {self.plan_version} ({self.status})"
+
+
+class ScheduledChange(models.Model):
+    """R7 / Contrato 7.4: Cambio programado al terminar la cobertura pagada (downgrade o retorno a Gratis)."""
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="scheduled_change")
+    subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE, related_name="scheduled_changes")
+    target_plan_version = models.ForeignKey(PlanVersion, on_delete=models.PROTECT, related_name="+")
+    effective_at = models.DateTimeField()
+    requires_payment = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"ScheduledChange for {self.user} -> {self.target_plan_version.plan.code} at {self.effective_at}"
+
+
+class Quote(models.Model):
+    """Contrato 7.3: Cotización comercial temporal (vigencia 15 min)."""
+
+    class Operation(models.TextChoices):
+        CONTRACT = "contract", "Contract"
+        RENEW = "renew", "Renew"
+        CHANGE = "change", "Change"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        CONFIRMED = "confirmed", "Confirmed"
+        EXECUTED = "executed", "Executed"
+        EXPIRED = "expired", "Expired"
+
+    id = models.UUIDField(primary_key=True, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="quotes")
+    operation = models.CharField(max_length=20, choices=Operation.choices)
+    plan_version = models.ForeignKey(PlanVersion, on_delete=models.PROTECT, related_name="quotes")
+    currency = models.CharField(max_length=3, default="GTQ")
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    requires_payment = models.BooleanField(default=True)
+    lines = models.JSONField(default=list)
+    effect = models.JSONField(default=dict)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Quote {self.id} ({self.operation}) - {self.user} - Total: {self.total} {self.currency}"
 
 
 class SubscriptionPreference(models.Model):

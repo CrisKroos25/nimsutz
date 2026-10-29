@@ -192,3 +192,99 @@ class SessionDestinationTests(TestCase):
         self.user.role = self.user.Role.ADMINISTRADOR
         self.user.save(update_fields=["role"])
         self.assert_destination("admin")
+
+
+class CommercialSubscriptionCycleTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_plans")
+        cls.user = make_user("commercial@example.test")
+        cls.basic_v1 = services.get_current_version("basic")
+        cls.premium_v1 = services.get_current_version("premium")
+        cls.free_v1 = services.get_current_version("free")
+
+    def test_calendar_months_and_anchor_recovery(self):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        from subscriptions.calendar import add_calendar_months, calculate_cycle_interval
+
+        tz = ZoneInfo("America/Guatemala")
+        dt_jan31 = datetime(2026, 1, 31, 10, 0, tzinfo=tz)
+        dt_feb = add_calendar_months(dt_jan31, 1, anchor_day=31)
+        self.assertEqual(dt_feb.month, 2)
+        self.assertEqual(dt_feb.day, 28)
+
+        dt_mar = add_calendar_months(dt_jan31, 2, anchor_day=31)
+        self.assertEqual(dt_mar.month, 3)
+        self.assertEqual(dt_mar.day, 31)
+
+        start, end = calculate_cycle_interval(dt_jan31)
+        self.assertEqual(start.day, 31)
+        self.assertEqual(end.day, 28)
+
+    def test_double_renewal_and_single_cycle_advance_limit(self):
+        # 1. Contratar inicial
+        quote = services.prepare_quote(user=self.user, operation="contract", plan_version_id=self.basic_v1.pk)
+        sub = services.apply_approved_quote(user=self.user, quote=services.quote_payload(quote), payment=None)
+        self.assertEqual(sub.plan_version.plan.code, "basic")
+        self.assertIsNone(sub.next_cycle_starts_at)
+
+        # 2. Primera renovación: permitida
+        quote_renew = services.prepare_quote(user=self.user, operation="renew")
+        sub = services.apply_approved_quote(user=self.user, quote=services.quote_payload(quote_renew), payment=None)
+        self.assertIsNotNone(sub.next_cycle_starts_at)
+        self.assertEqual(sub.next_cycle_plan_version_id, self.basic_v1.pk)
+
+        # 3. Segunda renovación: rechazada por límite de 1 ciclo anticipado
+        with self.assertRaises(SubscriptionError) as ctx:
+            services.prepare_quote(user=self.user, operation="renew")
+        self.assertEqual(ctx.exception.code, "renewal_limit_reached")
+
+    def test_upgrade_calculates_proration_and_future_cycle_difference(self):
+        # 1. Contratar básico
+        quote = services.prepare_quote(user=self.user, operation="contract", plan_version_id=self.basic_v1.pk)
+        sub = services.apply_approved_quote(user=self.user, quote=services.quote_payload(quote), payment=None)
+
+        # 2. Renovar un ciclo anticipado
+        quote_renew = services.prepare_quote(user=self.user, operation="renew")
+        services.apply_approved_quote(user=self.user, quote=services.quote_payload(quote_renew), payment=None)
+
+        # 3. Cotizar upgrade a Premium (30.00 vs 15.00)
+        upgrade_quote = services.prepare_quote(user=self.user, operation="change", plan_version_id=self.premium_v1.pk)
+        self.assertEqual(len(upgrade_quote.lines), 2)
+        # Línea 1: ajuste proporcional del ciclo actual
+        self.assertEqual(upgrade_quote.lines[0]["code"], "current_cycle_adjustment")
+        # Línea 2: diferencia completa del ciclo anticipado (30 - 15 = 15.00)
+        self.assertEqual(upgrade_quote.lines[1]["code"], "next_cycle_adjustment")
+        self.assertEqual(upgrade_quote.lines[1]["amount"], "15.00")
+
+    def test_downgrade_schedule_and_quota_check(self):
+        # Contratar premium
+        quote = services.prepare_quote(user=self.user, operation="contract", plan_version_id=self.premium_v1.pk)
+        sub = services.apply_approved_quote(user=self.user, quote=services.quote_payload(quote), payment=None)
+
+        # Cotizar bajada a básico: requires_payment=False, kind=schedule_downgrade
+        down_quote = services.prepare_quote(user=self.user, operation="change", plan_version_id=self.basic_v1.pk)
+        self.assertFalse(down_quote.requires_payment)
+        self.assertEqual(down_quote.effect["kind"], "schedule_downgrade")
+
+        # Confirmar cambio programado
+        scheduled, _ = services.confirm_scheduled_quote(user=self.user, quote_id=down_quote.id)
+        self.assertEqual(scheduled.target_plan_version_id, self.basic_v1.pk)
+
+        # Cancelar cambio programado
+        services.cancel_scheduled_change(user=self.user)
+        self.assertIsNone(services.scheduled_change_payload(self.user))
+
+    def test_reconcile_command_transitions_expired_subscriptions(self):
+        # Suscripción vencida sin ciclo anticipado -> vuelve a gratis
+        quote = services.prepare_quote(user=self.user, operation="contract", plan_version_id=self.basic_v1.pk)
+        sub = services.apply_approved_quote(user=self.user, quote=services.quote_payload(quote), payment=None)
+        sub.expires_at = timezone.now() - timedelta(days=1)
+        sub.save(update_fields=["expires_at"])
+
+        # Correr comando de reconciliación
+        call_command("reconcile_subscriptions")
+        sub.refresh_from_db()
+        self.assertEqual(sub.plan_version.plan.code, "free")
+        self.assertIsNone(sub.expires_at)
