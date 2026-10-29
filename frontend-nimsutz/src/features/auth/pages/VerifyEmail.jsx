@@ -11,6 +11,9 @@ import styles from './VerifyEmail.module.css';
  * Maneja los estados: verificando, confirmado, inválido, vencido, usado, error de red.
  * Permite reenviar el correo en caso de expiración o reintentar ante fallos de conexión.
  */
+
+const RESEND_COOLDOWN_SECONDS = 60; // debe coincidir con RESEND_COOLDOWN_SECONDS del backend
+
 export default function VerifyEmail() {
     const [status, setStatus] = useState('pending'); // pending, success, error, resend_prompt, network_error
     const [errorCode, setErrorCode] = useState(null); // 'invalid_token', 'expired_token', 'used_token'
@@ -18,6 +21,8 @@ export default function VerifyEmail() {
     const [isResending, setIsResending] = useState(false);
     const [resendMessage, setResendMessage] = useState(null);
     const verificationStarted = useRef(false);
+    const [resendError, setResendError] = useState(null);
+    const [cooldown, setCooldown] = useState(0);
 
     const verifyToken = async (targetToken) => {
         if (!targetToken) {
@@ -61,18 +66,35 @@ export default function VerifyEmail() {
         verifyToken(token);
     }, []);
 
+    useEffect(() => {
+        if (cooldown <= 0) return undefined;
+        const timer = setTimeout(() => setCooldown((seconds) => seconds - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [cooldown]);
+
     const handleResend = async (e) => {
         e.preventDefault();
-        if (!emailForResend) return;
+        const address = emailForResend.trim();
+        if (!address || cooldown > 0) return;
 
         setIsResending(true);
         setResendMessage(null);
+        setResendError(null);
         try {
-            await verificationApi.resendVerification(emailForResend);
+            await verificationApi.resendVerification(address);
             setResendMessage('Si el correo está registrado, se ha enviado un nuevo enlace.');
             setEmailForResend('');
-        } catch {
-            setResendMessage('Ocurrió un error al intentar reenviar el correo.');
+            setCooldown(RESEND_COOLDOWN_SECONDS);
+        } catch (failure) {
+            if (failure.code === 'resend_cooldown') {
+                setCooldown(failure.retryAfter || RESEND_COOLDOWN_SECONDS);
+                setResendError('Ya enviamos un enlace hace un momento. Espera para solicitar otro.');
+            } else if (failure.code === 'email_delivery_failed') {
+                setCooldown(RESEND_COOLDOWN_SECONDS);
+                setResendError('No pudimos enviar el correo. Inténtalo de nuevo en un momento.');
+            } else {
+                setResendError('Ocurrió un error al intentar reenviar el correo.');
+            }
         } finally {
             setIsResending(false);
         }
@@ -147,15 +169,22 @@ export default function VerifyEmail() {
                         </div>
 
                         {resendMessage && (
-                            <p className={styles.message} style={{ color: '#10b981', fontSize: '0.9rem' }}>
+                            <p role="status" className={styles.message} style={{ color: '#10b981', fontSize: '0.9rem' }}>
                                 {resendMessage}
+                            </p>
+                        )}
+                        {resendError && (
+                            <p role="alert" className={styles.message} style={{ color: '#ef4444', fontSize: '0.9rem' }}>
+                                {resendError}
                             </p>
                         )}
 
                         <div className={styles.actions}>
-                            <button type="submit" className={styles.primaryBtn} disabled={isResending}>
+                            <button type="submit" className={styles.primaryBtn} disabled={isResending || cooldown > 0}>
                                 {isResending ? (
                                     <><Loader2 size={16} className={styles.spin} style={{ marginRight: '8px', verticalAlign: 'middle' }}/> Enviando...</>
+                                ) : cooldown > 0 ? (
+                                    `Reenviar en ${cooldown} s`
                                 ) : (
                                     <><Mail size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Enviar nuevo enlace</>
                                 )}

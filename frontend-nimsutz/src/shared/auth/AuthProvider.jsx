@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AuthContext } from './AuthContext';
-import { apiRequest } from '../api/httpClient';
+import { apiRequest, SESSION_EXPIRED_EVENT } from '../api/httpClient';
 import { withAccountDestination } from '../api/accountApi';
 import { clearPlanPreference, sessionDestination } from './accessFlow';
 
@@ -28,6 +28,18 @@ export default function AuthProvider({ children }) {
             if (active) setError('No se pudo conectar con el servicio. Inténtalo de nuevo.');
         }).finally(() => { if (active) setLoading(false); });
         return () => { active = false; };
+    }, []);
+    useEffect(() => {
+        // httpClient confirmó con el servidor que la sesión murió (por ejemplo, por una suspensión).
+        // Se limpia el estado igual que en signOut y RequireSession redirige a /login.
+        function onSessionExpired() {
+            clearPlanPreference();
+            setUser(null);
+            setDestination('/files');
+            setError('');
+        }
+        window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+        return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
     }, []);
     async function signIn(email, password) {
         const data = await apiRequest('/api/auth/login/', {

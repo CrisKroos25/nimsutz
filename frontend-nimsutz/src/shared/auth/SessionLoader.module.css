@@ -1,0 +1,76 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 40vh;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.fullScreen {
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+.spinner {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 3px solid color-mix(in srgb, currentColor 20%, transparent);
+    /* Cambia --color-primary por la variable de color principal de tu design system */
+    border-top-color: var(--color-primary, currentColor);
+    animation: spin 0.8s linear infinite;
+}
+
+.message {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.hint {
+    margin: 0;
+    max-width: 34ch;
+    font-size: 0.875rem;
+    opacity: 0.75;
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 0.75; }
+}
+
+/* Con "reducir movimiento" el spinner sigue girando, pero mucho más lento */
+@media (prefers-reduced-motion: reduce) {
+    .spinner { animation-duration: 2.4s; }
+    .hint { animation: none; }
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem 1.25rem;
+    margin-top: 0.5rem;
+}
+
+.homeLink {
+    color: inherit;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    opacity: 0.8;
+}
+
+.homeLink:hover,
+.homeLink:focus-visible {
+    opacity: 1;
+}

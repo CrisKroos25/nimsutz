@@ -46,8 +46,8 @@ export default function AppRouter() {
                         <Route path="reset-password" element={<ResetPassword />} />
                     </Route>
                     
-                    <Route element={<MainLayout {...theme} />}>
-                        <Route element={<RequireSession />}>
+                    <Route element={<RequireSession />}>
+                        <Route element={<MainLayout {...theme} />}>
                             <Route path="files/*" element={<FilesPage />} />
                             <Route path="trash/*" element={<TrashPage />} />
                             <Route path="profile" element={<ProfilePage />} />

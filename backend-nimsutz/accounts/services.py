@@ -1,11 +1,14 @@
 # accounts/services.py
-from django.contrib.auth import authenticate
+from django.contrib.auth import SESSION_KEY, authenticate
+from django.contrib.sessions.models import Session
+from django.db import transaction
+from django.utils import timezone
 from django.core.exceptions import ValidationError
-from django.contrib.auth.password_validation import validate_password
 from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.conf import settings
-from .emails import EmailDeliveryError, send_verification_email
+from .emails import send_verification_email
 from .models import PasswordResetToken
+from .passwords import validate_new_password
 
 from .models import User
 
@@ -27,7 +30,7 @@ def authenticate_user(*, email, password):
     # RN-E1-12: suspendida no puede iniciar sesión.
     # Separado de is_active a propósito: is_active es el interruptor técnico
     # de Django, account_status es tu estado de negocio real.
-    if user.account_status != User.AccountStatus.ACTIVE:
+    if not user.can_use_private_features:
         raise AuthenticationError("La cuenta no puede iniciar sesión en este momento.")
 
     return user
@@ -35,6 +38,12 @@ def authenticate_user(*, email, password):
 class AuthorizationError(Exception):
     """El usuario está autenticado pero no tiene permiso para esta acción (403)."""
 
+def invalidate_user_sessions(user):
+    """Elimina todas las sesiones vigentes de `user` (sesiones en base de datos)."""
+    target = str(user.pk)
+    for session in Session.objects.filter(expire_date__gt=timezone.now()).iterator():
+        if session.get_decoded().get(SESSION_KEY) == target:
+            session.delete()
 
 def suspend_account(*, actor, target):
     if actor.role != User.Role.ADMINISTRADOR:
@@ -49,8 +58,10 @@ def suspend_account(*, actor, target):
     if target.account_status == User.AccountStatus.SUSPENDED:
         return target  # idempotente, mismo criterio que trash_file en files
 
-    target.account_status = User.AccountStatus.SUSPENDED
-    target.save(update_fields=["account_status", "updated_at"])
+    with transaction.atomic():
+        target.account_status = User.AccountStatus.SUSPENDED
+        target.save(update_fields=["account_status", "updated_at"])
+        invalidate_user_sessions(target)
     # RN-E4-05: no se tocan archivos, carpetas, suscripciones ni pagos del usuario.
     return target
 
@@ -62,8 +73,15 @@ def reactivate_account(*, actor, target):
     if target.account_status != User.AccountStatus.SUSPENDED:
         raise ValidationError("Solo una cuenta suspendida puede reactivarse.")
 
-    target.account_status = User.AccountStatus.ACTIVE
-    target.save(update_fields=["account_status", "updated_at"])
+    with transaction.atomic():
+        # Una cuenta suspendida antes de verificar su correo vuelve a pendiente
+        target.account_status = (
+            User.AccountStatus.ACTIVE
+            if target.email_verified
+            else User.AccountStatus.PENDING_VERIFICATION
+        )
+        target.save(update_fields=["account_status", "updated_at"])
+        invalidate_user_sessions(target)
     return target
 
 def request_password_reset(*, email):
@@ -81,19 +99,24 @@ def request_password_reset(*, email):
 
 
 def confirm_password_reset(*, token, new_password):
-    try:
-        reset_token = PasswordResetToken.objects.select_related("user").get(token=token)
-    except PasswordResetToken.DoesNotExist:
-        raise AuthenticationError("El enlace de recuperación no es válido.")
+    with transaction.atomic():
+        try:
+            reset_token = (
+                PasswordResetToken.objects.select_for_update()
+                .select_related("user")
+                .get(token=token)
+            )
+        except PasswordResetToken.DoesNotExist:
+            raise AuthenticationError("El enlace de recuperación no es válido.")
 
-    if not reset_token.is_valid:
-        raise AuthenticationError("El enlace de recuperación venció o ya fue usado.")
+        if not reset_token.is_valid:
+            raise AuthenticationError("El enlace de recuperación venció o ya fue usado.")
 
-    user = reset_token.user
-    validate_password(new_password, user)  # lanza ValidationError si es débil
-    user.set_password(new_password)
-    user.save(update_fields=["password"])
-    reset_token.mark_used()
+        user = reset_token.user
+        validate_new_password(new_password, user)
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+        reset_token.mark_used()
     return user
 
 
@@ -102,6 +125,16 @@ class TokenError(Exception):
         self.code = code
         self.detail = detail
         super().__init__(detail)
+
+RESEND_COOLDOWN_SECONDS = 60
+class ResendCooldownError(Exception):
+    def __init__(self, retry_after):
+        self.retry_after = retry_after
+        super().__init__(f"Espera {retry_after} segundos para reenviar el correo.")
+
+
+def build_verification_link(token: str) -> str:
+    return f"{settings.FRONTEND_URL.rstrip('/')}/verify-email?token={token}"
 
 
 def generate_verification_token(user: User) -> str:
@@ -118,14 +151,10 @@ def generate_verification_token(user: User) -> str:
 
 
 def verify_email_with_token(token: str) -> User:
-    """
-    Valida el token y activa la cuenta del usuario.
-    Retorna el usuario si tiene éxito, o lanza TokenError.
-    """
-    signer = TimestampSigner()
+    signer = TimestampSigner()  # usa el mismo signer que generate_verification_token
     try:
-        # Expiración: 24 horas (86400 segundos)
-        payload = signer.unsign(token, max_age=86400)
+        max_age = settings.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES * 60
+        payload = signer.unsign(token, max_age=max_age)
     except SignatureExpired:
         raise TokenError("expired_token", "El enlace de verificación ya expiró.")
     except BadSignature:
@@ -133,50 +162,53 @@ def verify_email_with_token(token: str) -> User:
 
     try:
         user_id_str, timestamp_str = payload.split(":", 1)
-        user = User.objects.get(pk=int(user_id_str))
-    except (ValueError, User.DoesNotExist):
+        user_id = int(user_id_str)
+    except ValueError:
         raise TokenError("invalid_token", "El enlace de verificación es inválido.")
 
-    # Verificar que el token corresponda al estado más reciente (invalidación de anteriores)
-    if str(user.updated_at.timestamp()) != timestamp_str:
-        # Si el usuario ya está activo, asumimos que usó otro token
-        if user.account_status == User.AccountStatus.ACTIVE:
-            raise TokenError("used_token", "Esta cuenta ya fue verificada.")
-        else:
+    with transaction.atomic():
+        user = User.objects.select_for_update().filter(pk=user_id).first()
+        if user is None:
+            raise TokenError("invalid_token", "El enlace de verificación es inválido.")
+
+        if str(user.updated_at.timestamp()) != timestamp_str:
+            if user.account_status == User.AccountStatus.ACTIVE:
+                raise TokenError("used_token", "Esta cuenta ya fue verificada.")
             raise TokenError("invalid_token", "El enlace expiró porque se solicitó uno nuevo.")
 
-    # Validar que no estuviera ya suspendida
-    if user.account_status == User.AccountStatus.SUSPENDED:
-        raise TokenError("invalid_token", "La cuenta se encuentra suspendida.")
+        if user.account_status == User.AccountStatus.SUSPENDED:
+            raise TokenError("invalid_token", "La cuenta se encuentra suspendida.")
 
-    # ¡Activar!
-    user.account_status = User.AccountStatus.ACTIVE
-    user.email_verified = True
-    user.save(update_fields=["account_status", "email_verified", "updated_at"])
-    
+        user.account_status = User.AccountStatus.ACTIVE
+        user.email_verified = True
+        user.save(update_fields=["account_status", "email_verified", "updated_at"])
+
     return user
 
 
-def resend_verification_email(email: str, base_url: str):
+def resend_verification_email(email: str):
     """
     Reenvía el correo de verificación si la cuenta está pendiente.
-    Invalida el enlace anterior.
+    Invalida el enlace anterior. Lanza ResendCooldownError si es muy pronto.
     """
     normalized_email = email.strip().lower()
-    try:
-        user = User.objects.get(email=normalized_email)
-    except User.DoesNotExist:
-        # Por seguridad, no indicamos si el correo existe o no
-        return
 
-    # Si ya está activa o suspendida, no enviamos nada
-    if user.account_status != User.AccountStatus.PENDING_VERIFICATION:
-        return
+    with transaction.atomic():
+        user = (
+            User.objects.select_for_update()
+            .filter(email__iexact=normalized_email)
+            .first()
+        )
+        # Por seguridad no se distingue entre inexistente, activa o suspendida.
+        if user is None or user.account_status != User.AccountStatus.PENDING_VERIFICATION:
+            return
 
-    token = generate_verification_token(user)
-    verification_link = f"{base_url}/verify-email?token={token}"
-    
-    try:
-        send_verification_email(user.email, user.name, verification_link)
-    except EmailDeliveryError:
-        pass  # ya quedo registrado en el log; la respuesta sigue siendo generica
+        # En una cuenta pendiente, updated_at solo cambia al generar un token.
+        elapsed = (timezone.now() - user.updated_at).total_seconds()
+        if elapsed < RESEND_COOLDOWN_SECONDS:
+            raise ResendCooldownError(int(RESEND_COOLDOWN_SECONDS - elapsed) + 1)
+
+        token = generate_verification_token(user)
+
+    # El envío va fuera del lock para no retener la fila durante el SMTP.
+    send_verification_email(user.email, user.name, build_verification_link(token))

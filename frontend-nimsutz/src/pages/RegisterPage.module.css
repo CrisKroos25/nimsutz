@@ -96,6 +96,9 @@
     border-radius: var(--radius-panel);
     object-fit: contain;
 }
+.error{
+    color: var(--color-danger, #c0392b);
+}
 /* ---------- Estado: cuenta pendiente de verificación ---------- */
 .verifyIcon {
     display: grid;

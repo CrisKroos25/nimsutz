@@ -24,12 +24,15 @@ test('la navegación solo admite destinos internos conocidos', () => {
     assert.equal(sessionDestination({ user: { role: 'administrador' } }), '/profile');
 });
 test('requisitos en vivo: longitud y contenido no numérico, sin exigir mayúsculas', () => {
-    assert.deepEqual(passwordRequirements('').map((rule) => rule.met), [false, false]);
-    assert.deepEqual(passwordRequirements('abc').map((rule) => rule.met), [false, true]);
-    assert.deepEqual(passwordRequirements('12345678').map((rule) => rule.met), [true, false]);
-    assert.deepEqual(passwordRequirements('１２３４５６７８').map((rule) => rule.met), [true, false]);
-    assert.deepEqual(passwordRequirements('una-frase-larga').map((rule) => rule.met), [true, true]);
+    assert.deepEqual(passwordRequirements('').map((rule) => rule.met), [false, false, false]);
+    assert.deepEqual(passwordRequirements('abc').map((rule) => rule.met), [false, true, true]);
+    assert.deepEqual(passwordRequirements('12345678').map((rule) => rule.met), [true, false, true]);
+    assert.deepEqual(passwordRequirements('１２３４５６７８').map((rule) => rule.met), [true, false, true]);
+    assert.deepEqual(passwordRequirements('una-frase-larga').map((rule) => rule.met), [true, true, true]);
+    assert.deepEqual(passwordRequirements('            ').map((rule) => rule.met), [true, true, false]);
+    assert.deepEqual(passwordRequirements('  frase segura  ').map((rule) => rule.met), [true, true, true]);
     assert.ok(validateRegistration({ ...values, password: '12345678', password_confirmation: '12345678' }).password);
+    assert.ok(validateRegistration({ ...values, password: '            ', password_confirmation: '            ' }).password);
     assert.ok(validateRegistration({ ...values, password: 'nueva-clave' }).password_confirmation);
 });
 test('preferencia sobrevive al login y su limpieza impide pasarla a otra cuenta', () => {

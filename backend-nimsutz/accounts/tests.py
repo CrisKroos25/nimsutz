@@ -143,6 +143,22 @@ class AdminActionsTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)  # estaba activa, no suspendida
 
+    def test_old_session_does_not_revive_after_reactivation(self):
+        target_client, _ = self.login_as("cliente@example.test")
+        self.assertEqual(target_client.get("/api/folders/").status_code, 200)
+
+        admin_client, admin_token = self.login_as("admin@example.test")
+        admin_client.post(
+            f"/api/admin/users/{self.client_user.pk}/suspend/", HTTP_X_CSRFTOKEN=admin_token
+        )
+        admin_client.post(
+            f"/api/admin/users/{self.client_user.pk}/reactivate/", HTTP_X_CSRFTOKEN=admin_token
+        )
+
+        # El cliente nunca hizo una petición mientras estuvo suspendido,
+        # así que solo la invalidación de sesiones impide que la cookie vieja funcione.
+        self.assertEqual(target_client.get("/api/folders/").status_code, 403)
+
 class PasswordResetTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -234,6 +250,38 @@ class PasswordResetTests(TestCase):
         token = PasswordResetToken.objects.get(user=self.user)
         self.assertEqual(self.confirm(token.token, "corta").status_code, 400)
 
+    def test_confirm_rejects_whitespace_only_password_without_consuming_token(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+
+        response = self.confirm(token.token, "            ")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("solo espacios", str(response.json()["new_password"]))
+        token.refresh_from_db()
+        self.assertIsNone(token.used_at)
+
+    def test_confirm_preserves_leading_and_trailing_password_spaces(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+        new_password = "  New-P@ssword-493!  "
+
+        response = self.confirm(token.token, new_password)
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(new_password))
+
+    def test_confirm_rejects_password_similar_to_user_email(self):
+        self.request_reset()
+        token = PasswordResetToken.objects.get(user=self.user)
+
+        response = self.confirm(token.token, "ana@example.test")
+
+        self.assertEqual(response.status_code, 400)
+        token.refresh_from_db()
+        self.assertIsNone(token.used_at)
+
     def test_reset_does_not_change_account_status_or_role(self):
         self.request_reset()
         token = PasswordResetToken.objects.get(user=self.user)
@@ -243,11 +291,12 @@ class PasswordResetTests(TestCase):
         self.assertEqual(self.user.role, "cliente")
         self.assertTrue(self.user.email_verified)
 
-    def test_request_survives_email_provider_failure(self):
+    def test_request_reports_email_provider_failure(self):
         with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("caido")):
             with self.assertLogs("accounts.emails", level="ERROR"):
                 response = self.request_reset()
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["code"], "email_delivery_failed")
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(PasswordResetToken.objects.filter(user=self.user).count(), 1)
 
@@ -291,6 +340,24 @@ class PasswordResetTests(TestCase):
 class RegistrationAndVerificationTests(TestCase):
     def setUp(self):
         self.client = Client()
+
+    def test_login_preserves_password_spaces(self):
+        password = "  Existing-P@ssword-493!  "
+        get_user_model().objects.create_user(
+            name="Space Login",
+            email="space-login@example.test",
+            password=password,
+            account_status=get_user_model().AccountStatus.ACTIVE,
+            email_verified=True,
+        )
+
+        response = self.client.post(
+            "/api/auth/login/",
+            data=json.dumps({"email": "space-login@example.test", "password": password}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
 
     def test_registration_creates_pending_client(self):
         data = {
@@ -362,6 +429,54 @@ class RegistrationAndVerificationTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("password_confirmation", response.json()["field_errors"])
 
+    def test_registration_rejects_password_similar_to_email(self):
+        data = {
+            "name": "Ana Prueba",
+            "email": "ana@example.test",
+            "password": "ana@example.test",
+            "password_confirmation": "ana@example.test",
+        }
+
+        response = self.client.post(
+            "/api/auth/register/", data=json.dumps(data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("password", response.json()["field_errors"])
+        self.assertFalse(get_user_model().objects.filter(email=data["email"]).exists())
+
+    def test_registration_rejects_password_with_only_spaces(self):
+        data = {
+            "name": "Space User",
+            "email": "spaces@example.test",
+            "password": "            ",
+            "password_confirmation": "            ",
+        }
+
+        response = self.client.post(
+            "/api/auth/register/", data=json.dumps(data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("solo espacios", str(response.json()["field_errors"]["password"]))
+
+    def test_registration_preserves_leading_and_trailing_password_spaces(self):
+        password = "  Strong-P@ssword-493!  "
+        data = {
+            "name": "Space User",
+            "email": "spaces@example.test",
+            "password": password,
+            "password_confirmation": password,
+        }
+
+        response = self.client.post(
+            "/api/auth/register/", data=json.dumps(data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 201)
+        user = get_user_model().objects.get(email=data["email"])
+        self.assertTrue(user.check_password(password))
+
     def test_verify_email_success(self):
         from accounts import services
         user = get_user_model().objects.create_user(
@@ -379,6 +494,21 @@ class RegistrationAndVerificationTests(TestCase):
         user.refresh_from_db()
         self.assertEqual(user.account_status, get_user_model().AccountStatus.ACTIVE)
         self.assertTrue(user.email_verified)
+
+    def test_verify_email_uses_configured_ttl(self):
+        from accounts import services
+
+        user = get_user_model().objects.create_user(
+            name="TTL User", email="ttl@example.test", password="Password123!"
+        )
+        payload = f"{user.pk}:{user.updated_at.timestamp()}"
+        with override_settings(EMAIL_VERIFICATION_TOKEN_TTL_MINUTES=45):
+            with mock.patch(
+                "accounts.services.TimestampSigner.unsign", return_value=payload
+            ) as unsign:
+                services.verify_email_with_token("signed-token")
+
+        unsign.assert_called_once_with("signed-token", max_age=45 * 60)
 
     def test_verify_email_invalid_and_used_tokens(self):
         from accounts import services
@@ -408,12 +538,14 @@ class RegistrationAndVerificationTests(TestCase):
         )
         token_antiguo = services.generate_verification_token(user)
 
-        # Reenviar correo genera nuevo token e invalida el anterior
-        res_resend = self.client.post(
-            "/api/auth/resend-verification/",
-            data=json.dumps({"email": "resend@example.test"}),
-            content_type="application/json"
-        )
+        # Se adelanta el reloj para saltar el cooldown de 60 s
+        future = timezone.now() + timedelta(seconds=61)
+        with mock.patch("django.utils.timezone.now", return_value=future):
+            res_resend = self.client.post(
+                "/api/auth/resend-verification/",
+                data=json.dumps({"email": "resend@example.test"}),
+                content_type="application/json"
+            )
         self.assertEqual(res_resend.status_code, 200)
 
         # El token antiguo ahora debe fallar
@@ -462,7 +594,7 @@ class RegistrationAndVerificationTests(TestCase):
         self.assertIn("Verifica tu correo", sent_email.subject)
         self.assertIn("/verify-email?token=", sent_email.body)
 
-    def test_registration_email_sent_false_on_delivery_failure(self):
+    def test_registration_returns_503_but_keeps_pending_account_on_delivery_failure(self):
         mail.outbox.clear()
         data = {
             "name": "Failed Mail",
@@ -472,12 +604,9 @@ class RegistrationAndVerificationTests(TestCase):
         }
         with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("Conexión rechazada")):
             response = self.client.post("/api/auth/register/", data=json.dumps(data), content_type="application/json")
-            self.assertEqual(response.status_code, 201)
-            res_data = response.json()
-            # La cuenta se crea, pero email_sent refleja que no se pudo enviar
-            self.assertFalse(res_data["email_sent"])
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["code"], "email_delivery_failed")
 
-        # La cuenta existe en estado pendiente para permitir reintento
         user = get_user_model().objects.get(email="failedmail@example.test")
         self.assertEqual(user.account_status, get_user_model().AccountStatus.PENDING_VERIFICATION)
         self.assertEqual(len(mail.outbox), 0)
@@ -540,4 +669,56 @@ class RegistrationAndVerificationTests(TestCase):
         user = get_user_model().objects.get(email="invalidplan@example.test")
         self.assertEqual(user.account_status, get_user_model().AccountStatus.PENDING_VERIFICATION)
         self.assertFalse(SubscriptionPreference.objects.filter(user=user).exists())
-
+
+    def _resend(self, email):
+        return self.client.post(
+            "/api/auth/resend-verification/",
+            data=json.dumps({"email": email}),
+            content_type="application/json",
+        )
+
+    def test_resend_within_cooldown_returns_429(self):
+        from accounts import services
+        user = get_user_model().objects.create_user(
+            name="Cool", email="cool@example.test", password="Password123!"
+        )
+        services.generate_verification_token(user)
+        mail.outbox.clear()
+
+        response = self._resend("cool@example.test")
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json()["code"], "resend_cooldown")
+        self.assertGreater(response.json()["retry_after"], 0)
+        self.assertIn("Retry-After", response)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_resend_after_cooldown_sends_email(self):
+        from accounts import services
+        user = get_user_model().objects.create_user(
+            name="Later", email="later@example.test", password="Password123!"
+        )
+        services.generate_verification_token(user)
+        mail.outbox.clear()
+
+        future = timezone.now() + timedelta(seconds=61)
+        with mock.patch("django.utils.timezone.now", return_value=future):
+            response = self._resend("later@example.test")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_resend_reports_delivery_failure(self):
+        from accounts import services
+        user = get_user_model().objects.create_user(
+            name="Fail", email="fail@example.test", password="Password123!"
+        )
+        services.generate_verification_token(user)
+
+        future = timezone.now() + timedelta(seconds=61)
+        with mock.patch("django.utils.timezone.now", return_value=future):
+            with mock.patch("accounts.emails.send_mail", side_effect=smtplib.SMTPException("caido")):
+                response = self._resend("fail@example.test")
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["code"], "email_delivery_failed")
+        user.refresh_from_db()
+        self.assertEqual(user.account_status, get_user_model().AccountStatus.PENDING_VERIFICATION)
+

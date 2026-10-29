@@ -53,6 +53,7 @@ export function passwordRequirements(password) {
     return [
         { id: 'length', label: 'Al menos ocho caracteres', met: Array.from(password).length >= 8 },
         { id: 'notNumeric', label: 'No contiene únicamente números', met: password.length > 0 && !/^\p{Decimal_Number}+$/u.test(password) },
+        { id: 'notWhitespaceOnly', label: 'No contiene únicamente espacios', met: password.trim().length > 0 },
     ];
 }
 
@@ -61,7 +62,8 @@ export function validateRegistration(values) {
     if (!values.name.trim()) errors.name = 'Ingresa tu nombre completo.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) errors.email = 'Ingresa un correo válido.';
     const requirements = passwordRequirements(values.password);
-    if (!requirements[0].met) errors.password = 'Usa al menos ocho caracteres.';
+    if (!requirements[2].met) errors.password = 'La contraseña no puede estar vacía ni contener solo espacios.';
+    else if (!requirements[0].met) errors.password = 'Usa al menos ocho caracteres.';
     else if (!requirements[1].met) errors.password = 'La contraseña no puede contener únicamente números.';
     if (!values.password_confirmation) errors.password_confirmation = 'Confirma tu contraseña.';
     else if (values.password !== values.password_confirmation) errors.password_confirmation = 'Las contraseñas no coinciden.';
