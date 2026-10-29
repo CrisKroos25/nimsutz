@@ -4,6 +4,8 @@ import { useAuth } from '@shared/auth/AuthContext';
 import { readPlanPreference, readPlanIntent, savePlanIntent, clearPlanPreference, resolvePlanSelection } from '@shared/auth/accessFlow';
 import { getPlans, getPreference, setPreference, selectPlan, getSubscription, validateSubscription, activateFree, serviceMessage } from '@shared/api/accountApi';
 import { usePlans } from '@shared/hooks/usePlans';
+import { createQuote } from '@features/subscription/subscriptionApi';
+import { quoteErrorMessage } from '@features/subscription/subscriptionModel';
 import { formatStorage } from '@shared/utils/planFormat';
 import { FALLBACK_PLANS } from '@shared/planInformation';
 import Button from '@shared/components/Button/Button';
@@ -129,6 +131,20 @@ export default function PlansPage() {
         } finally { submitting.current = false; setBusy(false); }
     }
 
+        // Contratación pagada: el servidor calcula el resumen y el pago lo ejecuta el checkout.
+    async function startPaidContract() {
+        if (submitting.current || !selected) return;
+        submitting.current = true;
+        setBusy(true);
+        try {
+            const quote = await createQuote('contract', selected.version_id);
+            navigate(`/payments/checkout/${quote.id}`);
+        } catch (failure) {
+            setNotice(quoteErrorMessage(failure));
+            if (failure.status === 409) retry();
+        } finally { submitting.current = false; setBusy(false); }
+    }
+
     function chooseInformational(plan) {
         setIntentError('');
         try {
@@ -162,6 +178,7 @@ export default function PlansPage() {
                     <h2>Tu plan actual: {account.subscription.plan.name}</h2>
                     <p>Ya tienes una suscripción. Visitar esta página no cambia tu plan.</p>
                     <Link to="/files">Ir a mis archivos</Link>
+                    <Link to="/subscription">Ver mi suscripción</Link>
                 </article> : summary && selected ? <article className={styles.card}>
                     <h2>{selected.name}</h2>
                     <p>{selected.price} {selected.currency}{selected.period ? ` / ${selected.period}` : ''}</p>
@@ -169,7 +186,9 @@ export default function PlansPage() {
                     <p>Revisa estas condiciones antes de confirmar. Elegir un plan no lo activa automáticamente.</p>
                     {selected.available && selected.code === 'gratis' && Number(selected.price) === 0 ?
                         <Button loading={busy} onClick={confirm}>Confirmar y activar Gratis</Button> :
-                        <p>La contratación de este plan no está disponible por el momento. Puedes elegir Gratis.</p>}
+                        selected.available && Number(selected.price) > 0 ?
+                            <Button loading={busy} loadingLabel="Preparando pago…" onClick={startPaidContract}>Continuar al pago</Button> :
+                            <p>La contratación de este plan no está disponible por el momento. Puedes elegir Gratis.</p>}
                     <Link to="/plans">Cambiar selección</Link>
                 </article> : <>
                     <p>Selecciona un plan y revisa el resumen antes de activarlo.</p>
