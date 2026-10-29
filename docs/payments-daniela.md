@@ -1,82 +1,103 @@
-# Pagos simulados — entrega de Daniela
+# Pagos de Daniela: integración y validación
 
-Fuentes de alcance: `guia_entrega_30_octubre_2026.txt`, sección 3 y contratos 7.5–7.6; `guia de codigo.txt`; `Entrega de requisitos y diseño preliminar - Nim sutz'.pdf`, M08/M09 y RN-E2. Estas referencias se entregaron fuera del repositorio. La guía del 30 define la asignación y los contratos concretos de esta entrega.
+Estado al 29 de octubre de 2026: D1–D8 implementadas y validadas en el entorno Docker local, con los servicios reales de subscriptions. Este cierre se refiere a pagos; no certifica el resto de la entrega ni un despliegue público.
 
-## Implementación
+## Alcance y evidencia
 
-- D1: modelos TestCard, Payment, PaymentDetail y CardMovement; migración inicial aditiva y comando idempotente. El código de seguridad usa el hasher de Django; pagos y respuestas conservan solo la terminación de tarjeta.
-- D2–D4: validación de formato y simulador, rechazo persistente con motivo, huella HMAC con secreto independiente, recuperación de resultados y restricción de una aprobación por cotización. Vigencia de tarjeta hasta terminar su mes en America/Guatemala. Importes decimales y movimiento incluso si el ajuste es 0.00.
-- D5: coordinador atómico y bloqueo del cliente antes de validar la cotización y bloquear la tarjeta. Descuento, movimiento, pago, detalles y aplicación comercial comparten la misma transacción. La aplicación comercial real depende de los servicios de subscriptions descritos abajo.
-- D6–D8: resumen del servidor, checkout y resultado con componentes existentes. Doble clic protegido, campos y errores, cancelación antes del envío, clave persistida por cuenta/cotización y recuperación después de fallos técnicos. Los datos de tarjeta no se guardan en sessionStorage. Un rechazo permite otro intento con una clave nueva.
+| Tarea | Implementación y validación |
+| --- | --- |
+| D1 | TestCard, Payment, PaymentDetail, CardMovement, migraciones y seed idempotente. Los saldos existentes no se restablecen y el código de seguridad se conserva como hash. |
+| D2 | Formato, datos de tarjeta, habilitación, vigencia hasta fin de mes en America/Guatemala, moneda y saldo. Casos de rechazo cubiertos por pruebas. |
+| D3 | Aprobaciones/rechazos con motivo y detalles; permisos y formato se validan antes de crear pagos. API probada con sesión Django y CSRF reales. |
+| D4 | HMAC con clave independiente, recuperación por UUID, conflicto ante contenido distinto y una aprobación por cotización. Repetición y concurrencia probadas en PostgreSQL. |
+| D5 | Contratación, renovación, mejora con dos conceptos y ajuste 0.00 con los servicios reales de Rodrigo. Fallo inyectado después de aplicar cobertura revierte descuento, registros y cobertura. |
+| D6 | Resumen de solo lectura e importes, conceptos, moneda y efectos del servidor. Mejora con ciclo anticipado comprobada en navegador. |
+| D7 | Formato de número/vencimiento, teclado, carga y doble clic; pérdida de respuesta después de procesar el pago y recuperación tras recargar sin otro cobro. |
+| D8 | Resultado consultado al servidor, aprobación en modal, rechazo con corrección/nuevo intento, navegación a archivos, ambos temas y móvil. |
 
-## Preparar el entorno
+Referencias de alcance: guía de entrega del 30 de octubre, guía de código y mockups M08/M09 aportados por el equipo.
 
-1. Generar una clave técnica independiente de al menos 32 caracteres y guardarla localmente como `PAYMENTS_IDEMPOTENCY_SECRET`. Por ejemplo: `python -c "import secrets; print(secrets.token_urlsafe(48))"`. No publicar el valor ni cambiarlo mientras deban recuperarse operaciones antiguas.
-2. Recrear backend para cargar la variable: `docker compose up -d backend`.
-3. Aplicar migraciones: `docker compose exec backend python manage.py migrate`.
-4. Con entorno de pruebas y DEBUG=True: `docker compose exec backend python manage.py seed_payment_cards`.
+## Correcciones encontradas al integrar
 
-El comando conserva las tarjetas ya creadas, incluyendo saldo, vencimiento y hash. No ofrece recargas. En entornos sin DEBUG se rechaza su ejecución.
+- La validación de checkout rechazaba renovar un contrato cuyo plan fue desactivado. Ahora conserva esa posibilidad sin habilitar nuevas contrataciones hacia un plan desactivado.
+- Una mejora cotizada antes de renovar podía omitir el ajuste del ciclo futuro. Quote.execution_context congela cobertura, versión destino y cambio programado. Una variación exige otra cotización/confirmación y devuelve 409; no recalcula y cobra silenciosamente.
+- get_active_subscription ahora reutiliza la resolución efectiva: reconoce el ciclo anticipado al llegar a su inicio y el retorno a Gratis al terminar cobertura.
+- Renovar informa y guarda la nueva fecha de una bajada ya programada.
+- El resultado muestra coverage_end, para reflejar la cobertura ampliada por una renovación.
 
-| Caso | Número ficticio | Saldo inicial | Moneda |
-| --- | --- | --- | --- |
-| Aprobable | 9999000000000001 | 500.00 | GTQ |
-| Sin saldo | 9999000000000002 | 0.00 | GTQ |
-| Deshabilitada | 9999000000000003 | 500.00 | GTQ |
-| Vencida | 9999000000000004 | 500.00 | GTQ |
-| Moneda incompatible | 9999000000000005 | 500.00 | USD |
+La migración subscriptions.0003_quote_execution_context es aditiva. Cotizaciones pendientes creadas antes de esta protección requieren un nuevo resumen; no se eliminan pagos ni contratos. Los reintentos de pagos completados siguen recuperando el resultado antes de validar la cotización.
 
-Todas usan titular ficticio `NIM SUTZ DEMO`, mes 12 y código de prueba `123`. Al crearse por primera vez, el año de vencimiento es el año de ejecución + 2; la vencida usa el año de ejecución - 1. Para datos inexistentes puede usarse `9999000000000099`. Nunca utilizar datos bancarios reales.
+## Configuración y preparación
 
-## Contratos y límites de integración
-
-Se implementan POST `/api/payments/checkout/` y GET `/api/payments/operations/<UUID>/` de la guía. La pantalla `/payments/result/:paymentId` consulta GET `/api/payments/results/<id>/`, una ruta adicional de resultado propio que devuelve el mismo objeto de checkout; evita depender del historial de Miguel. La consulta filtra por propietario y no permite editar pagos. No sustituye GET `/api/payments/<id>/` del historial, que Miguel implementará en read_views.py y read_serializers.py.
-
-El checkout consume GET `/api/subscriptions/quotes/<UUID>/`, respuesta `{ "quote": ... }`. El adaptador `payments/commercial.py` requiere:
-
-- `subscriptions.services.validate_quote_for_execution(user=..., quote_id=...)`: cotización validada bajo bloqueo con los campos públicos de la guía (mapping). Debe bloquear cotización y suscripción antes del bloqueo de tarjeta, y revalidar condiciones sin cobrar importes nuevos silenciosamente.
-- `subscriptions.services.apply_approved_quote(user=..., quote=..., payment=..., approved_at=...)`: aplica derechos en la transacción existente y devuelve la suscripción serializable mediante subscription_payload.
-
-Estos servicios y las rutas de cotización aún no existen en la copia revisada de subscriptions. El adaptador responde 503 sin descontar ni crear pagos si faltan. No se añadió una activación pagada alternativa ni se duplicaron cálculos comerciales. Hasta integrar los servicios de Rodrigo, D5 y el recorrido real de D6–D8 permanecen pendientes de validación conjunta.
-
-Después de un timeout se consulta la operación y se conserva su clave incluso ante 404. Se puede reenviar con la misma clave y el mismo contenido. Tras recargar hay que volver a ingresar los datos originales, ya que nunca se persistió la tarjeta. Reutilizar la clave con otro contenido devuelve 409. Solo un resultado procesado, o un error inicial de formato que no llegó al procesamiento, libera el intento.
-
-## Verificación
-
-Backend: `docker compose exec backend python manage.py test payments subscriptions` y `docker compose exec backend python manage.py makemigrations --check --dry-run`.
-
-Frontend, desde frontend-nimsutz:
+En el .env local:
 
 ```text
-node --test src/features/payments/paymentAttempt.test.mjs src/features/payments/paymentPresentation.test.mjs
-npx --no-install eslint src/features/payments src/router/AppRouter.jsx
-npm run build
+PAID_PLANS_ENABLED=true
+PAYMENTS_IDEMPOTENCY_SECRET=<clave técnica independiente de al menos 32 caracteres>
 ```
 
-La suite de pagos prueba aprobación/rechazos, importe cero, idempotencia, permisos, CSRF, recuperación propia, normalización, seguridad de respuestas, límite mensual de vencimiento y reversión de registros/cobertura. Los dobles comerciales son explícitos: no prueban los prorrateos ni la cobertura pagada de Rodrigo. `test_concurrency.py` contiene tres pruebas de bloqueo con conexiones concurrentes; se omiten cuando el motor no soporta select_for_update.
+La clave no se sube a Git ni se comparte con el equipo. No cambiarla mientras se necesite reproducir huellas de operaciones existentes. docker-compose.yml transmite el indicador al backend; .env.example deja los pagos deshabilitados por defecto.
 
-Validación realizada localmente: Django 5.2.18 y SQLite en memoria como alternativa, porque Docker no estaba disponible; frontend con las dependencias ya instaladas. Es necesario repetir en el entorno Docker/PostgreSQL y con las versiones fijadas por el proyecto. El lint global reportó seis errores previos fuera de payments (FolderFormModal, UploadPanel, useFiles, Trash, PlansPage y usePlans). No se modificaron esas áreas.
+```text
+docker compose up -d backend
+docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py seed_plans
+docker compose exec backend python manage.py seed_payment_cards
+```
 
-Pendiente antes de la entrega integrada:
+Se configuró una clave local independiente y se aplicó la migración. Los archivos de configuración descargados se revisaron: solo se incorporó la variable necesaria al compose, conservando las opciones de correo actuales.
 
-- Integrar y verificar los servicios y cotizaciones reales de Rodrigo; hacer contratación, renovación y mejora con dos conceptos.
-- Ejecutar concurrencia con PostgreSQL y migraciones sobre una copia con datos previos.
-- Completar el recorrido con el backend real: red interrumpida, reintento y navegación después de aprobación/rechazo. Las comprobaciones visuales con respuestas controladas se documentan debajo.
-- Abrir PR hacia develop después de comprobar el remoto y obtener revisión de un compañero.
+## Tarjetas precargadas del seed
 
-Resultados locales de esta revisión: 46 pruebas de backend descubiertas entre payments y subscriptions, 43 aprobadas y 3 de concurrencia omitidas por SQLite; 7 pruebas de recuperación/idempotencia del frontend aprobadas; lint de payments y router aprobado; build de Vite aprobado. Las advertencias W042 de claves primarias corresponden a las apps existentes. Estas comprobaciones no certifican Docker/PostgreSQL ni el flujo comercial integrado.
+| Número ficticio | Caso | Saldo inicial | Moneda |
+| --- | --- | --- | --- |
+| 9999000000000001 | Aprobable | 500.00 | GTQ |
+| 9999000000000002 | Sin saldo | 0.00 | GTQ |
+| 9999000000000003 | Deshabilitada | 500.00 | GTQ |
+| 9999000000000004 | Vencida | 500.00 | GTQ |
+| 9999000000000005 | Moneda incompatible | 500.00 | USD |
 
+Titular NIM SUTZ DEMO, código de prueba 123 y mes 12. Al crearse, el año normal es el año de ejecución + 2; la vencida usa el año - 1. El comando conserva el vencimiento, saldo y hash de las tarjetas existentes. Solo admite DEBUG=True y no ofrece recargas. Usar exclusivamente datos ficticios.
 
-## Ajuste visual a los mockups M08 y M09
+## Contratos
 
-Se conserva la composición del mockup: formulario y resumen en dos columnas, y resultado centrado con icono de estado, detalles alineados y botones redondeados. Los temas claro/oscuro usan los tokens existentes. En móvil el resumen aparece antes del formulario y los botones se adaptan al ancho.
+- POST /api/payments/checkout/ con Idempotency-Key UUID y cuerpo quote_id/card. No acepta precios, resultado ni propietario del navegador.
+- GET /api/payments/operations/<UUID>/ recupera el resultado propio. Un 404 no permite iniciar otra operación: se conserva la clave.
+- GET /api/payments/results/<id>/ alimenta el resultado propio. El historial de Miguel usa sus rutas y modelos compartidos.
+- payments/commercial.py llama a subscriptions.services.validate_quote_for_execution y apply_approved_quote. El primero devuelve un mapping y el segundo una Subscription serializable mediante subscription_payload.
+- execute_checkout abre la transacción; saldo, movimiento, pago, detalles y cobertura se confirman juntos. Orden: cliente, cotización, suscripción y tarjeta.
 
-Se retiraron las etiquetas de prueba de las pantallas. El procesamiento continúa siendo el simulador; no se añadieron cobros ni proveedores reales. El número se presenta en grupos de cuatro y el vencimiento en MM/AA; se envían sin espacios y como mes/año al contrato existente. Se muestra el importe del servidor en el botón, el CVV permanece oculto y los errores conservan la recuperación del intento.
+El frontend solo guarda la clave y referencias de navegación en sessionStorage. Para reenviar tras recargar se vuelven a ingresar los datos originales, pues no se persistió la tarjeta. Un rechazo procesado permite un intento voluntario nuevo con otra clave.
 
-Verificación adicional: 10 pruebas de frontend aprobadas, lint de payments y Header aprobado, build aprobado. En navegador se revisaron checkout/resultado en claro y oscuro, rechazo y ancho móvil de 390 px sin desbordamiento horizontal. Se comprobó navegación por teclado entre los campos y un doble clic con un único envío, con el cuerpo exacto esperado por la API. Las respuestas fueron interceptadas exclusivamente en el navegador de pruebas: las capturas no demuestran contratación pagada real ni sustituyen la integración pendiente con Rodrigo.
+## Validación ejecutada en Docker/PostgreSQL
 
-## Aprobación en ventana emergente
+```text
+docker compose exec backend python manage.py test --noinput
+docker compose exec backend python manage.py makemigrations --check --dry-run
+docker compose exec backend python manage.py check
+docker compose exec frontend node --test src/features/payments/paymentAttempt.test.mjs src/features/payments/paymentPresentation.test.mjs src/features/subscription/subscriptionModel.test.mjs
+docker compose exec frontend npx --no-install eslint src/features/payments src/features/subscription src/router/AppRouter.jsx src/shared/components/Modal/Modal.jsx
+docker compose exec frontend npm run build
+```
 
-El resultado aprobado se presenta mediante el Modal nativo compartido, sobre el checkout atenuado y desenfocado. Conserva referencia, importe, tarjeta enmascarada, plan, vigencia y acciones. La X y Escape vuelven al inicio; el botón principal actualiza la sesión y continúa al destino autorizado. La aprobación se consulta al servidor también al recargar o abrir la ruta directamente. El estado de navegación conserva únicamente la cotización para mostrar el fondo, sin datos de tarjeta.
+Resultados: 190 pruebas backend aprobadas, sin omisiones; 19 frontend aprobadas; check, coherencia de migraciones, lint del alcance comercial y build aprobados. Hay seis pruebas de concurrencia: tres del coordinador aislado y tres con cotizaciones/cobertura reales.
 
-Verificado en navegador con respuestas controladas: claro/oscuro, ancho móvil de 390 px, fondo no interactivo, foco inicial dentro del diálogo, tabulación sin acceso al fondo, cierre por Escape y restauración del scroll. Lint de los archivos modificados y build aprobados.
+La prueba test_migrations.py retrocede únicamente la base efímera de pruebas a subscriptions.0001 y vuelve a la última migración, conservando cuenta, propietario, carpeta, archivo y condiciones históricas. En la base local se compararon huellas antes/después de migrar y después de QA: las cuatro cuentas, tres archivos, una carpeta, dos suscripciones y los cinco saldos anteriores permanecieron idénticos.
+
+### Navegador con API real
+
+Se crearon dos cuentas verificadas y dos tarjetas exclusivas de QA, sin reutilizar cuentas personales ni descontar tarjetas previas. Se comprobó:
+
+1. Selección de Básico desde planes, cotización, checkout, doble clic con un único POST y acceso a archivos.
+2. Renovación: el POST se procesó realmente y se abortó solo su respuesta hacia el navegador. Tras recargar, la consulta de la misma operación recuperó el resultado sin otro pago.
+3. Mejora a Premium con ajuste actual y diferencia del ciclo anticipado; ambos ciclos quedaron en Premium.
+4. Modal en claro/oscuro y móvil de 390 px, foco inicial, Escape y ausencia de desbordamiento horizontal.
+5. Segundo usuario: rechazo por código incorrecto sin cobertura, corrección con otro intento y aprobación. Pagos, detalle y cotización del primero devolvieron 404 al segundo.
+
+Se conservaron las cuentas/tarjetas de QA como datos locales de prueba; sus contraseñas no se incluyen en el repositorio. Evidencia resumida sin credenciales: evidence/payments-validation-2026-10-29.json.
+
+## Fuera de este cierre
+
+El lint global todavía tiene siete errores anteriores en FolderFormModal, UploadPanel, useFiles, Trash, PlansPage, RequireSession y usePlans. No se modificaron esas implementaciones para ocultar sus errores. Los cambios de pruebas de cuota/destino actualizan expectativas antiguas de capacidad cero al retorno a Gratis definido por la guía; no alteran el almacenamiento.
+
+No se incluyen administración, correo real, cierre de todas las tareas de Rodrigo/Miguel/Cristian ni despliegue público. Las correcciones de integración deben revisarse mediante PR a develop.
