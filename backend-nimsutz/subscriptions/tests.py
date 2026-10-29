@@ -181,12 +181,12 @@ class SessionDestinationTests(TestCase):
         services.activate_free(user=self.user)
         self.assert_destination("files")
 
-    def test_expired_subscription_goes_to_plans(self):
+    def test_expired_subscription_returns_to_free_and_files(self):
         from subscriptions import services
         subscription, _ = services.activate_free(user=self.user)
         subscription.expires_at = timezone.now() - timedelta(seconds=1)
         subscription.save(update_fields=["expires_at"])
-        self.assert_destination("plans")
+        self.assert_destination("files")
 
     def test_administrator_goes_to_admin(self):
         self.user.role = self.user.Role.ADMINISTRADOR

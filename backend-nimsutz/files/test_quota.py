@@ -186,17 +186,18 @@ class DataConservationTests(TestCase):
             expires_at=timezone.now() - timedelta(minutes=1)
         )
 
-    def test_expired_subscription_means_no_capacity(self):
-        self.assertEqual(get_capacity_bytes(self.user), 0)
+    def test_expired_subscription_returns_to_free_capacity(self):
+        self.assertEqual(get_capacity_bytes(self.user), 100 * MB)
         self.subscription.refresh_from_db()
-        self.assertEqual(self.subscription.status, Subscription.Status.EXPIRED)
+        self.assertEqual(self.subscription.status, Subscription.Status.ACTIVE)
+        self.assertEqual(self.subscription.plan_version.plan.code, "free")
 
-    def test_expired_subscription_blocks_new_uploads(self):
-        with self.assertRaises(ValidationError):
-            request_upload(
-                owner=self.user, folder=self.folder, original_name="nuevo.txt",
-                content_type="text/plain", size_bytes=1,
-            )
+    def test_return_to_free_allows_upload_within_free_quota(self):
+        request_upload(
+            owner=self.user, folder=self.folder, original_name="nuevo.txt",
+            content_type="text/plain", size_bytes=1,
+        )
+        self.assertEqual(get_capacity_bytes(self.user), 100 * MB)
 
     def test_files_and_reservations_are_untouched(self):
         self.assertEqual(File.objects.filter(owner=self.user).count(), 2)

@@ -117,6 +117,7 @@ class Quote(models.Model):
     requires_payment = models.BooleanField(default=True)
     lines = models.JSONField(default=list)
     effect = models.JSONField(default=dict)
+    execution_context = models.JSONField(default=dict)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     expires_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
