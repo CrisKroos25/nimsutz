@@ -126,7 +126,7 @@ class RealCheckoutTests(TestCase):
         self.assertFalse(Payment.objects.exists())
         self.assertFalse(PaymentDetail.objects.exists())
         self.assertFalse(CardMovement.objects.exists())
-        self.assertFalse(Subscription.objects.filter(user=self.user).exists())
+        self.assertEqual(Subscription.objects.get(user=self.user).status, 'pending')
         self.assertEqual(Quote.objects.get(pk=quote['id']).status, 'pending')
         self.assertEqual(TestCard.objects.get(number='9999000000000001').balance, Decimal('500.00'))
         self.assertEqual(self.pay(quote, key=key).data['payment']['status'], 'approved')

@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from subscriptions.models import Subscription
 from subscriptions.services import resolve_effective_subscription
+from subscriptions.terms import effective_conditions
 
 
 class Command(BaseCommand):
@@ -22,16 +23,16 @@ class Command(BaseCommand):
         # Buscar suscripciones activas cuya fecha de expiración ya haya pasado
         expired_subs = (
             Subscription.objects.select_related("user")
-            .filter(status=Subscription.Status.ACTIVE, expires_at__isnull=False, expires_at__lte=now)
+            .filter(status__in=[Subscription.Status.ACTIVE, Subscription.Status.EXPIRED], expires_at__isnull=False, expires_at__lte=now)
         )
 
         reconciled_count = 0
         for sub in expired_subs:
             resolved = resolve_effective_subscription(sub.user, at=now)
             reconciled_count += 1
-            plan_name = resolved.plan_version.plan.name if resolved else "Sin cobertura"
+            plan_name = effective_conditions(resolved)['name'] if resolved else "Sin cobertura"
             self.stdout.write(
-                f"Suscripción de {sub.user.email} reconciliada: {plan_name} (expires: {resolved.expires_at if resolved else None})"
+                f"Suscripción #{sub.pk} reconciliada: {plan_name} (expires: {resolved.expires_at if resolved else None})"
             )
 
         self.stdout.write(self.style.SUCCESS(f"Reconciliación completada. Total procesadas: {reconciled_count}"))

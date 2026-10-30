@@ -3,13 +3,15 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated, PermissionDenied
 
 from accounts.serializers import UserSerializer
 
 from . import services
 from .errors import SubscriptionError
 from .overview import build_account_overview
-from .serializers import PlanVersionInputSerializer, QuoteCreateSerializer
+from .serializers import PlanVersionInputSerializer, QuoteCreateSerializer, ScheduledConfirmationSerializer
+from .terms import require_customer
 
 
 def _error(error):
@@ -52,6 +54,7 @@ class CurrentSubscriptionView(APIView):
         sub = services.get_active_subscription(request.user)
         return Response({
             "subscription": services.subscription_payload(sub) if sub else None,
+            "pending_selection": services.pending_selection_payload(request.user),
             "next_cycle": services.next_cycle_payload(sub),
             "scheduled_change": services.scheduled_change_payload(request.user),
             "allowed_actions": services.get_allowed_actions(sub, request.user),
@@ -92,9 +95,23 @@ class AccountOverviewView(APIView):
 # NUEVAS VISTAS: COTIZACIONES Y CAMBIOS PROGRAMADOS (Contratos 7.3 y 7.4)
 # ---------------------------------------------------------------------------
 
-class QuoteListCreateView(APIView):
+class CommercialView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        require_customer(request.user)
+
+    def handle_exception(self, exc):
+        if isinstance(exc, SubscriptionError):
+            return _error(exc)
+        if isinstance(exc, (AuthenticationFailed, NotAuthenticated, PermissionDenied)):
+            code = 'csrf_failed' if 'csrf' in str(exc).lower() else 'forbidden'
+            return Response({'code': code, 'detail': str(exc.detail), 'field_errors': {}}, status=403)
+        return super().handle_exception(exc)
+
+
+class QuoteListCreateView(CommercialView):
     def post(self, request):
         serializer = QuoteCreateSerializer(data=request.data)
         if not serializer.is_valid():
@@ -113,8 +130,7 @@ class QuoteListCreateView(APIView):
         return Response({"quote": services.quote_payload(quote)}, status=status.HTTP_201_CREATED)
 
 
-class QuoteDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+class QuoteDetailView(CommercialView):
 
     def get(self, request, quote_id):
         try:
@@ -124,24 +140,24 @@ class QuoteDetailView(APIView):
         return Response({"quote": services.quote_payload(quote)})
 
 
-class QuoteConfirmView(APIView):
-    permission_classes = [IsAuthenticated]
+class QuoteConfirmView(CommercialView):
 
     def post(self, request, quote_id):
+        serializer = ScheduledConfirmationSerializer(data={"operation_key": request.headers.get("Idempotency-Key")})
+        valid = serializer.is_valid()
+        if request.data != {} or not valid:
+            return Response({"code": "invalid_request", "detail": "Envía un cuerpo vacío e Idempotency-Key UUID.",
+                             "field_errors": serializer.errors}, status=400)
         try:
-            scheduled, sub = services.confirm_scheduled_quote(
-                user=request.user, quote_id=quote_id
+            result = services.confirm_scheduled_quote(
+                user=request.user, quote_id=quote_id, operation_key=serializer.validated_data["operation_key"]
             )
         except SubscriptionError as e:
             return _error(e)
-        return Response({
-            "scheduled_change": services.scheduled_change_payload(request.user),
-            "subscription": services.subscription_payload(sub),
-        })
+        return Response(result)
 
 
-class ScheduledChangeView(APIView):
-    permission_classes = [IsAuthenticated]
+class ScheduledChangeView(CommercialView):
 
     def delete(self, request):
         services.cancel_scheduled_change(user=request.user)
