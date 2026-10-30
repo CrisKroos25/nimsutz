@@ -13,14 +13,14 @@ def set_preference(*, user, plan_version_id):
     if version is None or not version.plan.is_available:
         raise SubscriptionError(
             "plan_unavailable",
-            "El plan seleccionado no estÃ¡ disponible.",
+            "El plan seleccionado no está disponible.",
             {"plan_version_id": "Plan no disponible."},
         )
     if version.pk != get_current_version(version.plan.code).pk:
         raise SubscriptionError(
             "plan_conditions_changed",
             "Las condiciones del plan cambiaron. Vuelve a elegirlo.",
-            {"plan_version_id": "VersiÃ³n desactualizada."},
+            {"plan_version_id": "Versión desactualizada."},
         )
     preference, _ = SubscriptionPreference.objects.update_or_create(
         user=user, defaults={"plan_version": version}

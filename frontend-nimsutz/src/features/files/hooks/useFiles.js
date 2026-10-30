@@ -13,17 +13,17 @@ import * as filesApi from '../api/filesApi';
 const EMPTY_CONTENT = { folders: [], files: [], folderIndex: new Map() };
 
 /**
- * Hook del explorador: lista carpetas y archivos de "folderId" (null = raÃ­z)
- * y expone las acciones de organizaciÃ³n: crear, renombrar y eliminar
+ * Hook del explorador: lista carpetas y archivos de "folderId" (null = raíz)
+ * y expone las acciones de organización: crear, renombrar y eliminar
  * carpeta. "reload" se pasa a los componentes de B (UploadPanel.onCompleted,
- * FileActions.onChanged) para que el listado se refresque despuÃ©s de que
- * ellos suban, descarguen o envÃ­en un archivo a la papelera.
+ * FileActions.onChanged) para que el listado se refresque después de que
+ * ellos suban, descarguen o envíen un archivo a la papelera.
  *
- * TambiÃ©n trae "folderIndex": un mapa id -> {id, name, parent} de TODAS
+ * También trae "folderIndex": un mapa id -> {id, name, parent} de TODAS
  * las carpetas del usuario, usado para reconstruir la ruta de migas de
  * pan a partir de datos reales del servidor, en vez de llevar la cuenta
- * a mano con los clics del usuario (eso se desincroniza con el botÃ³n
- * "atrÃ¡s" del navegador o al recargar la pÃ¡gina).
+ * a mano con los clics del usuario (eso se desincroniza con el botón
+ * "atrás" del navegador o al recargar la página).
  */
 export function useFiles(folderId) {
     const load = useCallback(async () => {

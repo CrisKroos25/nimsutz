@@ -17,7 +17,7 @@ def get_current_version(plan_code):
     plan = Plan.objects.filter(code=plan_code, is_available=True).first()
     if plan is None:
         raise SubscriptionError(
-            "plan_unavailable", "El plan no estÃ¡ disponible."
+            "plan_unavailable", "El plan no está disponible."
         )  # RN-E2-05
     version = _latest_version(plan)
     if version is None:
@@ -29,7 +29,7 @@ def get_current_version(plan_code):
 
 
 def is_contractable(version):
-    # Los planes pagados se pueden cotizar y contratar si el plan estÃ¡ disponible
+    # Los planes pagados se pueden cotizar y contratar si el plan está disponible
     return version.plan.is_available and (
         version.price == 0 or getattr(settings, "PAID_PLANS_ENABLED", True)
     )
@@ -62,9 +62,9 @@ def list_catalog():
         version = _latest_version(plan)
         if version is None:
             logger.warning(
-                "Plan '%s' estÃ¡ disponible pero no tiene versiones.", plan.code
+                "Plan '%s' está disponible pero no tiene versiones.", plan.code
             )
-            continue  # situaciÃ³n invÃ¡lida: un plan sin condiciones no se publica
+            continue  # situación inválida: un plan sin condiciones no se publica
         version.plan = plan
         items.append(version_payload(version))
     return items

@@ -1,46 +1,5 @@
-.overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--color-overlay, rgba(13, 11, 30, 0.7));
-    backdrop-filter: blur(var(--backdrop-blur, 4px));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
 .modal {
-    background-color: var(--color-surface, #ffffff);
-    border: var(--border-width, 1px) solid var(--color-border);
-    border-radius: var(--radius-panel, 16px);
-    box-shadow: var(--modal-shadow, 0 24px 64px rgba(0, 0, 0, 0.2));
-    padding: var(--space-4, 1.5rem);
-    width: 100%;
-    max-width: var(--modal-width, 480px);
-    color: var(--color-text);
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: var(--space-4, 1.5rem);
-}
-
-.title {
-    font-size: var(--font-size-lg, 1.25rem);
-    font-weight: var(--font-weight-bold, 700);
-    color: var(--color-text);
-    margin: 0;
-}
-
-.subtitle {
-    font-size: var(--font-size-sm, 0.875rem);
-    color: var(--color-text-muted);
-    margin: 4px 0 0 0;
+    width: min(var(--modal-width), calc(100% - var(--space-5)));
 }
 
 .closeBtn {
@@ -83,7 +42,18 @@
 }
 
 .hiddenInput {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.dropZone:focus-within {
+    outline: var(--focus-width) solid var(--color-focus);
+    outline-offset: var(--focus-offset);
 }
 
 .iconWrapper {
