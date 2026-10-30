@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "scenarios": [
+    "Selección pendiente sin cuota; rechazo conserva identidad y corrección activa la misma suscripción.",
+    "Programación sin cobro idempotente; repetir una confirmación cancelada no resucita el cambio.",
+    "Worker real cada minuto: Premium vencido pasa a Gratis; Básico requiere pago manual y no genera cobro automático.",
+    "Retorno a Gratis con 150 MB usados conserva consumo y muestra las restricciones de exceso."
+  ],
+  "date": "2026-10-29",
+  "environment": "Docker / PostgreSQL 16 / API real",
+  "backend": {
+    "passed": 211,
+    "skipped": 0,
+    "system_check": "passed",
+    "migration_check": "passed",
+    "source": "git archive HEAD: solo archivos versionados"
+  },
+  "frontend": {
+    "passed": 38,
+    "commercial_lint": "passed",
+    "build": "passed"
+  },
+  "periodic_worker": {
+    "interval_seconds": 60,
+    "actual_expiry_processed": true,
+    "automatic_charge": false
+  },
+  "original_data_preserved": true,
+  "inventory": {
+    "users": 6,
+    "files": 3,
+    "folders": 1,
+    "subscriptions": 4,
+    "payments": 5,
+    "quotes": 4,
+    "card_balances": 7
+  },
+  "migration": {
+    "name": "subscriptions.0004",
+    "duplicate_identity_guard_tested": true,
+    "applied_locally": true
+  },
+  "local_backend_including_untracked_tests": 214
+}

@@ -188,3 +188,9 @@ class HistoryTests(TestCase):
         response = self.get("?page=9")
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["code"], "not_found")
+
+    def test_fecha_final_maxima_no_produce_error_del_servidor(self):
+        response = self.get("?date_to=9999-12-31")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["code"], "invalid_request")
+        self.assertIn("date_to", response.json()["field_errors"])

@@ -1,3 +1,4 @@
+# files/tests/test_quota.py
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -11,6 +12,7 @@ from subscriptions import services as subscription_services
 from subscriptions.models import Subscription
 
 from files.models import File, Folder, QuotaReservation
+from files.quota import get_available_quota, get_capacity_bytes, get_used_bytes
 from files.services import (
     confirm_upload,
     permanently_delete_file,
@@ -19,7 +21,6 @@ from files.services import (
     restore_file,
     trash_file,
 )
-from files.quota import get_available_quota, get_capacity_bytes, get_coverage, get_used_bytes, lock_owner  # noqa: F401
 
 
 MB = 1024 * 1024
@@ -178,7 +179,7 @@ class DataConservationTests(TestCase):
     def setUp(self):
         version = subscription_services.get_current_version("basic")
         self.subscription = Subscription.objects.create(
-            user=self.user, plan_version=version, started_at=timezone.now(),
+            user=self.user, plan_version=version, started_at=timezone.now() - timedelta(days=31),
             expires_at=timezone.now() + timedelta(days=30),
         )
         self.file = upload(self.user, self.folder, "a.txt", 10 * MB)
@@ -186,6 +187,11 @@ class DataConservationTests(TestCase):
         trash_file(file=self.trashed, owner=self.user)
         Subscription.objects.filter(pk=self.subscription.pk).update(
             expires_at=timezone.now() - timedelta(minutes=1)
+        )
+        # El historial de cobertura debe reflejar el vencimiento que se acaba de forzar.
+        self.subscription.refresh_from_db()
+        self.subscription.coverage_history.filter(state="valid").update(
+            ends_at=self.subscription.expires_at, cycle_ends_at=self.subscription.expires_at
         )
 
     def test_expired_paid_plan_falls_back_to_free(self):

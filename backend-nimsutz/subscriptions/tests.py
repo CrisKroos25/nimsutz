@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from .errors import SubscriptionError
 from django.core.management import call_command
 from django.db import IntegrityError, transaction
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.utils import timezone
 
 from accounts.models import User
@@ -181,12 +181,11 @@ class SessionDestinationTests(TestCase):
         services.activate_free(user=self.user)
         self.assert_destination("files")
 
-    def test_expired_subscription_goes_to_plans(self):
-        from subscriptions import services
-        subscription, _ = services.activate_free(user=self.user)
-        subscription.expires_at = timezone.now() - timedelta(seconds=1)
-        subscription.save(update_fields=["expires_at"])
-        self.assert_destination("plans")
+    def test_expired_subscription_returns_to_free_and_files(self):
+        version = services.get_current_version('basic')
+        Subscription.objects.create(user=self.user,plan_version=version,
+            started_at=timezone.now()-timedelta(days=31),expires_at=timezone.now()-timedelta(seconds=1))
+        self.assert_destination('files')
 
     def test_administrator_goes_to_admin(self):
         self.user.role = self.user.Role.ADMINISTRADOR
@@ -194,6 +193,7 @@ class SessionDestinationTests(TestCase):
         self.assert_destination("admin")
 
 
+@override_settings(PAYMENTS_IDEMPOTENCY_SECRET='commercial-cycle-test-secret-32-characters')
 class CommercialSubscriptionCycleTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -202,6 +202,19 @@ class CommercialSubscriptionCycleTests(TestCase):
         cls.basic_v1 = services.get_current_version("basic")
         cls.premium_v1 = services.get_current_version("premium")
         cls.free_v1 = services.get_current_version("free")
+
+    def approve(self, quote):
+        from django.contrib.auth.hashers import make_password
+        from payments.models import TestCard
+        from payments.services import execute_checkout
+        from uuid import uuid4
+        card, _ = TestCard.objects.get_or_create(number='9999000000000001', defaults={
+            'holder':'NIM SUTZ DEMO','security_code_hash':make_password('123'),
+            'expiry_month':12,'expiry_year':timezone.now().year+2,'balance':'500.00'})
+        execute_checkout(user=self.user,quote_id=quote.pk,operation_key=uuid4(),card_data={
+            'number':card.number,'holder':card.holder,'expiry_month':12,
+            'expiry_year':card.expiry_year,'security_code':'123'})
+        return Subscription.objects.get(user=self.user)
 
     def test_calendar_months_and_anchor_recovery(self):
         from datetime import datetime
@@ -225,13 +238,13 @@ class CommercialSubscriptionCycleTests(TestCase):
     def test_double_renewal_and_single_cycle_advance_limit(self):
         # 1. Contratar inicial
         quote = services.prepare_quote(user=self.user, operation="contract", plan_version_id=self.basic_v1.pk)
-        sub = services.apply_approved_quote(user=self.user, quote=services.quote_payload(quote), payment=None)
+        sub = self.approve(quote)
         self.assertEqual(sub.plan_version.plan.code, "basic")
         self.assertIsNone(sub.next_cycle_starts_at)
 
         # 2. Primera renovación: permitida
         quote_renew = services.prepare_quote(user=self.user, operation="renew")
-        sub = services.apply_approved_quote(user=self.user, quote=services.quote_payload(quote_renew), payment=None)
+        sub = self.approve(quote_renew)
         self.assertIsNotNone(sub.next_cycle_starts_at)
         self.assertEqual(sub.next_cycle_plan_version_id, self.basic_v1.pk)
 
@@ -243,11 +256,11 @@ class CommercialSubscriptionCycleTests(TestCase):
     def test_upgrade_calculates_proration_and_future_cycle_difference(self):
         # 1. Contratar básico
         quote = services.prepare_quote(user=self.user, operation="contract", plan_version_id=self.basic_v1.pk)
-        sub = services.apply_approved_quote(user=self.user, quote=services.quote_payload(quote), payment=None)
+        sub = self.approve(quote)
 
         # 2. Renovar un ciclo anticipado
         quote_renew = services.prepare_quote(user=self.user, operation="renew")
-        services.apply_approved_quote(user=self.user, quote=services.quote_payload(quote_renew), payment=None)
+        self.approve(quote_renew)
 
         # 3. Cotizar upgrade a Premium (30.00 vs 15.00)
         upgrade_quote = services.prepare_quote(user=self.user, operation="change", plan_version_id=self.premium_v1.pk)
@@ -261,7 +274,7 @@ class CommercialSubscriptionCycleTests(TestCase):
     def test_downgrade_schedule_and_quota_check(self):
         # Contratar premium
         quote = services.prepare_quote(user=self.user, operation="contract", plan_version_id=self.premium_v1.pk)
-        sub = services.apply_approved_quote(user=self.user, quote=services.quote_payload(quote), payment=None)
+        sub = self.approve(quote)
 
         # Cotizar bajada a básico: requires_payment=False, kind=schedule_downgrade
         down_quote = services.prepare_quote(user=self.user, operation="change", plan_version_id=self.basic_v1.pk)
@@ -269,8 +282,9 @@ class CommercialSubscriptionCycleTests(TestCase):
         self.assertEqual(down_quote.effect["kind"], "schedule_downgrade")
 
         # Confirmar cambio programado
-        scheduled, _ = services.confirm_scheduled_quote(user=self.user, quote_id=down_quote.id)
-        self.assertEqual(scheduled.target_plan_version_id, self.basic_v1.pk)
+        from uuid import uuid4
+        result = services.confirm_scheduled_quote(user=self.user, quote_id=down_quote.id, operation_key=uuid4())
+        self.assertEqual(result['scheduled_change']['target_plan_version_id'], self.basic_v1.pk)
 
         # Cancelar cambio programado
         services.cancel_scheduled_change(user=self.user)
@@ -279,9 +293,10 @@ class CommercialSubscriptionCycleTests(TestCase):
     def test_reconcile_command_transitions_expired_subscriptions(self):
         # Suscripción vencida sin ciclo anticipado -> vuelve a gratis
         quote = services.prepare_quote(user=self.user, operation="contract", plan_version_id=self.basic_v1.pk)
-        sub = services.apply_approved_quote(user=self.user, quote=services.quote_payload(quote), payment=None)
+        sub = self.approve(quote)
         sub.expires_at = timezone.now() - timedelta(days=1)
         sub.save(update_fields=["expires_at"])
+        sub.coverage_history.filter(state="valid").update(starts_at=timezone.now()-timedelta(days=31), cycle_starts_at=timezone.now()-timedelta(days=31), ends_at=sub.expires_at, cycle_ends_at=sub.expires_at)
 
         # Correr comando de reconciliación
         call_command("reconcile_subscriptions")

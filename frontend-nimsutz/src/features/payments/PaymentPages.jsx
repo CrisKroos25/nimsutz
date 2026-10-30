@@ -190,7 +190,7 @@ function PaymentResult({ paymentId }) {
             <DetailRow label="Tarjeta">{result.payment.card_last4 ? `•••• ${result.payment.card_last4}` : 'No disponible'}</DetailRow>
             {subscription && <>
                 <DetailRow label={approved ? 'Plan' : 'Plan actual'}>{subscription.plan.name} · {formatStorage(subscription.plan.capacity_bytes)}</DetailRow>
-                <DetailRow label="Vigencia">{paymentPeriod(subscription.started_at, subscription.expires_at)}</DetailRow>
+                <DetailRow label="Vigencia">{paymentPeriod(subscription.started_at, subscription.coverage_end || subscription.expires_at)}</DetailRow>
             </>}
         </dl>
         <p className={styles.note}>{dateTime(result.payment.created_at)}</p>

@@ -11,7 +11,7 @@ export const EFFECT_LABELS = {
     activate: 'Tu plan se activa cuando el pago sea aprobado.',
     renew: 'Tu cobertura se extiende un ciclo más cuando el pago sea aprobado.',
     upgrade: 'La mejora se aplica de inmediato cuando el pago sea aprobado.',
-    schedule_downgrade: 'El cambio se aplicará cuando termine tu cobertura actual. No se cobra ahora.',
+    schedule_downgrade: 'Al terminar tu cobertura podrás confirmar y pagar el plan destino. No se cobra ahora ni automáticamente.',
     schedule_free: 'Volverás a Gratis cuando termine tu cobertura actual. No se cobra ahora y no pierdes archivos.',
 };
 
@@ -20,6 +20,8 @@ const fail = (message) => { throw new Error(message); };
 export function validateCurrent(data) {
     const subscription = validateSubscription(data);
     const bad = !Array.isArray(data.allowed_actions) || data.allowed_actions.some((code) => !ACTIONS.includes(code)) ||
+        (data.pending_selection != null && (typeof data.pending_selection !== 'object' ||
+            typeof data.pending_selection.plan?.name !== 'string')) ||
         (data.next_cycle != null && typeof data.next_cycle !== 'object') ||
         (data.scheduled_change != null && (typeof data.scheduled_change !== 'object' || !data.scheduled_change.effective_at));
     if (bad) fail('No se pudo confirmar tu suscripción. Inténtalo más tarde.');
@@ -27,6 +29,7 @@ export function validateCurrent(data) {
         subscription,
         nextCycle: data.next_cycle || null,
         scheduledChange: data.scheduled_change || null,
+        pendingSelection: data.pending_selection || null,
         allowed: data.allowed_actions,
     };
 }

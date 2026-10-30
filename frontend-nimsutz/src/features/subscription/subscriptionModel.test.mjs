@@ -76,3 +76,12 @@ test('mensajes de error por código del contrato', () => {
     assert.equal(quoteErrorMessage({ code: 'otro', message: 'Detalle del servidor' }), 'Detalle del servidor');
     assert.match(quoteErrorMessage(null), /No se pudo/);
 });
+
+
+test('la selección pendiente se muestra sin convertirla en cobertura', () => {
+    const pending = { subscription_id: 9, status: 'pending', plan: { name: 'Básico contratado' } };
+    const state = validateCurrent(current({ subscription: null, allowed_actions: ['contract'], pending_selection: pending }));
+    assert.equal(state.subscription, null);
+    assert.equal(state.pendingSelection.plan.name, 'Básico contratado');
+    assert.throws(() => validateCurrent(current({ pending_selection: { plan: null } })));
+});

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     RotateCcw,
     Trash2,
@@ -16,6 +16,13 @@ import { transfersApi } from '@features/files/api/transfersApi';
 import Modal from '@shared/components/Modal/Modal';
 import Button from '@shared/components/Button/Button';
 import styles from './Trash.module.css';
+import { useAsyncResource } from '@shared/hooks/useAsyncResource';
+
+const EMPTY_FILES = [];
+async function fetchTrash() {
+    const files = await transfersApi.listarPapelera();
+    return Array.isArray(files) ? files : [];
+}
 
 function formatBytes(bytes) {
     if (!bytes || bytes === 0) return '0 B';
@@ -69,9 +76,8 @@ function getFileTypeInfo(contentType, fileName = '') {
  * Página de Papelera con diseño de tabla estructurada, vaciado masivo y notificación flotante.
  */
 export default function Trash() {
-    const [trashedFiles, setTrashedFiles] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const { data: trashedFiles, loading, error: failure, reload: loadTrash } = useAsyncResource(fetchTrash, EMPTY_FILES);
+    const error = failure ? 'No se pudo cargar la papelera. Inténtalo de nuevo.' : null;
     const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' }
     const [busyId, setBusyId] = useState(null);
     const [emptyModalOpen, setEmptyModalOpen] = useState(false);
@@ -88,23 +94,6 @@ export default function Trash() {
         const timer = setTimeout(() => setToast(null), 4000);
         return () => clearTimeout(timer);
     }, [toast]);
-
-    const loadTrash = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const files = await transfersApi.listarPapelera();
-            setTrashedFiles(Array.isArray(files) ? files : []);
-        } catch {
-            setError('No se pudo cargar la papelera. Inténtalo de nuevo.');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        loadTrash();
-    }, [loadTrash]);
 
     const handleRestore = async (file) => {
         setBusyId(file.id);
