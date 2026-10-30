@@ -365,6 +365,42 @@ class AccountDeletionTests(TestCase):
         self.assertFalse(get_user_model().objects.filter(pk=empty.pk).exists())
         self.backend.delete_object.assert_not_called()
 
+    def test_upload_cleanup_skips_an_account_deleted_after_its_snapshot(self):
+        from files import storage_sync
+        from files.quota import lock_owner
+
+        QuotaReservation.objects.filter(owner=self.owner, status="pending").update(
+            expires_at=timezone.now() - timedelta(minutes=1)
+        )
+
+        def deleted_before_lock(owner_id):
+            delete_own_account(self.owner)
+            return lock_owner(owner_id)
+
+        with patch("files.storage_sync.lock_owner", side_effect=deleted_before_lock):
+            self.assertEqual(storage_sync.release_expired_reservations(), 0)
+        self.assertFalse(get_user_model().objects.filter(pk=self.owner.pk).exists())
+        self.assertTrue(get_user_model().objects.filter(pk=self.other.pk).exists())
+
+    def test_subscription_worker_skips_an_account_deleted_after_its_snapshot(self):
+        from subscriptions.services import resolve_effective_subscription
+
+        Subscription.objects.filter(pk=self.subscription.pk).update(
+            expires_at=timezone.now() - timedelta(minutes=1)
+        )
+
+        def deleted_before_resolve(user, *, at):
+            delete_own_account(user)
+            return resolve_effective_subscription(user, at=at)
+
+        with patch(
+            "subscriptions.management.commands.reconcile_subscriptions.resolve_effective_subscription",
+            side_effect=deleted_before_resolve,
+        ):
+            call_command("reconcile_subscriptions", stdout=StringIO())
+        self.assertFalse(get_user_model().objects.filter(pk=self.owner.pk).exists())
+        self.assertTrue(get_user_model().objects.filter(pk=self.other.pk).exists())
+
 
 class ConcurrentAccountDeletionTests(TransactionTestCase):
     def test_two_confirmations_remove_the_same_account_only_once(self):
