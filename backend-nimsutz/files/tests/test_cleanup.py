@@ -89,3 +89,40 @@ class ExpiredReservationCleanupTests(TestCase):
 
         # El nombre vuelve a estar libre: no debe violar la restricción única.
         self.make_upload("mismo.pdf", minutes_left=10)
+
+    def test_cleanup_processes_expired_reservations_from_multiple_users(self):
+        another_user = get_user_model().objects.create_user(
+            name="Carlos",
+            email="carlos@example.test",
+            password="Password123!"
+        )
+
+        self.make_upload("ana.pdf", minutes_left=-5)
+
+        file = File.objects.create(
+            owner=another_user,
+            folder=None,
+            storage_key=f"{another_user.id}/{uuid.uuid4().hex}.pdf",
+            original_name="carlos.pdf",
+            content_type="application/pdf",
+            size_bytes=1000,
+            status=File.Status.UPLOADING,
+        )
+
+        QuotaReservation.objects.create(
+            owner=another_user,
+            file=file,
+            reserved_bytes=1000,
+            status=PENDING,
+            expires_at=timezone.now() - timedelta(minutes=5),
+        )
+
+        with mock.patch(BACKEND):
+            released = storage_sync.release_expired_reservations()
+
+        self.assertEqual(released, 2)
+
+        self.assertEqual(
+            QuotaReservation.objects.filter(status=RELEASED).count(),
+            2
+        )

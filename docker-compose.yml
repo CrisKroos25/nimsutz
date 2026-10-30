@@ -1,3 +1,30 @@
+
+x-backend-environment: &backend_environment
+  SECRET_KEY: ${SECRET_KEY}
+  DB_NAME: ${DB_NAME}
+  DB_USER: ${DB_USER}
+  DB_PASSWORD: ${DB_PASSWORD}
+  DB_HOST: ${DB_HOST}
+  DB_PORT: ${DB_PORT}
+  MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+  MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+  MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+  STORAGE_BACKEND_CLASS: ${STORAGE_BACKEND_CLASS}
+  DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-no-reply@nimsutz.local}
+  FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+  PAYMENTS_IDEMPOTENCY_SECRET: ${PAYMENTS_IDEMPOTENCY_SECRET:-}
+  PAID_PLANS_ENABLED: ${PAID_PLANS_ENABLED:-false}
+  PASSWORD_RESET_TOKEN_TTL_MINUTES: ${PASSWORD_RESET_TOKEN_TTL_MINUTES:-30}
+  EMAIL_VERIFICATION_TOKEN_TTL_MINUTES: ${EMAIL_VERIFICATION_TOKEN_TTL_MINUTES:-1440}
+  EMAIL_HOST: ${EMAIL_HOST:-}
+  EMAIL_PORT: ${EMAIL_PORT:-587}
+  EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+  EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+  EMAIL_USE_TLS: ${EMAIL_USE_TLS:-true}
+  EMAIL_TIMEOUT: ${EMAIL_TIMEOUT:-10}
+
 services:
   backend:
     build: ./backend-nimsutz
@@ -6,31 +33,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend-nimsutz:/app
-    environment: 
-      - SECRET_KEY=${SECRET_KEY}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
-      - MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT}
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
-      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
-      - STORAGE_BACKEND_CLASS=${STORAGE_BACKEND_CLASS}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@nimsutz.local}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
-      - PAYMENTS_IDEMPOTENCY_SECRET=${PAYMENTS_IDEMPOTENCY_SECRET:-}
-      - PAID_PLANS_ENABLED=${PAID_PLANS_ENABLED:-false}
-      - PASSWORD_RESET_TOKEN_TTL_MINUTES=${PASSWORD_RESET_TOKEN_TTL_MINUTES:-30}
-      - EMAIL_VERIFICATION_TOKEN_TTL_MINUTES=${EMAIL_VERIFICATION_TOKEN_TTL_MINUTES:-1440}
-      - EMAIL_HOST=${EMAIL_HOST:-}
-      - EMAIL_PORT=${EMAIL_PORT:-587}
-      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
-      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
-      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-true}
-      - EMAIL_TIMEOUT=${EMAIL_TIMEOUT:-10}
+    environment: *backend_environment
     depends_on:
       - db
       - minio
@@ -44,6 +47,16 @@ services:
     environment: *backend_environment
     depends_on:
       - db
+  cleanup:
+    build: ./backend-nimsutz
+    command: sh -c "while true; do python manage.py cleanup_expired_uploads; sleep 60; done"
+    restart: unless-stopped
+    volumes:
+      - ./backend-nimsutz:/app
+    environment: *backend_environment
+    depends_on:
+      - db
+      - minio
 
   frontend:
     build: ./frontend-nimsutz
@@ -53,17 +66,17 @@ services:
       - ./frontend-nimsutz:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=${VITE_API_URL}
-      - API_PROXY_TARGET=http://backend:8000
+      VITE_API_URL: ${VITE_API_URL}
+      API_PROXY_TARGET: http://backend:8000
     depends_on:
       - backend
 
   db:
     image: postgres:16
     environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
@@ -73,8 +86,8 @@ services:
     image: cgr.dev/chainguard/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
     ports:
