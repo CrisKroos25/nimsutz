@@ -176,7 +176,7 @@ class DataConservationTests(TestCase):
     def setUp(self):
         version = subscription_services.get_current_version("basic")
         self.subscription = Subscription.objects.create(
-            user=self.user, plan_version=version, started_at=timezone.now(),
+            user=self.user, plan_version=version, started_at=timezone.now() - timedelta(days=31),
             expires_at=timezone.now() + timedelta(days=30),
         )
         self.file = upload(self.user, self.folder, "a.txt", 10 * MB)
@@ -185,6 +185,10 @@ class DataConservationTests(TestCase):
         Subscription.objects.filter(pk=self.subscription.pk).update(
             expires_at=timezone.now() - timedelta(minutes=1)
         )
+        self.subscription.refresh_from_db()
+        self.subscription.coverage_history.filter(state='valid').update(
+            ends_at=self.subscription.expires_at, cycle_ends_at=self.subscription.expires_at)
+
 
     def test_expired_subscription_returns_to_free_capacity(self):
         self.assertEqual(get_capacity_bytes(self.user), 100 * MB)

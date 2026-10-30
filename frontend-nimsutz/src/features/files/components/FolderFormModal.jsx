@@ -1,5 +1,5 @@
 /* Componentes que solo usa este modulo. */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Modal from '@shared/components/Modal/Modal';
 import Input from '@shared/components/Input/Input';
 import Button from '@shared/components/Button/Button';
@@ -9,18 +9,23 @@ import Button from '@shared/components/Button/Button';
  * Si "folder" viene definido, es modo renombrar; si no, es modo crear.
  */
 export default function FolderFormModal({ open, onClose, folder, onSubmit }) {
-    const [name, setName] = useState('');
+    if (!open) return null;
+    return (
+        <FolderForm
+            key={`${folder?.id ?? 'new'}:${folder?.name ?? ''}`}
+            onClose={onClose}
+            folder={folder}
+            onSubmit={onSubmit}
+        />
+    );
+}
+
+function FolderForm({ onClose, folder, onSubmit }) {
+    const [name, setName] = useState(folder?.name || '');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
     const isRename = Boolean(folder);
-
-    useEffect(() => {
-        if (open) {
-            setName(folder?.name || '');
-            setError('');
-        }
-    }, [open, folder]);
 
     async function handleSubmit(event) {
         event.preventDefault();
@@ -43,7 +48,7 @@ export default function FolderFormModal({ open, onClose, folder, onSubmit }) {
 
     return (
         <Modal
-            open={open}
+            open={true}
             onClose={onClose}
             title={isRename ? 'Renombrar carpeta' : 'Nueva carpeta'}
             description={

@@ -9,7 +9,7 @@ const PLAN_CODES = { free: 'gratis', basic: 'basico', premium: 'premium' };
 function normalizePlan(plan) {
     return { ...plan, code: PLAN_CODES[plan?.plan_code] || plan?.plan_code,
         available: plan?.contractable,
-        period: plan?.duration_days ? `${plan.duration_days} días` : null };
+        period: plan?.periodicity === 'calendar_month' ? 'mes' : plan?.duration_days ? `${plan.duration_days} días` : null };
 }
 
 export async function getPlans() {

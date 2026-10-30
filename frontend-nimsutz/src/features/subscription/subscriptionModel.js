@@ -11,7 +11,7 @@ export const EFFECT_LABELS = {
     activate: 'Tu plan se activa cuando el pago sea aprobado.',
     renew: 'Tu cobertura se extiende un ciclo más cuando el pago sea aprobado.',
     upgrade: 'La mejora se aplica de inmediato cuando el pago sea aprobado.',
-    schedule_downgrade: 'El cambio se aplicará cuando termine tu cobertura actual. No se cobra ahora.',
+    schedule_downgrade: 'Al terminar tu cobertura podrás confirmar y pagar el plan destino. No se cobra ahora ni automáticamente.',
     schedule_free: 'Volverás a Gratis cuando termine tu cobertura actual. No se cobra ahora y no pierdes archivos.',
 };
 

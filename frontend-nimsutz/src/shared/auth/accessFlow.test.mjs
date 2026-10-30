@@ -221,3 +221,12 @@ test('rechazo de versión recarga catálogo sin aceptar automáticamente la nuev
         await assert.rejects(selectPlan(1));
     } finally { globalThis.fetch = original; }
 });
+
+test('el catálogo distingue mes calendario de la duración histórica en días', async () => {
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ plans: [{
+        plan_code: 'basic', version_id: 2, name: 'Básico', price: '15.00', currency: 'GTQ',
+        duration_days: 30, periodicity: 'calendar_month', capacity_bytes: 1073741824, contractable: true,
+    }] }) });
+    const plans = await getPlans();
+    assert.equal(plans[0].period, 'mes');
+});

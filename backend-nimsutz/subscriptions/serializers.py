@@ -10,3 +10,7 @@ class PlanVersionInputSerializer(serializers.Serializer):
 class QuoteCreateSerializer(serializers.Serializer):
     operation = serializers.ChoiceField(choices=Quote.Operation.choices)
     plan_version_id = serializers.IntegerField(min_value=1, required=False, allow_null=True)
+
+
+class ScheduledConfirmationSerializer(serializers.Serializer):
+    operation_key = serializers.UUIDField()

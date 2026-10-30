@@ -17,7 +17,7 @@ class ExistingDataMigrationTests(TransactionTestCase):
             original_name='preservado.txt', content_type='text/plain', size_bytes=128, status='available')
         start = timezone.now()
         end = start + timedelta(days=28)
-        latest = [('subscriptions', '0003_quote_execution_context')]
+        latest = MigrationExecutor(connection).loader.graph.leaf_nodes('subscriptions')
         try:
             executor = MigrationExecutor(connection)
             executor.migrate([('subscriptions', '0001_initial')])
