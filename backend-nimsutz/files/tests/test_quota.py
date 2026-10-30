@@ -10,18 +10,17 @@ from accounts.models import User
 from subscriptions import services as subscription_services
 from subscriptions.models import Subscription
 
-from .models import File, Folder, QuotaReservation
-from .services import (
+from files.models import File, Folder, QuotaReservation
+from files.services import (
     confirm_upload,
-    get_available_quota,
-    get_capacity_bytes,
-    get_used_bytes,
     permanently_delete_file,
     request_download,
     request_upload,
     restore_file,
     trash_file,
 )
+from files.quota import get_available_quota, get_capacity_bytes, get_coverage, get_used_bytes, lock_owner  # noqa: F401
+
 
 MB = 1024 * 1024
 FREE_BYTES = 100 * MB
@@ -43,7 +42,10 @@ def upload(user, folder, name, size):
             owner=user, folder=folder, original_name=name,
             content_type="text/plain", size_bytes=size,
         )
-        backend.head_object.return_value = {"ContentLength": size}
+        backend.head_object.return_value = {
+            "ContentLength": size,
+            "ContentType": "text/plain",
+        }
         return confirm_upload(file=file, owner=user)
 
 
@@ -186,19 +188,37 @@ class DataConservationTests(TestCase):
             expires_at=timezone.now() - timedelta(minutes=1)
         )
 
-    def test_expired_subscription_means_no_capacity(self):
-        self.assertEqual(get_capacity_bytes(self.user), 0)
+    def test_expired_paid_plan_falls_back_to_free(self):
+        # R8: un plan de pago vencido, sin ciclo pagado ni cambio programado, regresa a Gratis.
+        self.assertEqual(get_capacity_bytes(self.user), FREE_BYTES)
         self.subscription.refresh_from_db()
-        self.assertEqual(self.subscription.status, Subscription.Status.EXPIRED)
+        self.assertEqual(self.subscription.status, Subscription.Status.ACTIVE)
+        self.assertEqual(self.subscription.plan_version.plan.code, "free")
+        self.assertIsNone(self.subscription.expires_at)
 
-    def test_expired_subscription_blocks_new_uploads(self):
+    def test_expired_plan_can_still_upload_within_free_capacity(self):
+        extra = upload(self.user, self.folder, "nuevo.txt", 1 * MB)
+        self.assertEqual(extra.status, File.Status.AVAILABLE)
+        self.assertEqual(get_used_bytes(self.user), 16 * MB)
+
+    def test_over_free_capacity_blocks_uploads_and_restores(self):
+        # Consumo mayor que la capacidad de Gratis: exceso de cuota.
+        QuotaReservation.objects.create(
+            owner=self.user, file=None, reserved_bytes=FREE_BYTES,
+            status=QuotaReservation.Status.CONFIRMED, expires_at=timezone.now(),
+        )
         with self.assertRaises(ValidationError):
             request_upload(
                 owner=self.user, folder=self.folder, original_name="nuevo.txt",
                 content_type="text/plain", size_bytes=1,
             )
+        with self.assertRaises(ValidationError):
+            restore_file(file=self.trashed, owner=self.user)
+        # Volver a Gratis no borra nada.
+        self.assertEqual(File.objects.filter(owner=self.user).count(), 2)
 
     def test_files_and_reservations_are_untouched(self):
+        get_capacity_bytes(self.user)  # dispara el regreso a Gratis (R8)
         self.assertEqual(File.objects.filter(owner=self.user).count(), 2)
         self.file.refresh_from_db()
         self.trashed.refresh_from_db()
@@ -222,10 +242,3 @@ class DataConservationTests(TestCase):
         with patch("files.services.storage.get_backend"):
             permanently_delete_file(file=self.trashed, owner=self.user)
         self.assertEqual(get_used_bytes(self.user), 10 * MB)
-
-    def test_reactivating_coverage_restores_the_ability_to_upload(self):
-        subscription_services.activate_free(user=self.user)
-        self.assertEqual(get_capacity_bytes(self.user), FREE_BYTES)
-        extra = upload(self.user, self.folder, "nuevo.txt", 1 * MB)
-        self.assertEqual(extra.status, File.Status.AVAILABLE)
-        self.assertEqual(get_used_bytes(self.user), 16 * MB)
