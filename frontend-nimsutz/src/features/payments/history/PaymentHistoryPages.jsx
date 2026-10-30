@@ -17,25 +17,25 @@ const statusBadge = (payment) => <Badge tone={payment.status === 'approved' ? 's
     {STATUS_LABELS[payment.status]}
 </Badge>;
 
-function SelectField({ label, value, onChange, options, error }) {
+function SelectField({ name, label, value, onChange, options, error }) {
     const id = useId();
     return <div className={styles.field}>
         <label htmlFor={id}>{label}</label>
-        <select id={id} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={error ? true : undefined}>
+        <select id={id} name={name} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined}>
             <option value="">Todos</option>
             {Object.entries(options).map(([code, text]) => <option key={code} value={code}>{text}</option>)}
         </select>
-        {error && <p role="alert" className={styles.fieldError}>{error}</p>}
+        {error && <p id={`${id}-error`} role="alert" className={styles.fieldError}>{error}</p>}
     </div>;
 }
 
-function DateField({ label, value, onChange, error }) {
+function DateField({ name, label, value, onChange, error }) {
     const id = useId();
     return <div className={styles.field}>
         <label htmlFor={id}>{label}</label>
-        <input id={id} type="date" value={value} onChange={(event) => onChange(event.target.value)}
-            aria-invalid={error ? true : undefined} />
-        {error && <p role="alert" className={styles.fieldError}>{error}</p>}
+        <input id={id} name={name} type="date" value={value} onChange={(event) => onChange(event.target.value)}
+            aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} />
+        {error && <p id={`${id}-error`} role="alert" className={styles.fieldError}>{error}</p>}
     </div>;
 }
 
@@ -54,7 +54,10 @@ function History() {
         event.preventDefault();
         const errors = validateFilters(draft);
         setLocalErrors(errors);
-        if (Object.keys(errors).length) return;
+        if (Object.keys(errors).length) {
+            event.currentTarget.elements.namedItem(Object.keys(errors)[0])?.focus();
+            return;
+        }
         setPage(1);
         setApplied(draft);
     }
@@ -72,7 +75,7 @@ function History() {
     const columns = [
         { key: 'created_at', label: 'Fecha', render: (p) => formatDateTime(p.created_at) },
         { key: 'operation', label: 'Concepto', render: (p) => OPERATION_LABELS[p.operation] },
-        { key: 'reference', label: 'Referencia', render: (p) => <span className={styles.reference}>{p.reference.slice(0, 8)}</span> },
+        { key: 'reference', label: 'Referencia', render: (p) => <span className={styles.reference} title={p.reference}>{p.reference.slice(0, 8)}</span> },
         { key: 'amount', label: 'Importe', render: (p) => paymentAmount(p.amount, p.currency) },
         { key: 'card_last4', label: 'Tarjeta', render: (p) => maskedCard(p.card_last4) },
         { key: 'status', label: 'Resultado', render: statusBadge },
@@ -87,13 +90,13 @@ function History() {
         </header>
 
         <form className={`${styles.card} ${styles.filters}`} onSubmit={submit} aria-label="Filtros del historial" noValidate>
-            <SelectField label="Resultado" value={draft.status} options={STATUS_LABELS} error={fieldError('status')}
+            <SelectField name="status" label="Resultado" value={draft.status} options={STATUS_LABELS} error={fieldError('status')}
                 onChange={(status) => setDraft({ ...draft, status })} />
-            <SelectField label="Concepto" value={draft.operation} options={OPERATION_LABELS} error={fieldError('operation')}
+            <SelectField name="operation" label="Concepto" value={draft.operation} options={OPERATION_LABELS} error={fieldError('operation')}
                 onChange={(operation) => setDraft({ ...draft, operation })} />
-            <DateField label="Desde" value={draft.date_from} error={fieldError('date_from')}
+            <DateField name="date_from" label="Desde" value={draft.date_from} error={fieldError('date_from')}
                 onChange={(date_from) => setDraft({ ...draft, date_from })} />
-            <DateField label="Hasta" value={draft.date_to} error={fieldError('date_to')}
+            <DateField name="date_to" label="Hasta" value={draft.date_to} error={fieldError('date_to')}
                 onChange={(date_to) => setDraft({ ...draft, date_to })} />
             <div className={styles.filterActions}>
                 <Button type="submit" loading={loading} loadingLabel="Consultando…">Aplicar filtros</Button>
