@@ -1,5 +1,4 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import Button from '../components/Button/Button';
 import SessionLoader from './SessionLoader';
 import SessionError from './SessionError';
 import { useAuth } from './AuthContext';

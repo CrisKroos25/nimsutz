@@ -95,4 +95,10 @@ Resumen portable: evidence/subscriptions-validation-2026-10-29.json.
 
 ## Fuera de este trabajo
 
-Los pendientes de correo/almacenamiento de Cristian, el lint global y la evidencia visual global de Miguel mantienen sus responsables. Los cuatro archivos locales sin seguimiento de almacenamiento se conservaron fuera de los commits. El cierre completo de la entrega y el despliegue público no se deducen de estas pruebas.
+Los pendientes de correo/almacenamiento de Cristian y la evidencia visual global de Miguel mantienen sus responsables. Los cuatro archivos locales sin seguimiento de almacenamiento se conservaron fuera de los commits. El cierre completo de la entrega y el despliegue público no se deducen de estas pruebas.
+
+## Corrección posterior del lint global
+
+Se corrigieron los siete errores del frontend sin desactivar reglas: imports sin uso, reinicio del formulario por montaje y carga de datos mediante useAsyncResource. El hook conserva estados de carga/error/reintento e ignora respuestas anteriores al cambiar de recurso, reemplazar datos o desmontar.
+
+Validación en Docker/Linux: lint global y build aprobados; las 46 pruebas frontend existentes aprobadas. Prueba de navegador con componentes reales: carga, respuesta antigua, fallo/reintento, reemplazo de datos y formulario al abrir, reabrir y cambiar de carpeta.

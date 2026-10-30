@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { UploadCloud, X, Loader2 } from 'lucide-react';
+import { UploadCloud, X } from 'lucide-react';
 import { useTransfers } from '@features/files/hooks/useTransfers';
 import styles from './UploadPanel.module.css';
 

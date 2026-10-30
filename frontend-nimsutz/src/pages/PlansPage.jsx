@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthContext';
 import { readPlanPreference, readPlanIntent, savePlanIntent, clearPlanPreference, resolvePlanSelection } from '@shared/auth/accessFlow';
 import { getPlans, getPreference, setPreference, selectPlan, getSubscription, validateSubscription, activateFree, serviceMessage } from '@shared/api/accountApi';
+import { useAsyncResource } from '@shared/hooks/useAsyncResource';
 import { usePlans } from '@shared/hooks/usePlans';
 import { createQuote } from '@features/subscription/subscriptionApi';
 import { quoteErrorMessage } from '@features/subscription/subscriptionModel';
@@ -10,6 +11,12 @@ import { formatStorage } from '@shared/utils/planFormat';
 import { FALLBACK_PLANS } from '@shared/planInformation';
 import Button from '@shared/components/Button/Button';
 import styles from './PlansPage.module.css';
+
+const EMPTY_ACCOUNT = { subscription: null, preference: null };
+async function loadAccount() {
+    const [current, preference] = await Promise.all([getSubscription(), getPreference()]);
+    return { subscription: validateSubscription(current), preference };
+}
 
 export default function PlansPage() {
     const { user, refresh } = useAuth();
@@ -21,8 +28,8 @@ export default function PlansPage() {
     const { plans, loading: plansLoading, error: plansError, reload: reloadPlans, replace: replacePlans } = usePlans();
 
     // Datos de la cuenta: solo le importan a esta página.
-    const [account, setAccount] = useState({ loading: true, subscription: null, preference: null, error: '' });
-    const [accountAttempt, setAccountAttempt] = useState(0);
+    const { data: accountData, loading: accountLoading, error: accountFailure, reload: reloadAccount, replace: replaceAccount } = useAsyncResource(loadAccount, EMPTY_ACCOUNT, user.id);
+    const account = { ...accountData, loading: accountLoading, error: accountFailure ? serviceMessage(accountFailure, 'La consulta de planes') : '' };
 
     const [selected, setSelected] = useState(null);
     const [notice, setNotice] = useState('');
@@ -34,20 +41,6 @@ export default function PlansPage() {
     const loading = plansLoading || account.loading;
     const error = plansError || account.error;
     const loaded = !loading && !error;
-
-    useEffect(() => {
-        let active = true;
-        setAccount((previous) => ({ ...previous, loading: true, error: '' }));
-        Promise.all([getSubscription(), getPreference()])
-            .then(([current, preference]) => active && setAccount({
-                loading: false, subscription: validateSubscription(current), preference, error: '',
-            }))
-            .catch((failure) => active && setAccount({
-                loading: false, subscription: null, preference: null,
-                error: serviceMessage(failure, 'La consulta de planes'),
-            }));
-        return () => { active = false; };
-    }, [accountAttempt, user.id]);
 
     // Se ejecuta solo cuando planes y cuenta terminan de cargar (loaded pasa a true),
     // no cada vez que cambia `plans` (por ejemplo tras replacePlans en choose/confirm).
@@ -79,7 +72,7 @@ export default function PlansPage() {
 
     function retry() {
         reloadPlans();
-        setAccountAttempt((value) => value + 1);
+        reloadAccount();
     }
 
     async function choose(plan) {
@@ -122,7 +115,7 @@ export default function PlansPage() {
             const subscription = validateSubscription(response);
             if (!subscription) throw new Error('No se pudo confirmar la activación. Consulta tu plan antes de repetirla.');
             clearPlanPreference();
-            setAccount((previous) => ({ ...previous, subscription }));
+            replaceAccount({ ...accountData, subscription });
             setNotice('Tu plan está activo.');
             await refresh();
         } catch (failure) {
