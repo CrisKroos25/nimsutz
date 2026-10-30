@@ -213,3 +213,6 @@
         height: 18px;
     }
 }
+
+/* El destino de navegación es un landmark; el foco visible de los controles se conserva. */
+.content:focus { outline: none; }

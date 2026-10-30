@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAccountOverview } from '../../shared/api/accountApi';
 import { useAuth } from '../../shared/auth/AuthContext';
@@ -69,7 +69,8 @@ function MySubscription() {
         {loading ? <p role="status">Consultando tu suscripción…</p> : error ?
             <Failure message={quoteErrorMessage(error)} onRetry={reload} /> : !subscription ?
                 <article className={styles.card}>
-                    <h2>Sin plan activo</h2>
+                    <h2>{data.pendingSelection ? 'Pago pendiente' : 'Sin plan activo'}</h2>
+                    {data.pendingSelection && <p>Seleccionaste el plan <strong>{data.pendingSelection.plan.name}</strong>. La selección se conserva, pero aún no concede almacenamiento.</p>}
                     <p>Elige y confirma un plan para habilitar tu almacenamiento.</p>
                     <Link className={styles.primaryLink} to="/plans">Elegir plan</Link>
                 </article> : <>
@@ -149,7 +150,9 @@ function QuoteSummary({ quote }) {
             <Row label="Total"><strong>{paymentAmount(quote.total, quote.currency)}</strong></Row>
         </dl>
         <p className={styles.muted}>{EFFECT_LABELS[quote.effect.kind]}</p>
-        {quote.effect.scheduled_change_at && <p className={styles.muted}>Fecha del cambio: {formatDay(quote.effect.scheduled_change_at)}.</p>}
+        {quote.effect.scheduled_change_at && <p className={styles.notice}>{quote.effect.kind === 'renew'
+            ? 'Si apruebas esta renovación, el cambio programado se moverá al '
+            : 'El cambio programado tendrá efecto el '}{formatDay(quote.effect.scheduled_change_at)}.</p>}
         <p className={styles.muted}>Importes en {quote.currency}, calculados por Nim sutz’. Condiciones vigentes hasta las {new Date(quote.expires_at).toLocaleTimeString('es-GT', { timeZone: 'America/Guatemala', hour: '2-digit', minute: '2-digit' })}.</p>
     </article>;
 }
@@ -160,13 +163,14 @@ function useQuoteFlow() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [done, setDone] = useState(null);
+    const [needsRefresh, setNeedsRefresh] = useState(false);
     const working = useRef(false);
     const keys = useRef(new Map());
 
     async function request(operation, planVersionId, onConflict) {
         if (working.current) return;
         working.current = true;
-        setBusy(true); setError(''); setQuote(null); setDone(null);
+        setBusy(true); setError(''); setQuote(null); setDone(null); setNeedsRefresh(false);
         try { setQuote(await createQuote(operation, planVersionId)); }
         catch (failure) {
             setError(quoteErrorMessage(failure));
@@ -182,20 +186,28 @@ function useQuoteFlow() {
         try {
             const result = await confirmScheduledQuote(quote.id, keys.current.get(quote.id));
             setDone(result?.scheduled_change || {});
-        } catch (failure) { setError(quoteErrorMessage(failure)); }
+        } catch (failure) {
+            setError(quoteErrorMessage(failure));
+            if (failure.status === 409) setNeedsRefresh(true);
+        }
         finally { working.current = false; setBusy(false); }
     }
 
-    return { quote, busy, error, done, request, confirm, reset: () => { setQuote(null); setError(''); setDone(null); } };
+    return { quote, busy, error, done, needsRefresh, request, confirm, reset: () => { setQuote(null); setError(''); setDone(null); } };
 }
 
 function PayOrConfirm({ flow, onNewQuote }) {
     const navigate = useNavigate();
     const { quote } = flow;
     const step = nextStep(quote);
-    if (isExpired(quote)) {
+    const [expired, setExpired] = useState(() => isExpired(quote));
+    useEffect(() => {
+        const timer = setTimeout(() => setExpired(true), Math.max(0, Date.parse(quote.expires_at) - Date.now()));
+        return () => clearTimeout(timer);
+    }, [quote.expires_at]);
+    if (expired || flow.needsRefresh) {
         return <div className={styles.actions}>
-            <p className={styles.notice} role="status">El resumen venció. Genera uno nuevo para continuar.</p>
+            <p className={styles.notice} role="status">{flow.needsRefresh ? 'Las condiciones cambiaron. Genera un resumen nuevo y revísalo antes de confirmar.' : 'El resumen venció. Genera uno nuevo para continuar.'}</p>
             <Button loading={flow.busy} onClick={onNewQuote}>Generar resumen nuevo</Button>
         </div>;
     }
@@ -233,7 +245,7 @@ function Renew() {
                     {!flow.quote && <Button loading={flow.busy} loadingLabel="Calculando…" onClick={() => flow.request('renew')}>Ver resumen de renovación</Button>}
                 </article>
                 {flow.error && <Failure message={flow.error} />}
-                {flow.quote && <><QuoteSummary quote={flow.quote} /><PayOrConfirm flow={flow} onNewQuote={() => flow.request('renew')} /></>}
+                {flow.quote && <><QuoteSummary quote={flow.quote} /><PayOrConfirm key={flow.quote.id} flow={flow} onNewQuote={() => flow.request('renew')} /></>}
             </>}
         <Link to="/subscription">Volver a mi suscripción</Link>
     </section>;
@@ -278,6 +290,7 @@ function ChangePlan() {
                 <Link className={styles.primaryLink} to="/subscription">Ir a mi suscripción</Link>
             </article> : <>
                 <p className={styles.muted}>Plan actual: <strong>{subscription.plan.name}</strong></p>
+                {changeTargets(catalog.plans, subscription).length === 0 && <p className={styles.notice} role="status">No hay otros planes disponibles para cambiar en este momento.</p>}
                 <div className={styles.grid}>
                     {changeTargets(catalog.plans, subscription).map(({ plan, selectable }) => <article className={styles.card} key={plan.version_id}>
                         <h2>{plan.name}</h2>
@@ -290,7 +303,7 @@ function ChangePlan() {
                     </article>)}
                 </div>
                 {flow.error && <Failure message={flow.error} />}
-                {flow.quote && <><QuoteSummary quote={flow.quote} /><PayOrConfirm flow={flow} onNewQuote={() => target && choose(target)} /></>}
+                {flow.quote && <><QuoteSummary quote={flow.quote} /><PayOrConfirm key={flow.quote.id} flow={flow} onNewQuote={() => target && choose(target)} /></>}
             </>}
         <Link to="/subscription">Volver a mi suscripción</Link>
     </section>;

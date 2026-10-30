@@ -73,6 +73,12 @@ class HistoryQuerySerializer(serializers.Serializer):
     def validate_page_size(self, value):
         return min(value, MAX_PAGE_SIZE)
 
+    def validate_date_to(self, value):
+        # El límite superior exclusivo necesita el día siguiente representable.
+        if value.year == 9999 and value.month == 12 and value.day == 31:
+            raise serializers.ValidationError("Usa una fecha final anterior al 31 de diciembre de 9999.")
+        return value
+
     def validate(self, attrs):
         start, end = attrs.get("date_from"), attrs.get("date_to")
         if start and end and start > end:
