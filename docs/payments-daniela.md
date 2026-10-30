@@ -101,3 +101,5 @@ Se conservaron las cuentas/tarjetas de QA como datos locales de prueba; sus cont
 El lint global todavía tiene siete errores anteriores en FolderFormModal, UploadPanel, useFiles, Trash, PlansPage, RequireSession y usePlans. No se modificaron esas implementaciones para ocultar sus errores. Los cambios de pruebas de cuota/destino actualizan expectativas antiguas de capacidad cero al retorno a Gratis definido por la guía; no alteran el almacenamiento.
 
 No se incluyen administración, correo real, cierre de todas las tareas de Rodrigo/Miguel/Cristian ni despliegue público. Las correcciones de integración deben revisarse mediante PR a develop.
+
+Actualización de suscripciones: el cierre posterior de R1–R9 y la validación ampliada a 211 pruebas backend del código versionado están documentados en [subscriptions-rodrigo.md](subscriptions-rodrigo.md).

@@ -208,10 +208,10 @@ Ejemplo con Gmail (cuenta con verificacion en dos pasos y una contrasena de apli
 
 La capacidad de cada usuario sale de su suscripcion activa y vigente (`subscriptions.services.get_active_subscription`), no de una cuota global:
 
-- Sin cobertura efectiva (nunca eligio plan, o su suscripcion vencio): capacidad 0 y no puede subir archivos.
+- Sin selección confirmada: capacidad 0; una selección pendiente no concede almacenamiento. Al terminar cobertura pagada se resuelve el siguiente ciclo anticipado o se retorna a Gratis.
 - Plan Gratis: 100 MB. Los planes de pago toman la capacidad de su version contratada.
 - Consumo = reservas pendientes + confirmadas del propietario, incluida la papelera. Solo el borrado definitivo libera espacio.
-- Si la cobertura vence, los archivos existentes se conservan y se pueden descargar y eliminar; solo se bloquean las subidas nuevas.
+- Al volver a Gratis se conservan los archivos y su consumo. Si se exceden sus 100 MB, se bloquean carga y restauración; se permite consultar, descargar y eliminar.
 
 Puntos de integracion en `files/services.py`: `get_capacity_bytes(owner)`, `get_used_bytes(owner)` y `get_available_quota(owner)`. `SIMULATED_QUOTA_BYTES` ya no interviene en el flujo normal.
 
@@ -223,7 +223,9 @@ docker compose exec backend python manage.py seed_plans
 
 y luego activar el plan Gratis desde la aplicacion (`POST /api/subscriptions/activate-free/` o el flujo de planes). El usuario creado con `create_test_users` o `create_demo_user` no tiene cobertura por defecto.
 
-Pruebas: `docker compose exec backend python manage.py test accounts files subscriptions`.
+Pruebas: `docker compose exec backend python manage.py test`.
+
+Después de aplicar las migraciones, iniciar `docker compose up -d subscription_worker`: reconcilia las suscripciones cada 60 segundos, sin cobrar automáticamente. El backend también resuelve la cobertura al autorizar. La selección pendiente, el historial conservado y las bajadas que requieren pago manual se documentan en [el cierre de suscripciones](docs/subscriptions-rodrigo.md).
 
 ---
 
