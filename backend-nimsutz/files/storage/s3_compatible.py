@@ -1,9 +1,9 @@
 # files/storage/s3_compatible.py
 import boto3
 from botocore.client import Config
-from botocore.exceptions import ClientError
+from botocore.exceptions import BotoCoreError, ClientError
 
-from .base import StorageBackend
+from .base import StorageBackend, StorageError
 
 
 class S3CompatibleStorageBackend(StorageBackend):
@@ -18,7 +18,13 @@ class S3CompatibleStorageBackend(StorageBackend):
         internal_endpoint_url=None, public_endpoint_url=None, region_name="us-east-1",
     ):
         self.bucket_name = bucket_name
-        config = Config(signature_version="s3v4", s3={"addressing_style": "path"})
+        config = Config(
+            signature_version="s3v4",
+            s3={"addressing_style": "path"},
+            connect_timeout=5,
+            read_timeout=10,
+            retries={"max_attempts": 3, "mode": "standard"},
+        )
 
         self._internal_client = boto3.client(
             "s3", endpoint_url=internal_endpoint_url,
@@ -52,9 +58,14 @@ class S3CompatibleStorageBackend(StorageBackend):
         try:
             return self._internal_client.head_object(Bucket=self.bucket_name, Key=storage_key)
         except ClientError as e:
-            if e.response["Error"]["Code"] in ("404", "NoSuchKey"):
+            if e.response["Error"]["Code"] in ("404", "NoSuchKey", "NotFound"):
                 return None
-            raise
+            raise StorageError(f"head_object falló: {e.response['Error']['Code']}") from e
+        except BotoCoreError as e:
+            raise StorageError("head_object falló: sin conexión con el almacenamiento.") from e
 
     def delete_object(self, *, storage_key):
-        self._internal_client.delete_object(Bucket=self.bucket_name, Key=storage_key)
+        try:
+            self._internal_client.delete_object(Bucket=self.bucket_name, Key=storage_key)
+        except (ClientError, BotoCoreError) as e:
+            raise StorageError("delete_object falló.") from e
