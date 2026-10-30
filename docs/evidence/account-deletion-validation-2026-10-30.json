@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-30",
+  "backend_source_commit": "7b1587e",
+  "frontend_source_commit": "ecfebba",
+  "environment": "Docker/Linux, PostgreSQL, MinIO y Edge/Playwright",
+  "backend": {
+    "passed": 263,
+    "specific_deletion_tests": 11,
+    "skipped": 0,
+    "source": "git archive: solo archivos versionados",
+    "django_check": "passed",
+    "migration_check": "passed"
+  },
+  "frontend": {
+    "passed": 51,
+    "global_lint": "passed",
+    "build": "passed"
+  },
+  "live": {
+    "first_click_sends_no_delete": true,
+    "cancel_unchanged": true,
+    "double_click_one_request": true,
+    "keyboard": true,
+    "all_sessions_invalidated_unit_test": true,
+    "real_minio_object_removed": true,
+    "other_account_unchanged": true,
+    "same_email_registered_again": true,
+    "fresh_account_empty": {
+      "old_user_exists": false,
+      "new_id": 14,
+      "verified": false,
+      "files": 0,
+      "folders": 0,
+      "quota": 0,
+      "payments": 0,
+      "subscriptions": 0,
+      "preferences": 0,
+      "old_files": 0,
+      "old_payments": 0
+    },
+    "javascript_errors": []
+  },
+  "visual_matrix": [
+    {
+      "theme": "light",
+      "width": 1440,
+      "dialog_fits_viewport": true,
+      "cancel_preserves_account": true,
+      "error_preserves_account": true,
+      "error_mode": "controlled 503 response"
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "dialog_fits_viewport": true,
+      "cancel_preserves_account": true,
+      "error_preserves_account": true,
+      "error_mode": "controlled 503 response"
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "dialog_fits_viewport": true,
+      "cancel_preserves_account": true,
+      "error_preserves_account": true,
+      "error_mode": "controlled 503 response"
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "dialog_fits_viewport": true,
+      "cancel_preserves_account": true,
+      "error_preserves_account": true,
+      "error_mode": "controlled 503 response"
+    }
+  ],
+  "periodic_cleanup": {
+    "real_periodic_cleanup_observed": true,
+    "old_account_pending_objects": 0
+  },
+  "migration": {
+    "name": "files.0004_pending_object_deletion",
+    "applied_locally": true,
+    "existing_accounts_deleted_by_migration": false
+  },
+  "screenshots": [
+    "account-deletion/confirmation-light-desktop.png",
+    "account-deletion/confirmation-dark-mobile.png",
+    "account-deletion/confirmation-light-mobile.png",
+    "account-deletion/confirmation-dark-desktop.png",
+    "account-deletion/result.png",
+    "account-deletion/register-again.png"
+  ],
+  "private_qa_credentials_excluded": true,
+  "unrelated_administration_and_storage_work_preserved": true
+}

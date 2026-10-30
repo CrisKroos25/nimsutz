@@ -18,6 +18,7 @@ cleanup_expired_uploads, que debe correr cada minuto.
 import logging
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
@@ -52,7 +53,10 @@ def release_expired_reservations(batch_size=200):
     discarded = []
     for reservation_id, owner_id in candidates:
         with transaction.atomic():
-            lock_owner(owner_id)
+            try:
+                lock_owner(owner_id)
+            except get_user_model().DoesNotExist:
+                continue  # La cuenta se eliminó después de obtener los candidatos.
             # Se vuelve a leer bajo el candado: otra petición pudo confirmarla mientras tanto.
             reservation = (
                 QuotaReservation.objects.select_related("file")
