@@ -102,7 +102,7 @@ STORAGE_BACKEND_CONFIG = {
     "public_endpoint_url": os.environ['MINIO_PUBLIC_ENDPOINT'],
 }
 
-MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # RN-E3-17
+MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # RN-E3-17
 ALLOWED_CONTENT_TYPES = [               # RN-E3-18
     "application/pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
