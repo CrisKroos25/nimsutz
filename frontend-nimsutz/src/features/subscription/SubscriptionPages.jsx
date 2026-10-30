@@ -102,7 +102,11 @@ function MySubscription() {
 
                     {data.scheduledChange && <article className={styles.card} aria-labelledby="scheduled-title">
                         <h2 id="scheduled-title">Cambio programado</h2>
-                        <p>Pasarás a <strong>{targetName(data.scheduledChange.target_plan_code)}</strong> el {formatDay(data.scheduledChange.effective_at)}. Hasta entonces conservas tu plan actual.</p>
+                        <p>Cambio a <strong>{targetName(data.scheduledChange.target_plan_code)}</strong> programado para el {formatDay(data.scheduledChange.effective_at)}.</p>
+                        {data.scheduledChange.requires_payment
+                            ? <p>{data.scheduledChange.payment_due ? 'Ya puedes revisar y pagar el plan destino. Mientras no se apruebe el pago, conservas la cobertura efectiva de Gratis.' : 'Al terminar tu cobertura tendrás que revisar las condiciones y pagar el plan destino. No habrá un cobro automático.'}</p>
+                            : <p>Conservas tu cobertura actual hasta esa fecha; después pasarás a Gratis sin perder archivos.</p>}
+                        {data.scheduledChange.payment_due && <Link to="/subscription/change">Revisar y pagar el plan destino</Link>}
                         {confirmingCancel ? <div className={styles.actions}>
                             <p>¿Cancelar este cambio? No se elimina tu cobertura ni tus pagos.</p>
                             <Button variant="danger" loading={busy} onClick={cancelChange}>Sí, cancelar cambio</Button>
@@ -269,7 +273,8 @@ function ChangePlan() {
                 <p>No puedes cambiar de plan en este momento.</p>
             </article> : flow.done ? <article className={styles.card} role="status">
                 <h2>Cambio programado</h2>
-                <p>Pasarás a <strong>{flow.quote.plan.name}</strong>{flow.done.effective_at ? ` el ${formatDay(flow.done.effective_at)}` : ' al terminar tu cobertura'}. Hasta entonces conservas tu plan actual y no se cobró nada.</p>
+                <p>Cambio a <strong>{flow.quote.plan.name}</strong>{flow.done.effective_at ? ` programado para el ${formatDay(flow.done.effective_at)}` : ' programado al terminar tu cobertura'}. No se cobró nada.</p>
+                <p>{flow.done.requires_payment ? 'Para activar el plan destino tendrás que revisar sus condiciones y aprobar el pago al terminar la cobertura actual. No se cobrará automáticamente.' : 'Hasta esa fecha conservas tu plan actual y después pasarás a Gratis sin perder archivos.'}</p>
                 <Link className={styles.primaryLink} to="/subscription">Ir a mi suscripción</Link>
             </article> : <>
                 <p className={styles.muted}>Plan actual: <strong>{subscription.plan.name}</strong></p>
