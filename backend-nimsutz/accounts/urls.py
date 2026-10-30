@@ -1,7 +1,9 @@
 from django.urls import path
 from . import views
+from .deletion_views import DeleteOwnAccountView
 
 auth_urlpatterns = [
+    path("account/", DeleteOwnAccountView.as_view()),
     path("register/", views.RegisterView.as_view()),
     path("verify-email/", views.VerifyEmailView.as_view()),
     path("resend-verification/", views.ResendVerificationView.as_view()),
