@@ -114,6 +114,15 @@ class FileConfirmUploadView(APIView):
         file = get_object_or_404(File, pk=pk, owner=request.user)
         try:
             file = services.confirm_upload(file=file, owner=request.user)
+        except services.StorageUnavailableError:
+            return Response(
+                {
+                    "code": "storage_unavailable",
+                    "detail": "El almacenamiento no está disponible. Inténtalo de nuevo en un momento.",
+                    "field_errors": {},
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         except DjangoValidationError as e:
             raise DRFValidationError({"detail": e.messages})
         return Response(FileSerializer(file).data)
