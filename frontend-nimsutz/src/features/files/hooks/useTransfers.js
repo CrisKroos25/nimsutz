@@ -7,6 +7,8 @@
 
 import { useState } from 'react';
 import { transfersApi } from '@features/files/api/transfersApi';
+import { resolveContentType ,validateFile } from '@features/files/utils/validateFile';
+import { loadRules } from '@features/files/utils/useUploadRules';
 
 export function useTransfers() {
     const [loading, setLoading] = useState(false);
@@ -26,37 +28,11 @@ export function useTransfers() {
         setLoading(true);
         setError(null);
         try {
-            // Validación de tamaño (RN-E3-17: máximo 25 MB)
-            if (file.size > 25 * 1024 * 1024) {
-                throw new Error('El archivo supera el límite de 25 MB.');
-            }
-
-            // Detección y normalización de tipo MIME (RN-E3-18)
-            let contentType = file.type;
-            const ext = file.name.split('.').pop()?.toLowerCase();
-            if (!contentType || contentType === 'application/octet-stream') {
-                if (ext === 'pdf') contentType = 'application/pdf';
-                else if (ext === 'png') contentType = 'image/png';
-                else if (ext === 'jpg' || ext === 'jpeg')
-                    contentType = 'image/jpeg';
-                else if (ext === 'txt') contentType = 'text/plain';
-                else if (ext === 'docx')
-                    contentType =
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-            }
-
-            const validTypes = [
-                'application/pdf',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'text/plain',
-                'image/png',
-                'image/jpeg',
-            ];
-            if (!validTypes.includes(contentType)) {
-                throw new Error(
-                    'Tipo de archivo no permitido. Solo se permiten PDF, DOCX, TXT, PNG y JPG.',
-                );
-            }
+            // RN-E3-17 y RN-E3-18: las reglas vienen del servidor (settings.py).
+            // Aquí solo se valida para evitar subidas inútiles; el backend valida igual.
+            const contentType = resolveContentType(file);
+            const rules = await loadRules();
+            if (rules) validateFile(file, contentType, rules);
 
             // Paso 1: solicitar reserva de cuota y URL firmada
             const { file: reserva, upload_url } =

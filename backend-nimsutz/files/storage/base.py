@@ -24,3 +24,6 @@ class StorageBackend(ABC):
     @abstractmethod
     def delete_object(self, *, storage_key):
         ...
+
+class StorageError(Exception):
+    """El almacenamiento no respondió o rechazó la operación (red, credenciales, límites...)."""

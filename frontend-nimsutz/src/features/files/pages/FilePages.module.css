@@ -39,10 +39,6 @@
 .fileName { font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
 .muted { color: var(--color-text-muted); font-size: 11px; }
 .iconBadge { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0; font-size: 8px; font-weight: 700; }
-.typePdf { color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 12%, transparent); }
-.typeDoc, .typePpt { color: var(--color-secondary); background: color-mix(in srgb, var(--color-secondary) 12%, transparent); }
-.typeExcel { color: var(--color-success); background: color-mix(in srgb, var(--color-success) 12%, transparent); }
-.typeImage, .typeDefault, .typeZip { color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 12%, transparent); }
 .fileGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .fileCard { padding: 16px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); display: grid; gap: 14px; }
 .fileCard:has(button[aria-pressed='true']) { border-color: var(--color-primary); }
@@ -58,7 +54,127 @@
 .metadata dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
 .banner { color: var(--color-danger); padding: 12px; border: 1px solid var(--color-danger); border-radius: var(--radius); }
 .emptyState { color: var(--color-text-muted); padding: 20px; display: flex; gap: 8px; font-size: 13px; }
-@media (max-width: 1150px) { .page { flex-wrap: wrap; } .details { flex-basis: 100%; border-left: 0; border-top: 1px solid var(--color-border); } .preview { max-width: 300px; } }
-@media (max-width: 760px) { .heading { align-items: flex-start; flex-direction: column; } .explorer { padding: 16px; } .search { max-width: none; } }
 
-@media (max-width: 760px) { .page { margin: calc(-1 * var(--space-3)); } }
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Tablet (768px - 1150px) */
+@media (min-width: 768px) and (max-width: 1150px) {
+    .page {
+        flex-wrap: wrap;
+    }
+    .details {
+        flex-basis: 100%;
+        border-left: 0;
+        border-top: 1px solid var(--color-border);
+    }
+    .preview {
+        max-width: 300px;
+    }
+}
+
+/* Mobile (< 768px: 6.8", 6.4", 5.8" phones) */
+@media (max-width: 767px) {
+    .page {
+        margin: calc(-1 * var(--space-3));
+        flex-direction: column;
+    }
+    .explorer {
+        padding: 16px;
+    }
+    .heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .actions button {
+        width: 100%;
+        justify-content: center;
+    }
+    .toolbar {
+        gap: 8px;
+    }
+    .search {
+        max-width: 100%;
+        width: 100%;
+        flex: 1 1 100%;
+    }
+    .toolbar select {
+        flex: 1 1 calc(50% - 6px);
+        min-width: 120px;
+    }
+    .viewToggle {
+        margin-left: auto;
+    }
+    .filesSection {
+        --table-min-width: 540px;
+    }
+    .filesSection th,
+    .filesSection td {
+        padding: 9px 8px;
+        font-size: 11px;
+    }
+    .details {
+        position: fixed;
+        bottom: calc(var(--bottom-nav-height) + var(--safe-bottom));
+        left: 0;
+        right: 0;
+        z-index: 80;
+        max-height: 75vh;
+        overflow-y: auto;
+        background: var(--color-surface);
+        border-radius: 20px 20px 0 0;
+        border: 1px solid var(--color-border);
+        border-bottom: 0;
+        box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+        padding: 20px 16px;
+        animation: slideUp 0.25s ease-out;
+    }
+    .preview {
+        max-width: 240px;
+        margin-inline: auto;
+    }
+}
+
+/* Compact Mobile (<= 375px: 5.8" phones) */
+@media (max-width: 375px) {
+    .explorer {
+        padding: 12px;
+    }
+    .heading h1 {
+        font-size: 20px;
+    }
+    .folderGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .folderButton {
+        padding: 12px 8px;
+        gap: 6px;
+    }
+    .folderButton strong {
+        font-size: 11px;
+    }
+    .folderButton span {
+        font-size: 10px;
+    }
+    .actions button {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+}
+

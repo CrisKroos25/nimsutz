@@ -1,6 +1,7 @@
 # files/views.py
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
@@ -8,7 +9,10 @@ from rest_framework.views import APIView
 
 from . import services
 from .models import File, Folder
-from .serializers import FileSerializer, FolderSerializer, RequestUploadSerializer, RestoreFileSerializer
+from .serializers import (
+    FileSerializer, FolderSerializer, FolderRenameSerializer,
+    RequestUploadSerializer, RestoreFileSerializer,
+)
 
 
 # ---------- Folders ----------
@@ -48,12 +52,13 @@ class FolderDetailView(APIView):
 
     def patch(self, request, pk):
         folder = get_object_or_404(Folder, pk=pk, owner=request.user)
-        new_name = request.data.get("name")
-        if not new_name:
-            raise DRFValidationError({"name": "Este campo es requerido."})
+        serializer = FolderRenameSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
         try:
-            folder = services.rename_folder(folder=folder, new_name=new_name)
+            folder = services.rename_folder(
+                folder=folder, new_name=serializer.validated_data["name"]
+            )
         except DjangoValidationError as e:
             raise DRFValidationError({"detail": e.messages})
 
@@ -76,10 +81,12 @@ class FileListView(generics.ListAPIView):
 
     def get_queryset(self):
         queryset = File.objects.filter(owner=self.request.user)
-        folder_id = self.request.query_params.get("folder")
+        folder_param = self.request.query_params.get("folder")
         status_param = self.request.query_params.get("status", File.Status.AVAILABLE)
-        if folder_id:
-            queryset = queryset.filter(folder_id=folder_id)
+        if folder_param == "root":
+            queryset = queryset.filter(folder__isnull=True)
+        elif folder_param:
+            queryset = queryset.filter(folder_id=folder_param)
         return queryset.filter(status=status_param)
 
 
@@ -111,6 +118,15 @@ class FileConfirmUploadView(APIView):
         file = get_object_or_404(File, pk=pk, owner=request.user)
         try:
             file = services.confirm_upload(file=file, owner=request.user)
+        except services.StorageUnavailableError:
+            return Response(
+                {
+                    "code": "storage_unavailable",
+                    "detail": "El almacenamiento no está disponible. Inténtalo de nuevo en un momento.",
+                    "field_errors": {},
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         except DjangoValidationError as e:
             raise DRFValidationError({"detail": e.messages})
         return Response(FileSerializer(file).data)
@@ -174,3 +190,15 @@ class FilePermanentDeleteView(APIView):
         except DjangoValidationError as e:
             raise DRFValidationError({"detail": e.messages})
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ---------- Reglas de archivo ----------
+
+class UploadRulesView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            "max_file_size_bytes": settings.MAX_FILE_SIZE_BYTES,
+            "allowed_content_types": settings.ALLOWED_CONTENT_TYPES,
+        })

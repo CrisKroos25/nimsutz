@@ -171,6 +171,64 @@ nimsutz/
 
 ---
 
+## Correo electronico y cuota por cobertura (Etapa 5)
+
+### Servicio de correo
+
+Todo el correo sale por `backend-nimsutz/accounts/emails.py`, que expone dos funciones estables:
+
+- `send_verification_email(user_email, user_name, verification_link)`: correo de verificacion de cuenta (token firmado, regla de Rodrigo).
+- `send_password_reset_email(*, user, token)`: correo de recuperacion (token de un solo uso en base de datos, regla de Miguel).
+
+Comparten solo el transporte (`_send`); las reglas de cada token no se mezclan. Si el proveedor falla se registra en el log (`accounts.emails`) y se lanza `EmailDeliveryError`. El registro responde `email_sent: false`; el reenvio de verificacion y la solicitud de recuperacion siguen dando su respuesta generica.
+
+Variables de entorno (en `.env`; todas tienen valor por defecto en `docker-compose.yml`):
+
+| Variable | Para que sirve | Defecto |
+|---|---|---|
+| `DEFAULT_FROM_EMAIL` | Remitente de los correos | `no-reply@nimsutz.local` |
+| `FRONTEND_URL` | URL base de los enlaces de verificacion y recuperacion. La verificacion no usa el encabezado `Origin`. | `http://localhost:5173` |
+| `PASSWORD_RESET_TOKEN_TTL_MINUTES` | Vigencia del enlace de recuperacion | `30` |
+| `EMAIL_VERIFICATION_TOKEN_TTL_MINUTES` | Vigencia del enlace de verificacion (el mensaje y el token usan este valor) | `1440` |
+
+Por defecto el backend de correo es el de consola (`MAILERS` en `config/settings.py`): el mensaje aparece en `docker compose logs backend`. Para enviar correo real basta definir `EMAIL_HOST` en el `.env`; no se requiere cola ni infraestructura adicional. Variables SMTP (todas opcionales):
+
+| Variable | Para que sirve | Defecto |
+|---|---|---|
+| `EMAIL_HOST` | Servidor SMTP. Vacio = correo a consola | vacio |
+| `EMAIL_PORT` | Puerto | `587` |
+| `EMAIL_USE_TLS` | STARTTLS | `true` |
+| `EMAIL_HOST_USER` | Usuario SMTP | vacio |
+| `EMAIL_HOST_PASSWORD` | Contrasena SMTP | vacio |
+| `EMAIL_TIMEOUT` | Tiempo maximo de espera SMTP en segundos | `10` |
+
+Ejemplo con Gmail (cuenta con verificacion en dos pasos y una contrasena de aplicacion): `EMAIL_HOST=smtp.gmail.com`, `EMAIL_HOST_USER=<cuenta>@gmail.com`, `EMAIL_HOST_PASSWORD=<contrasena de aplicacion>` y `DEFAULT_FROM_EMAIL=<la misma cuenta>`. Las credenciales viven solo en el `.env` local; nunca se suben al repositorio. Tras cambiar el `.env` hay que recrear el contenedor: `docker compose up -d --force-recreate backend`.
+
+### Cuota de almacenamiento por cobertura
+
+La capacidad de cada usuario sale de su suscripcion activa y vigente (`subscriptions.services.get_active_subscription`), no de una cuota global:
+
+- Sin selección confirmada: capacidad 0; una selección pendiente no concede almacenamiento. Al terminar cobertura pagada se resuelve el siguiente ciclo anticipado o se retorna a Gratis.
+- Plan Gratis: 100 MB. Los planes de pago toman la capacidad de su version contratada.
+- Consumo = reservas pendientes + confirmadas del propietario, incluida la papelera. Solo el borrado definitivo libera espacio.
+- Al volver a Gratis se conservan los archivos y su consumo. Si se exceden sus 100 MB, se bloquean carga y restauración; se permite consultar, descargar y eliminar.
+
+Puntos de integracion en `files/services.py`: `get_capacity_bytes(owner)`, `get_used_bytes(owner)` y `get_available_quota(owner)`. `SIMULATED_QUOTA_BYTES` ya no interviene en el flujo normal.
+
+Para probar subidas en local el usuario necesita cobertura:
+
+```bash
+docker compose exec backend python manage.py seed_plans
+```
+
+y luego activar el plan Gratis desde la aplicacion (`POST /api/subscriptions/activate-free/` o el flujo de planes). El usuario creado con `create_test_users` o `create_demo_user` no tiene cobertura por defecto.
+
+Pruebas: `docker compose exec backend python manage.py test`.
+
+Después de aplicar las migraciones, iniciar `docker compose up -d subscription_worker`: reconcilia las suscripciones cada 60 segundos, sin cobrar automáticamente. El backend también resuelve la cobertura al autorizar. La selección pendiente, el historial conservado y las bajadas que requieren pago manual se documentan en [el cierre de suscripciones](docs/subscriptions-rodrigo.md).
+
+---
+
 ## Notas para la exposición / Manual Técnico
 
 Este mismo flujo (`docker compose up --build` + migraciones + creación de bucket) es la base de cómo se documentará el despliegue en el Manual Técnico del proyecto — en producción, cada paso equivalente ocurre automáticamente o vía el proceso de deploy de Render/Vercel/Railway, pero la lógica de "construir imagen → aplicar migraciones → crear recursos iniciales" es la misma.

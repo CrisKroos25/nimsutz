@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
-import { UploadCloud, X, Loader2 } from 'lucide-react';
+import { UploadCloud, X } from 'lucide-react';
 import { useTransfers } from '@features/files/hooks/useTransfers';
+import Modal from '@shared/components/Modal/Modal';
 import styles from './UploadPanel.module.css';
 
 export default function UploadPanel({ folderId, onCompleted, onClose }) {
@@ -189,7 +190,7 @@ export default function UploadPanel({ folderId, onCompleted, onClose }) {
         setIsDragging(false);
     };
 
-    const handleCancel = (uploadId) => {
+    const dismissUpload = (uploadId) => {
         setActiveUploads((prev) =>
             prev.map((u) =>
                 u.id === uploadId ? { ...u, isPopping: true } : u,
@@ -201,30 +202,11 @@ export default function UploadPanel({ folderId, onCompleted, onClose }) {
     };
 
     return (
-        <div
-            className={styles.overlay}
-            onClick={onClose}
-            data-component="upload-panel"
-        >
-            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-                <header className={styles.header}>
-                    <div>
-                        <h2 className={styles.title}>Gestor de Subidas</h2>
-                        <p className={styles.subtitle}>
-                            Sube tus archivos a la carpeta actual
-                        </p>
-                    </div>
-                    {onClose && (
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className={styles.closeBtn}
-                        >
-                            <X size={20} />
-                        </button>
-                    )}
-                </header>
-
+        <Modal open onClose={onClose} title="Gestor de subidas"
+            description="Sube tus archivos a la carpeta actual"
+            className={styles.modal}
+            headerAction={<button type="button" onClick={onClose} className={styles.closeBtn} aria-label="Cerrar gestor de subidas"><X size={20} aria-hidden="true" /></button>}>
+            <div data-component="upload-panel">
                 <label
                     className={`${styles.dropZone} ${isDragging ? styles.dragging : ''}`}
                     onDragOver={handleDragOver}
@@ -233,6 +215,7 @@ export default function UploadPanel({ folderId, onCompleted, onClose }) {
                 >
                     <input
                         type="file"
+                        aria-label="Seleccionar archivo"
                         onChange={handleFileSelect}
                         className={styles.hiddenInput}
                     />
@@ -291,7 +274,8 @@ export default function UploadPanel({ folderId, onCompleted, onClose }) {
                                     <button
                                         type="button"
                                         className={styles.cancelBtn}
-                                        onClick={() => handleCancel(u.id)}
+                                        aria-label={`Ocultar estado de ${u.name}`}
+                                        onClick={() => dismissUpload(u.id)}
                                     >
                                         <X size={16} />
                                     </button>
@@ -301,6 +285,6 @@ export default function UploadPanel({ folderId, onCompleted, onClose }) {
                     </div>
                 )}
             </div>
-        </div>
+        </Modal>
     );
 }

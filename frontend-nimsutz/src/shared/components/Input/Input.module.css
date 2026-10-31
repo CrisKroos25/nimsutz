@@ -49,3 +49,30 @@
 .error {
     color: var(--color-danger);
 }
+.control { position: relative; min-width: 0; }
+.leadingIcon {
+    position: absolute;
+    inset-inline-start: var(--space-3);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    color: var(--color-text-muted);
+    pointer-events: none;
+}
+.withIcon { padding-inline-start: calc(var(--space-3) * 2 + var(--icon-size)); }
+.withAction { padding-inline-end: calc(var(--button-height) + var(--space-2)); }
+.trailingAction { position: absolute; inset-inline-end: var(--space-1); top: 50%; transform: translateY(-50%); display: flex; }
+.reveal {
+    display: grid;
+    place-items: center;
+    width: var(--button-height);
+    height: calc(var(--button-height) - var(--space-2));
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+.reveal:hover:not(:disabled) { background: var(--color-bg); color: var(--color-secondary); }
+.reveal:disabled { opacity: var(--disabled-opacity); cursor: not-allowed; }

@@ -5,8 +5,12 @@
    enviar a papelera, restaurar y eliminar definitivo son de B: ese
    estado y esas peticiones viven en los hooks de B (transfers/trash),
    no aqui. */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
+import { useAsyncResource } from '@shared/hooks/useAsyncResource';
+
 import * as filesApi from '../api/filesApi';
+
+const EMPTY_CONTENT = { folders: [], files: [], folderIndex: new Map() };
 
 /**
  * Hook del explorador: lista carpetas y archivos de "folderId" (null = raíz)
@@ -22,36 +26,15 @@ import * as filesApi from '../api/filesApi';
  * "atrás" del navegador o al recargar la página).
  */
 export function useFiles(folderId) {
-    const [folders, setFolders] = useState([]);
-    const [files, setFiles] = useState([]);
-    const [folderIndex, setFolderIndex] = useState(new Map());
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    const reload = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            // A nivel raíz no hay archivos posibles: todo archivo pertenece
-            // siempre a una carpeta (el modelo File.folder no es nulo).
-            const [folderList, fileList, allFolders] = await Promise.all([
-                filesApi.listFolders(folderId),
-                folderId == null ? Promise.resolve([]) : filesApi.listFiles(folderId),
-                filesApi.listAllFolders(),
-            ]);
-            setFolders(folderList);
-            setFiles(fileList);
-            setFolderIndex(new Map(allFolders.map((folder) => [folder.id, folder])));
-        } catch (err) {
-            setError(err.message || 'No se pudo cargar el contenido de la carpeta.');
-        } finally {
-            setLoading(false);
-        }
+    const load = useCallback(async () => {
+        const [folders, files, allFolders] = await Promise.all([
+            filesApi.listFolders(folderId), filesApi.listFiles(folderId), filesApi.listAllFolders(),
+        ]);
+        return { folders, files, folderIndex: new Map(allFolders.map((folder) => [folder.id, folder])) };
     }, [folderId]);
-
-    useEffect(() => {
-        reload();
-    }, [reload]);
+    const { data, loading, error: failure, reload } = useAsyncResource(load, EMPTY_CONTENT);
+    const { folders, files, folderIndex } = data;
+    const error = failure ? failure.message || 'No se pudo cargar el contenido de la carpeta.' : null;
 
     async function createFolder(name) {
         await filesApi.createFolder({ parent: folderId, name });

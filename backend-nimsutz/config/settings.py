@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'accounts',
     'files',
+    'subscriptions',
+    'payments'
 ]
 
 MIDDLEWARE = [
@@ -50,6 +52,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    "accounts.middleware.EnforceActiveAccountMiddleware",  
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -73,6 +76,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+AUTH_USER_MODEL = "accounts.User"
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
@@ -105,14 +109,14 @@ ALLOWED_CONTENT_TYPES = [               # RN-E3-18
     "text/plain",
     "image/png",
     "image/jpeg",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # .xlsx
+    "application/vnd.ms-excel", 
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",  # .pptx
 ]
-RESERVATION_TTL_MINUTES = 15
-SIMULATED_QUOTA_BYTES = int(
-    os.getenv("SIMULATED_QUOTA_BYTES", 500 * 1024 * 1024)
-)
-SIMULATED_AUTH_ENABLED = os.getenv("SIMULATED_AUTH_ENABLED", "true").lower() == "true"
-SIMULATED_USER_ID = int(os.getenv("SIMULATED_USER_ID", default=1))
 
+RESERVATION_TTL_MINUTES = 10
+
+PAID_PLANS_ENABLED = os.getenv("PAID_PLANS_ENABLED", "false").lower() == "true"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
@@ -162,11 +166,37 @@ STATIC_URL = 'static/'
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+# Correo: sin EMAIL_HOST el mensaje se imprime en consola (docker compose logs backend).
+# Con EMAIL_HOST definido se envia por SMTP (p. ej. smtp.gmail.com).
+_smtp_host = os.getenv("EMAIL_HOST", "").strip()  # no llamarlo EMAIL_HOST: Django 6.1 lo prohibe junto a MAILERS
+
+if _smtp_host:
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+            'OPTIONS': {
+                'host': _smtp_host,
+                'port': int(os.getenv("EMAIL_PORT", 587)),
+                'username': os.getenv("EMAIL_HOST_USER", ""),
+                'password': os.getenv("EMAIL_HOST_PASSWORD", ""),
+                'use_tls': os.getenv("EMAIL_USE_TLS", "true").lower() == "true",
+                'timeout': int(os.getenv("EMAIL_TIMEOUT", 10)),
+            },
+        },
+    }
+else:
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        },
+    }
+
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@nimsutz.local")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+PASSWORD_RESET_TOKEN_TTL_MINUTES = int(os.getenv("PASSWORD_RESET_TOKEN_TTL_MINUTES", 30))
+EMAIL_VERIFICATION_TOKEN_TTL_MINUTES = int(
+    os.getenv("EMAIL_VERIFICATION_TOKEN_TTL_MINUTES", 1440)
+)
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -180,3 +210,6 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
+
+# Clave independiente para identificar reintentos sin guardar datos de tarjeta.
+PAYMENTS_IDEMPOTENCY_SECRET = os.getenv("PAYMENTS_IDEMPOTENCY_SECRET", "")

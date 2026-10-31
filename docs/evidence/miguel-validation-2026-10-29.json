@@ -1,0 +1,924 @@
+{
+  "source_commit": "f9dddc6",
+  "base_develop": "b90a745",
+  "environment": "Docker/Linux, PostgreSQL, MinIO, Edge/Playwright",
+  "backend": {
+    "passed": 212,
+    "skipped": 0,
+    "source": "git archive HEAD: only tracked files",
+    "django_check": "passed",
+    "migration_check": "passed"
+  },
+  "frontend": {
+    "passed": 47,
+    "global_lint": "passed",
+    "build": "passed"
+  },
+  "live_cases": [
+    {
+      "case": "Historial vacío real",
+      "passed": true
+    },
+    {
+      "case": "Rechazo conserva selección pendiente sin cobertura",
+      "passed": true
+    },
+    {
+      "case": "Contratación y modal aprobado con foco → archivos",
+      "passed": true
+    },
+    {
+      "case": "Renovación aprobada y segundo anticipo bloqueado en interfaz",
+      "passed": true
+    },
+    {
+      "case": "Mejora con dos conceptos del servidor → checkout",
+      "passed": true
+    },
+    {
+      "case": "Programación y cancelación sin cobro",
+      "passed": true
+    },
+    {
+      "case": "Filtros, detalle enmascarado y aislamiento entre dos cuentas",
+      "passed": true
+    },
+    {
+      "case": "Gratis explícito, sin pago ni renovación",
+      "passed": true
+    }
+  ],
+  "storage_live": {
+    "upload": true,
+    "preview": true,
+    "download": true,
+    "trash": true,
+    "restore": true,
+    "only_qa_data": true
+  },
+  "ui_state_cases": [
+    {
+      "name": "Filtros inválidos: foco y descripción de error",
+      "mode": "real form validation",
+      "passed": true
+    },
+    {
+      "name": "Historial: carga y vacío",
+      "mode": "controlled API response",
+      "passed": true
+    },
+    {
+      "name": "Historial: error y reintento",
+      "mode": "controlled API response",
+      "passed": true
+    },
+    {
+      "name": "Mi suscripción: error y recuperación",
+      "mode": "controlled API response",
+      "passed": true
+    },
+    {
+      "name": "Cambio de plan: catálogo sin alternativas",
+      "mode": "controlled API response",
+      "passed": true
+    },
+    {
+      "name": "Cambio incompatible: motivo del servidor sin checkout",
+      "mode": "controlled API response",
+      "passed": true
+    },
+    {
+      "name": "Resumen vencido: deja de ofrecer pago y exige generar otro",
+      "mode": "controlled API response",
+      "passed": true
+    },
+    {
+      "name": "Perfil → suscripción: foco en contenido nuevo",
+      "mode": "real navigation",
+      "passed": true
+    },
+    {
+      "name": "Modal de carga: Tab contenido, Escape y restitución del foco",
+      "mode": "real dialog",
+      "passed": true
+    },
+    {
+      "name": "Explorador: error de consulta",
+      "mode": "controlled API response",
+      "passed": true
+    },
+    {
+      "name": "Recuperación: fallo de envío no muestra éxito",
+      "mode": "controlled API response",
+      "passed": true
+    }
+  ],
+  "conflict_case": {
+    "case": "409 al confirmar exige generar y revisar un resumen nuevo",
+    "mode": "controlled confirm response; real quote API",
+    "passed": true
+  },
+  "visual_audit": {
+    "screens": 80,
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "widths": [
+      1440,
+      390
+    ],
+    "viewport_overflow": 0,
+    "javascript_errors": 0,
+    "unlabelled_buttons": 0,
+    "ready_overrides": [
+      {
+        "theme": "light",
+        "width": 1440,
+        "checkout_ready": true,
+        "preview_loaded": true,
+        "primary_contrast": 5.7,
+        "danger_contrast": 4.7,
+        "javascript_errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "checkout_ready": true,
+        "preview_loaded": true,
+        "primary_contrast": 5.7,
+        "danger_contrast": 4.7,
+        "javascript_errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "checkout_ready": true,
+        "preview_loaded": true,
+        "primary_contrast": 7.06,
+        "danger_contrast": 5.94,
+        "javascript_errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "checkout_ready": true,
+        "preview_loaded": true,
+        "primary_contrast": 7.06,
+        "danger_contrast": 5.94,
+        "javascript_errors": []
+      }
+    ],
+    "screenshots": [
+      "miguel/subscription-light-desktop.png",
+      "miguel/subscription-dark-mobile.png",
+      "miguel/renew-summary-light-desktop.png",
+      "miguel/renew-summary-dark-mobile.png",
+      "miguel/checkout-light-desktop.png",
+      "miguel/checkout-dark-mobile.png",
+      "miguel/history-light-desktop.png",
+      "miguel/history-dark-mobile.png",
+      "miguel/result-light-desktop.png",
+      "miguel/result-dark-mobile.png",
+      "miguel/upload-light-desktop.png",
+      "miguel/upload-dark-mobile.png",
+      "miguel/file-preview-light-desktop.png",
+      "miguel/file-preview-dark-mobile.png",
+      "miguel/invalid-date.png",
+      "miguel/history-error.png",
+      "miguel/expired-quote.png",
+      "miguel/conflict-summary.png",
+      "miguel/pending-selection.png",
+      "miguel/rejected-detail.png",
+      "miguel/renew-blocked.png"
+    ],
+    "matrix": [
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "login",
+        "scroll": 1440,
+        "title": "Bienvenido a Nim sutz’",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "register",
+        "scroll": 1440,
+        "title": "Crear cuenta",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "verify",
+        "scroll": 1440,
+        "title": "Enlace inválido",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "forgot",
+        "scroll": 1440,
+        "title": "Recuperar contraseña",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "reset",
+        "scroll": 1440,
+        "title": "Crear contraseña nueva",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "plans",
+        "scroll": 1440,
+        "title": "Elige tu plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "plan-summary",
+        "scroll": 1440,
+        "title": "Confirma tu plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "profile",
+        "scroll": 1440,
+        "title": "Mi perfil",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "subscription",
+        "scroll": 1440,
+        "title": "Mi suscripción",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "change",
+        "scroll": 1440,
+        "title": "Cambiar de plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "history",
+        "scroll": 1440,
+        "title": "Historial de pagos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "files",
+        "scroll": 1440,
+        "title": "Mis archivos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "trash",
+        "scroll": 1440,
+        "title": "Papelera",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "history-detail",
+        "scroll": 1440,
+        "title": "Detalle del pago",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "result",
+        "scroll": 1440,
+        "title": "Tu suscripción",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "renew",
+        "scroll": 1440,
+        "title": "Renovar mi plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "renew-summary",
+        "scroll": 1440,
+        "title": "Renovar mi plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "checkout",
+        "scroll": 1440,
+        "title": "Confirma tu plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "file-preview",
+        "scroll": 1440,
+        "title": "Mis archivos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 1440,
+        "name": "upload",
+        "scroll": 1440,
+        "title": "Mis archivos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "login",
+        "scroll": 390,
+        "title": "Bienvenido a Nim sutz’",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "register",
+        "scroll": 390,
+        "title": "Crear cuenta",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "verify",
+        "scroll": 390,
+        "title": "Enlace inválido",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "forgot",
+        "scroll": 390,
+        "title": "Recuperar contraseña",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "reset",
+        "scroll": 390,
+        "title": "Crear contraseña nueva",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "plans",
+        "scroll": 390,
+        "title": "Elige tu plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "plan-summary",
+        "scroll": 390,
+        "title": "Confirma tu plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "profile",
+        "scroll": 390,
+        "title": "Mi perfil",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "subscription",
+        "scroll": 390,
+        "title": "Mi suscripción",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "change",
+        "scroll": 390,
+        "title": "Cambiar de plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "history",
+        "scroll": 390,
+        "title": "Historial de pagos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "files",
+        "scroll": 390,
+        "title": "Mis archivos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "trash",
+        "scroll": 390,
+        "title": "Papelera",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "history-detail",
+        "scroll": 390,
+        "title": "Detalle del pago",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "result",
+        "scroll": 390,
+        "title": "Tu suscripción",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "renew",
+        "scroll": 390,
+        "title": "Renovar mi plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "renew-summary",
+        "scroll": 390,
+        "title": "Renovar mi plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "checkout",
+        "scroll": 390,
+        "title": "Confirma tu plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "file-preview",
+        "scroll": 390,
+        "title": "Mis archivos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "light",
+        "width": 390,
+        "name": "upload",
+        "scroll": 390,
+        "title": "Mis archivos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "login",
+        "scroll": 1440,
+        "title": "Bienvenido a Nim sutz’",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "register",
+        "scroll": 1440,
+        "title": "Crear cuenta",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "verify",
+        "scroll": 1440,
+        "title": "Enlace inválido",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "forgot",
+        "scroll": 1440,
+        "title": "Recuperar contraseña",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "reset",
+        "scroll": 1440,
+        "title": "Crear contraseña nueva",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "plans",
+        "scroll": 1440,
+        "title": "Elige tu plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "plan-summary",
+        "scroll": 1440,
+        "title": "Confirma tu plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "profile",
+        "scroll": 1440,
+        "title": "Mi perfil",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "subscription",
+        "scroll": 1440,
+        "title": "Mi suscripción",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "change",
+        "scroll": 1440,
+        "title": "Cambiar de plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "history",
+        "scroll": 1440,
+        "title": "Historial de pagos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "files",
+        "scroll": 1440,
+        "title": "Mis archivos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "trash",
+        "scroll": 1440,
+        "title": "Papelera",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "history-detail",
+        "scroll": 1440,
+        "title": "Detalle del pago",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "result",
+        "scroll": 1440,
+        "title": "Tu suscripción",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "renew",
+        "scroll": 1440,
+        "title": "Renovar mi plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "renew-summary",
+        "scroll": 1440,
+        "title": "Renovar mi plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "checkout",
+        "scroll": 1440,
+        "title": "Confirma tu plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "file-preview",
+        "scroll": 1440,
+        "title": "Mis archivos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 1440,
+        "name": "upload",
+        "scroll": 1440,
+        "title": "Mis archivos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "login",
+        "scroll": 390,
+        "title": "Bienvenido a Nim sutz’",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "register",
+        "scroll": 390,
+        "title": "Crear cuenta",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "verify",
+        "scroll": 390,
+        "title": "Enlace inválido",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "forgot",
+        "scroll": 390,
+        "title": "Recuperar contraseña",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "reset",
+        "scroll": 390,
+        "title": "Crear contraseña nueva",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "plans",
+        "scroll": 390,
+        "title": "Elige tu plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "plan-summary",
+        "scroll": 390,
+        "title": "Confirma tu plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "profile",
+        "scroll": 390,
+        "title": "Mi perfil",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "subscription",
+        "scroll": 390,
+        "title": "Mi suscripción",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "change",
+        "scroll": 390,
+        "title": "Cambiar de plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "history",
+        "scroll": 390,
+        "title": "Historial de pagos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "files",
+        "scroll": 390,
+        "title": "Mis archivos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "trash",
+        "scroll": 390,
+        "title": "Papelera",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "history-detail",
+        "scroll": 390,
+        "title": "Detalle del pago",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "result",
+        "scroll": 390,
+        "title": "Tu suscripción",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "renew",
+        "scroll": 390,
+        "title": "Renovar mi plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "renew-summary",
+        "scroll": 390,
+        "title": "Renovar mi plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "checkout",
+        "scroll": 390,
+        "title": "Confirma tu plan",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "file-preview",
+        "scroll": 390,
+        "title": "Mis archivos",
+        "unlabelled": 0,
+        "errors": []
+      },
+      {
+        "theme": "dark",
+        "width": 390,
+        "name": "upload",
+        "scroll": 390,
+        "title": "Mis archivos",
+        "unlabelled": 0,
+        "errors": []
+      }
+    ]
+  },
+  "limits": [
+    "SMTP delivery to a real inbox is not certified; email error UI was tested with a controlled response.",
+    "Storage cleanup, compensation and concurrency remain Cristian technical validation scope.",
+    "Only dedicated QA accounts, cards and files were added. Private credentials and signed URLs are excluded."
+  ],
+  "outside_scope_untracked_storage_files_preserved": true
+}

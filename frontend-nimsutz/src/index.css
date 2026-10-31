@@ -17,7 +17,7 @@
     --color-warning-text: #b45309;
     --color-danger: #e11d48;
     --color-danger-hover: #be123c;
-    --color-on-primary: #ffffff;
+    --color-on-primary: #1e1b4b;
     --color-on-danger: #ffffff;
     --color-focus: #7c3aed;
     --shadow-panel: 0 2px 8px #1e1b4b0d;
@@ -63,6 +63,9 @@
     --disabled-opacity: 0.45;
     --sidebar-width: 240px;
     --header-height: 64px;
+    --bottom-nav-height: 60px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
 }
 
 :root[data-theme='dark'] {
@@ -83,7 +86,7 @@
     --color-warning-text: #fb923c;
     --color-danger: #fb7185;
     --color-danger-hover: #fda4af;
-    --color-on-danger: #ffffff;
+    --color-on-danger: #1e1b4b;
     --color-focus: #a78bfa;
     --shadow-panel: 0 2px 8px #00000033;
 }

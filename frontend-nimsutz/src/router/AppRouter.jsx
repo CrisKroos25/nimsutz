@@ -5,10 +5,20 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import useTheme from '@shared/hooks/useTheme';
 import MainLayout from '@layouts/MainLayout';
 import PublicLayout from '@layouts/PublicLayout';
+import AuthLayout from '@layouts/AuthLayout';
 import LandingPage from '../pages/LandingPage';
 import LoginPage from '../pages/LoginPage';
+import ProfilePage from '../pages/ProfilePage';
+import RegisterPage from '../pages/RegisterPage';
+import PlansPage from '../pages/PlansPage';
 import { FilesPage } from '@features/files/pages/FilePages';
 import TrashPage from '@features/files/pages/Trash';
+import ForgotPassword from '@features/auth/pages/ForgotPassword';
+import ResetPassword from '@features/auth/pages/ResetPassword';
+import VerifyEmail from '@features/auth/pages/VerifyEmail';
+import { CheckoutPage, PaymentResultPage } from '@features/payments/PaymentPages';
+import { PaymentHistoryPage, PaymentDetailPage } from '@features/payments/history/PaymentHistoryPages';
+import { SubscriptionPage, RenewPage, ChangePlanPage } from '@features/subscription/SubscriptionPages';
 
 export default function AppRouter() {
     const theme = useTheme();
@@ -18,7 +28,6 @@ export default function AppRouter() {
                 <Routes>
                     <Route element={<PublicLayout {...theme} />}>
                         <Route index element={<LandingPage />} />
-                        <Route path="login" element={<LoginPage />} />
                         <Route path="about" element={<AboutPage />} />
                         <Route
                             path="*"
@@ -30,10 +39,29 @@ export default function AppRouter() {
                             }
                         />
                     </Route>
-                    <Route element={<MainLayout {...theme} />}>
-                        <Route element={<RequireSession />}>
+
+                    <Route path="register" element={<RegisterPage {...theme} />} />
+                    <Route element={<AuthLayout {...theme} />}>
+                        <Route path="login" element={<LoginPage />} />
+                        <Route path="verify-email" element={<VerifyEmail />} />
+                        <Route path="forgot-password" element={<ForgotPassword />} />
+                        <Route path="reset-password" element={<ResetPassword />} />
+                    </Route>
+                    
+                    <Route element={<RequireSession />}>
+                        <Route element={<MainLayout {...theme} />}>
                             <Route path="files/*" element={<FilesPage />} />
                             <Route path="trash/*" element={<TrashPage />} />
+                            <Route path="profile" element={<ProfilePage />} />
+                            <Route path="plans" element={<PlansPage />} />
+                            <Route path="plans/summary" element={<PlansPage />} />
+                            <Route path="payments/checkout/:quoteId" element={<CheckoutPage />} />
+                            <Route path="payments/result/:paymentId" element={<PaymentResultPage />} />
+                            <Route path="payments/history" element={<PaymentHistoryPage />} />
+                            <Route path="payments/history/:paymentId" element={<PaymentDetailPage />} />
+                            <Route path="subscription" element={<SubscriptionPage />} />
+                            <Route path="subscription/renew" element={<RenewPage />} />
+                            <Route path="subscription/change" element={<ChangePlanPage />} />
                         </Route>
                     </Route>
                 </Routes>

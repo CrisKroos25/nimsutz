@@ -13,7 +13,7 @@ export default function PublicLayout({ theme, toggleTheme }) {
                 <nav aria-label="Navegación pública" className={styles.publicNav}>
                     <a href="/#plans">Planes</a>
                     <Link to="/login">Iniciar sesión</Link>
-                    <span role="link" aria-disabled="true" className={styles.register}>Registro</span>
+                    <Link to="/register">Registro</Link>
                     <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
                 </nav>
                 </div>

@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "scenarios": [
+    "Contratación por UI, sesión/CSRF real, doble clic: un solo pago y acceso a archivos.",
+    "Renovación real: respuesta perdida después de aprobar, recarga y recuperación con misma clave sin segundo cobro.",
+    "Mejora real con dos conceptos; cobertura actual y siguiente ciclo actualizados a Premium.",
+    "Modal real en oscuro/móvil, foco, Escape y ausencia de desbordamiento horizontal.",
+    "Segundo usuario: rechazo sin cobertura, corrección con nuevo intento y aprobación; recursos del primero inaccesibles (404)."
+  ],
+  "date": "2026-10-29",
+  "environment": "Docker / PostgreSQL 16, backend and frontend real APIs",
+  "backend": {
+    "passed": 190,
+    "skipped": 0,
+    "migration_check": "passed",
+    "system_check": "passed"
+  },
+  "frontend": {
+    "passed": 19,
+    "build": "passed",
+    "commercial_lint": "passed",
+    "global_lint_existing_errors": 7
+  },
+  "original_data_preserved": true,
+  "migration_inventory": {
+    "users": 4,
+    "files": 3,
+    "folders": 1,
+    "subscriptions": 2,
+    "original_card_balances": 5
+  },
+  "fixtures": "Two dedicated QA accounts and cards; no credentials included"
+}

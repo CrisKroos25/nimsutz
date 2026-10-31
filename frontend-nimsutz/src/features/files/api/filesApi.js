@@ -77,7 +77,12 @@ export function moveFolder() {
 // Subir, descargar, papelera, restaurar y eliminar definitivo son de B.
 
 export function listFiles(folderId) {
-    const params = new URLSearchParams({ status: 'available' });
-    if (folderId != null) params.set('folder', folderId);
+    const folderParam = folderId == null ? 'root' : folderId;
+
+    const params = new URLSearchParams({
+        folder: String(folderParam),
+        status: 'available',
+    });
+
     return apiRequest(`/api/files/?${params.toString()}`);
 }

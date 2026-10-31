@@ -1,0 +1,6 @@
+/* @features/files/fileTypes.module.css */
+.typePdf { color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 12%, transparent); }
+.typeDoc { color: var(--color-secondary); background: color-mix(in srgb, var(--color-secondary) 12%, transparent); }
+.typeImage, .typeDefault { color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 12%, transparent); }
+.typeExcel { color: var(--color-success); background: color-mix(in srgb, var(--color-success) 12%, transparent); }
+.typePowerPoint { color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 12%, transparent); }

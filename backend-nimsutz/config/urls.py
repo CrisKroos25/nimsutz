@@ -1,8 +1,14 @@
 from django.contrib import admin
 from django.urls import path, include
+from accounts.urls import auth_urlpatterns, admin_urlpatterns
+from subscriptions.urls import plan_urlpatterns, subscription_urlpatterns, account_urlpatterns
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/auth/', include('accounts.urls')),   # login, sesión, logout
-    path('api/', include('files.urls')),           # explorador A + transferencias B
+    path("api/payments/", include("payments.urls")),
+    path('api/', include('files.urls')),    
+    path("api/plans/", include(plan_urlpatterns)),
+    path("api/subscriptions/", include(subscription_urlpatterns)),
+    path("api/account/", include(account_urlpatterns)),
+    path("api/auth/", include(auth_urlpatterns)),
+    path("api/admin/", include(admin_urlpatterns)),
 ]
