@@ -1,0 +1,28 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+RUN useradd --create-home --uid 10001 appuser
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY --chown=appuser:appuser . .
+
+# Estáticos del admin, generados durante el build. Valores ficticios para que
+# settings.py cargue sin base de datos ni storage reales.
+RUN SECRET_KEY=build-only DB_NAME=x DB_USER=x DB_PASSWORD=x DB_HOST=x \
+    STORAGE_BUCKET_NAME=x STORAGE_ACCESS_KEY=x STORAGE_SECRET_KEY=x \
+    STORAGE_ENDPOINT_URL=http://x \
+    python manage.py collectstatic --noinput
+
+USER appuser
+
+EXPOSE 8000
+
+CMD ["sh", "-c", "gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --access-logfile -"]
