@@ -104,3 +104,9 @@ class QuotaReservation(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
+
+class PendingObjectDeletion(models.Model):
+    """Trabajo técnico de borrado; sobrevive a la cuenta sin guardar su identidad."""
+    storage_key = models.CharField(max_length=255, unique=True)
+    finalize_after = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)

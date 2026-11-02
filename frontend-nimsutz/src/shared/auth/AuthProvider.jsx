@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { AuthContext } from './AuthContext';
 import { apiRequest, SESSION_EXPIRED_EVENT } from '../api/httpClient';
-import { withAccountDestination } from '../api/accountApi';
+import { clearDeletedAccountData } from './deletedAccountData';
+import { deleteOwnAccount, withAccountDestination } from '../api/accountApi';
 import { clearPlanPreference, sessionDestination } from './accessFlow';
 
 export default function AuthProvider({ children }) {
@@ -9,6 +10,7 @@ export default function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [destination, setDestination] = useState('/files');
+    const [deletionNotice, setDeletionNotice] = useState(null);
     async function refresh() {
         setLoading(true);
         try {
@@ -47,6 +49,7 @@ export default function AuthProvider({ children }) {
             body: JSON.stringify({ email, password }),
         });
         const account = await withAccountDestination(data);
+        setDeletionNotice(null);
         setUser(account.user);
         setDestination(sessionDestination(account));
         setError(account.accessError || '');
@@ -58,5 +61,14 @@ export default function AuthProvider({ children }) {
         setDestination('/files');
         setError('');
     }
-    return <AuthContext.Provider value={{ user, loading, error, destination, refresh, signIn, signOut }}>{children}</AuthContext.Provider>;
+    async function removeAccount() {
+        const result = await deleteOwnAccount();
+        clearDeletedAccountData(user.id);
+        setDeletionNotice({ pending: result.deletion_pending });
+        setUser(null);
+        setDestination('/files');
+        setError('');
+        return result;
+    }
+    return <AuthContext.Provider value={{ user, loading, error, destination, refresh, signIn, signOut, removeAccount, deletionNotice, clearDeletionNotice: () => setDeletionNotice(null) }}>{children}</AuthContext.Provider>;
 }

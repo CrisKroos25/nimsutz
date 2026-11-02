@@ -2,6 +2,14 @@ import { apiRequest } from './httpClient.js';
 
 const json = (method, body) => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
+export async function deleteOwnAccount() {
+    const result = await apiRequest('/api/auth/account/', json('DELETE', { confirm: true }));
+    if (result?.user !== null || typeof result.deletion_pending !== 'boolean') {
+        throw new Error('No se pudo confirmar la eliminación de la cuenta.');
+    }
+    return result;
+}
+
 export const registerAccount = (values) => apiRequest('/api/auth/register/', json('POST', values));
 // El contrato del servidor se adapta aquí para mantener estables las pantallas.
 const PLAN_CODES = { free: 'gratis', basic: 'basico', premium: 'premium' };

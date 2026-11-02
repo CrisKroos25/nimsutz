@@ -7,6 +7,7 @@ Procesa suscripciones vencidas de forma idempotente:
 - Si tienen un cambio programado (ScheduledChange), aplica la bajada o retorno a Gratis.
 - Si no tienen ciclo futuro ni cambio, retorna automáticamente a Gratis (conservando archivos).
 """
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -28,7 +29,10 @@ class Command(BaseCommand):
 
         reconciled_count = 0
         for sub in expired_subs:
-            resolved = resolve_effective_subscription(sub.user, at=now)
+            try:
+                resolved = resolve_effective_subscription(sub.user, at=now)
+            except get_user_model().DoesNotExist:
+                continue  # Una eliminación concurrente ya retiró esta suscripción.
             reconciled_count += 1
             plan_name = effective_conditions(resolved)['name'] if resolved else "Sin cobertura"
             self.stdout.write(

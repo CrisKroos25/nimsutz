@@ -4,6 +4,7 @@ import { Cloud, HardDrive } from 'lucide-react';
 import { useAuth } from '@shared/auth/AuthContext';
 import { getAccountIdentity } from '@shared/auth/accountIdentity';
 import { getAccountOverview, serviceMessage, validateSubscription } from '@shared/api/accountApi';
+import DeleteAccountSection from '@features/account/DeleteAccountSection';
 import Button from '@shared/components/Button/Button';
 import styles from './ProfilePage.module.css';
 
@@ -79,6 +80,7 @@ export default function ProfilePage() {
                 <Link to="/subscription">Mi suscripción</Link>
                 <Link to="/payments/history">Historial de pagos</Link>
             </nav>}
+            <DeleteAccountSection />
         </section>
     );
 }

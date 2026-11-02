@@ -38,10 +38,13 @@ def authenticate_user(*, email, password):
 class AuthorizationError(Exception):
     """El usuario está autenticado pero no tiene permiso para esta acción (403)."""
 
-def invalidate_user_sessions(user):
-    """Elimina todas las sesiones vigentes de `user` (sesiones en base de datos)."""
+def invalidate_user_sessions(user, *, include_expired=False):
+    """Invalida sesiones; el borrado definitivo incluye también las vencidas."""
     target = str(user.pk)
-    for session in Session.objects.filter(expire_date__gt=timezone.now()).iterator():
+    sessions = Session.objects.all()
+    if not include_expired:
+        sessions = sessions.filter(expire_date__gt=timezone.now())
+    for session in sessions.iterator():
         if session.get_decoded().get(SESSION_KEY) == target:
             session.delete()
 

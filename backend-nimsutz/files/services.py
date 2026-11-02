@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from . import storage
 from .models import File, Folder, QuotaReservation
+from .validators import normalize_folder_name
 from .quota import get_available_quota, get_capacity_bytes, get_coverage, get_used_bytes, lock_owner  # noqa: F401
 from .storage.base import StorageError
 from .storage_sync import object_problem, purge_file_object
@@ -277,7 +278,7 @@ def create_folder(*, owner, parent, name):
     RN-E3-08 / RN-E3-09 / RN-E3-10 / RN-E3-11: carpeta padre propia (o raíz),
     nombre válido, sin duplicados en la misma ubicación (normalizado).
     """
-    normalized_name = name.strip()
+    normalized_name = normalize_folder_name(name)
 
     if parent is not None and parent.owner_id != owner.id:
         raise ValidationError("La carpeta padre no pertenece al usuario.")
@@ -293,7 +294,7 @@ def create_folder(*, owner, parent, name):
 
 def rename_folder(*, folder, new_name):
     """RN-E3-14: renombrar vuelve a aplicar las reglas de nombre y duplicidad."""
-    normalized_name = new_name.strip()
+    normalized_name = normalize_folder_name(new_name)
 
     exists = (
         Folder.objects.filter(

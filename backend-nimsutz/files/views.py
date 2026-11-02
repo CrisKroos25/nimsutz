@@ -9,7 +9,10 @@ from rest_framework.views import APIView
 
 from . import services
 from .models import File, Folder
-from .serializers import FileSerializer, FolderSerializer, RequestUploadSerializer, RestoreFileSerializer
+from .serializers import (
+    FileSerializer, FolderSerializer, FolderRenameSerializer,
+    RequestUploadSerializer, RestoreFileSerializer,
+)
 
 
 # ---------- Folders ----------
@@ -49,12 +52,13 @@ class FolderDetailView(APIView):
 
     def patch(self, request, pk):
         folder = get_object_or_404(Folder, pk=pk, owner=request.user)
-        new_name = request.data.get("name")
-        if not new_name:
-            raise DRFValidationError({"name": "Este campo es requerido."})
+        serializer = FolderRenameSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
         try:
-            folder = services.rename_folder(folder=folder, new_name=new_name)
+            folder = services.rename_folder(
+                folder=folder, new_name=serializer.validated_data["name"]
+            )
         except DjangoValidationError as e:
             raise DRFValidationError({"detail": e.messages})
 
