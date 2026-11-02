@@ -1,0 +1,19 @@
+name: Tareas periódicas
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar al endpoint interno
+        env:
+          CRON_TOKEN: ${{ secrets.CRON_TOKEN }}
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+        run: |
+          curl --fail --silent --show-error \
+            -X POST "$BACKEND_URL/api/internal/scheduled-tasks/" \
+            -H "Authorization: Bearer $CRON_TOKEN"
