@@ -154,6 +154,8 @@ PAID_PLANS_ENABLED = env_bool("PAID_PLANS_ENABLED", default=False)
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle", "rest_framework.throttling.UserRateThrottle"],
+    "DEFAULT_THROTTLE_RATES": {"anon": "60/min", "user": "300/min"},
 }
 
 AUTH_PASSWORD_VALIDATORS = [
