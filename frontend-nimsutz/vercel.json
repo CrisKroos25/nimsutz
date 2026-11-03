@@ -1,7 +1,6 @@
 {
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://nimsutz.onrender.com/api/:path*" },
-    { "source": "/health/", "destination": "https://nimsutz.onrender.com/health/" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
