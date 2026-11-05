@@ -23,6 +23,7 @@ class PlanVersion(models.Model):
 
     plan = models.ForeignKey(Plan, on_delete=models.PROTECT, related_name="versions")
     name = models.CharField(max_length=100, blank=True)
+    description = models.TextField(blank=True, default="")
     version_number = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=3, default="GTQ")
@@ -30,18 +31,29 @@ class PlanVersion(models.Model):
     duration_days = models.PositiveIntegerField(null=True, blank=True)  # null = sin vencimiento (Gratis)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    @property
+    def billing_period(self):
+        return "calendar_month" if self.price > 0 else None
+
     def save(self, *args, **kwargs):
-        if not self.pk and not self.name:
-            self.name = self.plan.name
+        if not self.pk:
+            if not self.name and self.plan_id:
+                self.name = self.plan.name
+            if not self.description and self.plan_id:
+                self.description = self.plan.description
         if self.pk:
             from django.core.exceptions import ValidationError
             original = type(self).objects.filter(pk=self.pk).first()
-            fields = ('plan_id', 'name', 'version_number', 'currency', 'capacity_bytes', 'duration_days')
+            fields = ('plan_id', 'name', 'description', 'version_number', 'currency', 'capacity_bytes', 'duration_days')
             changed = original and (Decimal(str(original.price)) != Decimal(str(self.price)) or
                 any(getattr(original, field) != getattr(self, field) for field in fields))
             if changed:
                 raise ValidationError('Las condiciones publicadas son inmutables. Crea otra versión del plan.')
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        raise ValidationError('Las condiciones publicadas son inmutables. No se permite eliminar versiones de planes.')
 
     class Meta:
         constraints = [
