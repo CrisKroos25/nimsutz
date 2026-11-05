@@ -93,3 +93,4 @@ export default function DeactivatePlanModal({ plan, onClose, onSuccess }) {
         </div>
     );
 }
+

@@ -70,3 +70,4 @@ export async function deactivatePlan(planId) {
         body: JSON.stringify({}),
     });
 }
+
