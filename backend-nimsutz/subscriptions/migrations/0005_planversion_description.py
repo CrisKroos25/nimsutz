@@ -25,3 +25,4 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(copy_plan_descriptions_to_versions, migrations.RunPython.noop),
     ]
+

@@ -51,3 +51,4 @@ def record_audit_event(
             exc,
             exc_info=True,
         )
+

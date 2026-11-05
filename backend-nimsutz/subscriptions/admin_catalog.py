@@ -280,3 +280,4 @@ def deactivate_plan(*, admin_user, plan_id: int) -> dict:
         "active": False,
         "changed": changed,
     }
+
