@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def format_plan_version(version: PlanVersion, *, is_current: bool = False, fallback_description: str = "") -> dict:
-    """Formatea una versión de plan para consumo administrativo."""
+    """Formatea una versión de plan para consumo administrativo (SRP)."""
     return {
         "id": version.id,
         "version_number": version.version_number,
@@ -28,6 +28,41 @@ def format_plan_version(version: PlanVersion, *, is_current: bool = False, fallb
         "created_at": version.created_at,
         "is_current": is_current,
     }
+
+
+def validate_plan_version_conditions(plan: Plan, price: Decimal, billing_period: str = None) -> int | None:
+    """
+    Valida las invariantes comerciales según el tipo de plan (SRP).
+    Retorna la duración en días aplicable (None para Gratis, 30 para planes de pago).
+    """
+    if plan.code == "free":
+        if price != Decimal("0.00"):
+            raise SubscriptionError(
+                "invalid_request",
+                "El plan gratuito debe tener un precio de 0.00.",
+                {"price": "El precio para el plan gratuito debe ser exactamente 0.00."},
+            )
+        if billing_period not in (None, ""):
+            raise SubscriptionError(
+                "invalid_request",
+                "El plan gratuito no tiene periodicidad de cobro.",
+                {"billing_period": "Debe ser nulo para el plan gratuito."},
+            )
+        return None
+
+    if price <= Decimal("0.00"):
+        raise SubscriptionError(
+            "invalid_request",
+            "Los planes de pago deben tener un precio mayor a 0.00.",
+            {"price": "Debe ser mayor a 0.00."},
+        )
+    if billing_period != "calendar_month":
+        raise SubscriptionError(
+            "invalid_request",
+            "La periodicidad de cobro para planes de pago debe ser 'calendar_month'.",
+            {"billing_period": "Valor permitido: 'calendar_month'."},
+        )
+    return 30
 
 
 def list_admin_plans(active: bool = None) -> list[dict]:
@@ -44,7 +79,6 @@ def list_admin_plans(active: bool = None) -> list[dict]:
 
     results = []
     for plan in queryset:
-        # Ordenar versiones en memoria para optimizar lecturas
         all_versions = sorted(plan.versions.all(), key=lambda v: (v.version_number, v.id), reverse=True)
         latest_version = all_versions[0] if all_versions else None
 
@@ -115,8 +149,7 @@ def publish_plan_version(
 
     Reglas de negocio:
     - base_version_id debe coincidir exactamente con la última versión vigente (concurrencia optimista).
-    - Plan 'free': precio debe ser 0.00 y billing_period nulo/vacío.
-    - Planes pagados: precio > 0 y billing_period == 'calendar_month'.
+    - Invariantes de plan 'free' vs pagados verificadas en validate_plan_version_conditions.
     - capacity_bytes > 0.
     - Emite evento defensivo de auditoría 'plan.version_published'.
     """
@@ -157,35 +190,8 @@ def publish_plan_version(
             {"capacity_bytes": "Debe ser mayor a 0."},
         )
 
-    # Invariantes Gratis vs Pagado
-    if plan.code == "free":
-        if parsed_price != Decimal("0.00"):
-            raise SubscriptionError(
-                "invalid_request",
-                "El plan gratuito debe tener un precio de 0.00.",
-                {"price": "El precio para el plan gratuito debe ser exactamente 0.00."},
-            )
-        if billing_period not in (None, ""):
-            raise SubscriptionError(
-                "invalid_request",
-                "El plan gratuito no tiene periodicidad de cobro.",
-                {"billing_period": "Debe ser nulo para el plan gratuito."},
-            )
-        duration_days = None
-    else:
-        if parsed_price <= Decimal("0.00"):
-            raise SubscriptionError(
-                "invalid_request",
-                "Los planes de pago deben tener un precio mayor a 0.00.",
-                {"price": "Debe ser mayor a 0.00."},
-            )
-        if billing_period != "calendar_month":
-            raise SubscriptionError(
-                "invalid_request",
-                "La periodicidad de cobro para planes de pago debe ser 'calendar_month'.",
-                {"billing_period": "Valor permitido: 'calendar_month'."},
-            )
-        duration_days = 30
+    # Validación de invariantes comerciales (SRP)
+    duration_days = validate_plan_version_conditions(plan, parsed_price, billing_period)
 
     clean_name = (name or "").strip() or plan.name
     clean_description = (description or "").strip()
@@ -280,4 +286,3 @@ def deactivate_plan(*, admin_user, plan_id: int) -> dict:
         "active": False,
         "changed": changed,
     }
-

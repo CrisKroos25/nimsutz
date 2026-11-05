@@ -258,6 +258,34 @@ class AdminPublishVersionApiTests(TestCase):
         data = resp.json()
         self.assertEqual(data.get("code"), "plan_conditions_changed")
 
+    def test_publishing_new_version_invalidates_stale_quotations(self):
+        """
+        Requisito de la guía: Reutilizar las comprobaciones comerciales para que
+        una cotización antigua no permita contratar condiciones que ya cambiaron.
+        """
+        client = create_client_user(email="buyer@nimsutz.local")
+        v1 = self.basic_plan.versions.get(version_number=1)
+
+        # Cliente cotiza bajo la versión 1
+        quote = services.prepare_quote(user=client, operation="upgrade", plan_version_id=v1.id)
+        self.assertEqual(quote.plan_version.id, v1.id)
+
+        # Administrador publica versión 2
+        services.publish_plan_version(
+            admin_user=self.admin,
+            plan_id=self.basic_plan.id,
+            base_version_id=v1.id,
+            name="Básico Plus",
+            price="18.00",
+            capacity_bytes=1500 * 1024 * 1024,
+            billing_period="calendar_month",
+        )
+
+        # Al intentar validar la cotización previa, el motor comercial lo rechaza con 409
+        with self.assertRaises(SubscriptionError) as ctx:
+            services.validate_quote_for_execution(quote)
+        self.assertEqual(ctx.exception.code, "plan_conditions_changed")
+
     def test_free_plan_requires_price_zero(self):
         v1 = self.free_plan.versions.get(version_number=1)
         payload = {
@@ -404,4 +432,3 @@ class PlanVersionImmutabilityModelTests(TestCase):
     def test_orm_blocks_deleting_published_version(self):
         with self.assertRaises(ValidationError):
             self.version.delete()
-
