@@ -126,3 +126,4 @@ class AdminPlanDeactivateView(AdminCatalogBaseView):
             plan_id=plan_id,
         )
         return Response(result, status=status.HTTP_200_OK)
+

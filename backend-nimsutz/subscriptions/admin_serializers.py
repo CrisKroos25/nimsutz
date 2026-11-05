@@ -69,3 +69,4 @@ class PublishPlanVersionInputSerializer(serializers.Serializer):
         allow_blank=True,
         help_text="Periodicidad ('calendar_month' o null para Gratis).",
     )
+

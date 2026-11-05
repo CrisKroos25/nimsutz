@@ -47,3 +47,4 @@ class IsAdminUserRole(BasePermission):
             return False
 
         return True
+
