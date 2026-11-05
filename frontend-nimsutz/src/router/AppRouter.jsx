@@ -1,7 +1,8 @@
 import AuthProvider from '@shared/auth/AuthProvider';
 import RequireSession from '@shared/auth/RequireSession';
+import RequireAdmin from '@shared/auth/RequireAdmin';
 import AboutPage from '../pages/AboutPage';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import useTheme from '@shared/hooks/useTheme';
 import MainLayout from '@layouts/MainLayout';
 import PublicLayout from '@layouts/PublicLayout';
@@ -19,6 +20,7 @@ import VerifyEmail from '@features/auth/pages/VerifyEmail';
 import { CheckoutPage, PaymentResultPage } from '@features/payments/PaymentPages';
 import { PaymentHistoryPage, PaymentDetailPage } from '@features/payments/history/PaymentHistoryPages';
 import { SubscriptionPage, RenewPage, ChangePlanPage } from '@features/subscription/SubscriptionPages';
+import AdminPlansPage from '@features/administration/plans/AdminPlansPage';
 
 export default function AppRouter() {
     const theme = useTheme();
@@ -62,6 +64,14 @@ export default function AppRouter() {
                             <Route path="subscription" element={<SubscriptionPage />} />
                             <Route path="subscription/renew" element={<RenewPage />} />
                             <Route path="subscription/change" element={<ChangePlanPage />} />
+                        </Route>
+                    </Route>
+
+                    {/* Módulo de Administración (Hito 100% - Rodrigo M19) */}
+                    <Route element={<RequireAdmin />}>
+                        <Route element={<MainLayout {...theme} />}>
+                            <Route path="administration" element={<Navigate to="/administration/plans" replace />} />
+                            <Route path="administration/plans" element={<AdminPlansPage />} />
                         </Route>
                     </Route>
                 </Routes>

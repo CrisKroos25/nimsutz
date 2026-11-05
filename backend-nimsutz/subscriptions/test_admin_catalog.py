@@ -404,3 +404,4 @@ class PlanVersionImmutabilityModelTests(TestCase):
     def test_orm_blocks_deleting_published_version(self):
         with self.assertRaises(ValidationError):
             self.version.delete()
+
