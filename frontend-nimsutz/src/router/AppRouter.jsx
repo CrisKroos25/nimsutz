@@ -30,7 +30,6 @@ export default function AppRouter() {
                 <Routes>
                     <Route element={<PublicLayout {...theme} />}>
                         <Route index element={<LandingPage />} />
-                        <Route path="about" element={<AboutPage />} />
                         <Route
                             path="*"
                             element={

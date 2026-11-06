@@ -1,0 +1,25 @@
+.toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* Escritorio y tablet: icono + texto */
+.text {
+    display: inline;
+}
+
+/* Móvil: solo icono */
+@media (max-width: 767px) {
+    .text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+    .toggle {
+        padding-inline: var(--space-2);
+    }
+}

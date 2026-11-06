@@ -1,15 +1,17 @@
-import { Folder, Receipt, Trash2, Wallet, Layers } from 'lucide-react';
+import { Folder, Receipt, Trash2, Wallet, ListTree, Layers} from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@shared/auth/AuthContext';
 import Brand from './Brand';
+import SidebarStorage from './SidebarStorage';
 import ThemeToggle from './ThemeToggle';
 import styles from './Layouts.module.css';
 
 const CLIENT_ITEMS = [
     { to: '/files', label: 'Mis archivos', icon: Folder },
-    { to: '/trash', label: 'Papelera', icon: Trash2 },
-    { to: '/subscription', label: 'Suscripción', icon: Wallet },
+    { to: '/plans', label: 'Planes', icon: ListTree },
+    { to: '/subscription', label: 'Mi suscripción', icon: Wallet },
     { to: '/payments/history', label: 'Pagos', icon: Receipt },
+    { to: '/trash', label: 'Papelera', icon: Trash2 },
 ];
 
 const ADMIN_ITEMS = [
@@ -59,8 +61,11 @@ export default function Sidebar({ theme, toggleTheme }) {
                     </>
                 )}
             </nav>
-            <div className={styles.theme}>
-                <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+            <div className={styles.footer}>
+                <SidebarStorage />
+                <div className={styles.theme}>
+                    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                </div>
             </div>
         </aside>
     );
