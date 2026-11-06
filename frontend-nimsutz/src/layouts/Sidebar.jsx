@@ -1,10 +1,13 @@
 import { Folder, Receipt, Trash2, Wallet, ListTree, Layers} from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { useAuth } from '@shared/auth/AuthContext';
+import { useHasSubscription } from '@shared/hooks/useHasSubscription';
 import Brand from './Brand';
 import SidebarStorage from './SidebarStorage';
 import ThemeToggle from './ThemeToggle';
 import styles from './Layouts.module.css';
+
+const FILES_ITEM = { to: '/files', label: 'Mis archivos', icon: Folder };
+const PLANS_ITEM = { to: '/plans', label: 'Planes', icon: ListTree };
 
 const CLIENT_ITEMS = [
     { to: '/files', label: 'Mis archivos', icon: Folder },
@@ -19,8 +22,11 @@ const ADMIN_ITEMS = [
 ];
 
 export default function Sidebar({ theme, toggleTheme }) {
-    const { user } = useAuth();
-    const isAdmin = user?.role === 'administrador';
+    const hasSubscription = useHasSubscription();
+
+    const navItems = [
+    hasSubscription ? FILES_ITEM : PLANS_ITEM,
+    ...CLIENT_ITEMS.filter((item) => item.to !== '/files' && item.to !== '/plans'),];
 
     return (
         <aside className={styles.sidebar}>
@@ -30,7 +36,7 @@ export default function Sidebar({ theme, toggleTheme }) {
                 aria-label="Navegación de la aplicación"
                 className={styles.navigation}
             >
-                {CLIENT_ITEMS.map(({ to, label, icon: Icon }) => (
+                {navItems.map(({ to, label, icon: Icon }) => (
                     <NavLink
                         key={to}
                         to={to}
@@ -43,23 +49,6 @@ export default function Sidebar({ theme, toggleTheme }) {
                     </NavLink>
                 ))}
 
-                {isAdmin && (
-                    <>
-                        <p className={styles.label} style={{ marginTop: '16px' }}>ADMINISTRACIÓN</p>
-                        {ADMIN_ITEMS.map(({ to, label, icon: Icon }) => (
-                            <NavLink
-                                key={to}
-                                to={to}
-                                className={({ isActive }) =>
-                                    `${styles.navLink} ${isActive ? styles.active : ''}`
-                                }
-                            >
-                                <Icon size={18} aria-hidden="true" />
-                                {label}
-                            </NavLink>
-                        ))}
-                    </>
-                )}
             </nav>
             <div className={styles.footer}>
                 <SidebarStorage />
