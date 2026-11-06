@@ -19,6 +19,8 @@ import VerifyEmail from '@features/auth/pages/VerifyEmail';
 import { CheckoutPage, PaymentResultPage } from '@features/payments/PaymentPages';
 import { PaymentHistoryPage, PaymentDetailPage } from '@features/payments/history/PaymentHistoryPages';
 import { SubscriptionPage, RenewPage, ChangePlanPage } from '@features/subscription/SubscriptionPages';
+import { AdministrationDashboardPage, AdministrationPaymentsPage, AdministrationPaymentDetailPage } from '@features/administration/AdministrationPages';
+import RequireAdministrator from '@features/administration/RequireAdministrator';
 import AdminPlansPage from '@features/administration/plans/AdminPlansPage';
 
 export default function AppRouter() {
@@ -64,6 +66,12 @@ export default function AppRouter() {
                             <Route path="subscription/change" element={<ChangePlanPage />} />
                         </Route>
                     </Route>
+                    <Route element={<RequireSession />}>
+                      <Route element={<RequireAdministrator />}>
+                        <Route path="administration" element={<AdministrationDashboardPage />} />
+                        <Route path="administration/payments" element={<AdministrationPaymentsPage />} />
+                        <Route path="administration/payments/:paymentId" element={<AdministrationPaymentDetailPage />} />
+                      </Route>
 
                     {/* Módulo de Administración (Hito 100% - Rodrigo M19) */}
                     <Route element={<RequireAdmin />}>

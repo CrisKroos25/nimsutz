@@ -44,39 +44,68 @@ def invalidate_user_sessions(user, *, include_expired=False):
     sessions = Session.objects.all()
     if not include_expired:
         sessions = sessions.filter(expire_date__gt=timezone.now())
+    invalidated = 0
     for session in sessions.iterator():
         if session.get_decoded().get(SESSION_KEY) == target:
             session.delete()
+            invalidated += 1
+    return invalidated
+
+
+def _require_active_administrator(actor):
+    if (actor.role != User.Role.ADMINISTRADOR or not actor.email_verified
+            or actor.account_status != User.AccountStatus.ACTIVE):
+        raise AuthorizationError("Se requiere un administrador activo y verificado.")
+
+
+def _record_account_event(*, actor, action, target, result, metadata):
+    """Integra con el servicio persistente de Miguel cuando su módulo esté disponible."""
+    try:
+        from audit.services import record_event
+    except ImportError as exc:
+        raise RuntimeError("El servicio persistente de auditoría aún no está integrado.") from exc
+    return record_event(actor=actor, action=action, entity_type="client",
+                        entity_id=str(target.pk), result=result, metadata=metadata)
 
 def suspend_account(*, actor, target):
-    if actor.role != User.Role.ADMINISTRADOR:
-        raise AuthorizationError("Solo un administrador puede suspender cuentas.")  # RN-E4-03
-
-    if target.role == User.Role.ADMINISTRADOR:
-        raise ValidationError("No se puede suspender a otro administrador.")
-
-    if target.pk == actor.pk:
-        raise ValidationError("No puedes suspender tu propia cuenta.")
-
-    if target.account_status == User.AccountStatus.SUSPENDED:
-        return target  # idempotente, mismo criterio que trash_file en files
-
     with transaction.atomic():
+        actor = User.objects.select_for_update().get(pk=actor.pk)
+        _require_active_administrator(actor)
+        target = User.objects.select_for_update().get(pk=target.pk)
+        if target.role == User.Role.ADMINISTRADOR:
+            raise ValidationError("No se puede suspender a otro administrador.")
+        if target.pk == actor.pk:
+            raise ValidationError("No puedes suspender tu propia cuenta.")
+        previous_status = target.account_status
+        if previous_status == User.AccountStatus.SUSPENDED:
+            _record_account_event(actor=actor, action="client.suspended", target=target,
+                                  result="no_change", metadata={"previous_status": previous_status,
+                                                                "new_status": previous_status})
+            target._admin_changed = False
+            target._sessions_invalidated = False
+            return target
         target.account_status = User.AccountStatus.SUSPENDED
         target.save(update_fields=["account_status", "updated_at"])
-        invalidate_user_sessions(target)
+        invalidated = invalidate_user_sessions(target)
+        _record_account_event(actor=actor, action="client.suspended", target=target, result="success",
+                              metadata={"previous_status": previous_status,
+                                        "new_status": target.account_status})
+        target._admin_changed = True
+        target._sessions_invalidated = invalidated > 0
     # RN-E4-05: no se tocan archivos, carpetas, suscripciones ni pagos del usuario.
     return target
 
 
 def reactivate_account(*, actor, target):
-    if actor.role != User.Role.ADMINISTRADOR:
-        raise AuthorizationError("Solo un administrador puede reactivar cuentas.")  # RN-E4-04
-
-    if target.account_status != User.AccountStatus.SUSPENDED:
-        raise ValidationError("Solo una cuenta suspendida puede reactivarse.")
-
     with transaction.atomic():
+        actor = User.objects.select_for_update().get(pk=actor.pk)
+        _require_active_administrator(actor)
+        target = User.objects.select_for_update().get(pk=target.pk)
+        if target.role == User.Role.ADMINISTRADOR:
+            raise ValidationError("No se puede reactivar a otro administrador.")
+        previous_status = target.account_status
+        if previous_status != User.AccountStatus.SUSPENDED:
+            raise ValidationError("Solo una cuenta suspendida puede reactivarse.")
         # Una cuenta suspendida antes de verificar su correo vuelve a pendiente
         target.account_status = (
             User.AccountStatus.ACTIVE
@@ -84,7 +113,12 @@ def reactivate_account(*, actor, target):
             else User.AccountStatus.PENDING_VERIFICATION
         )
         target.save(update_fields=["account_status", "updated_at"])
-        invalidate_user_sessions(target)
+        invalidated = invalidate_user_sessions(target)
+        _record_account_event(actor=actor, action="client.reactivated", target=target, result="success",
+                              metadata={"previous_status": previous_status,
+                                        "new_status": target.account_status})
+        target._admin_changed = True
+        target._sessions_invalidated = invalidated > 0
     return target
 
 def request_password_reset(*, email):
