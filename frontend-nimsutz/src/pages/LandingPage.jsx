@@ -1,5 +1,6 @@
 import ProductShowcase from './landing/ProductShowcase';
 import PlansSection from './landing/PlansSection';
+import AboutPage from './landing/AboutPage';
 import FaqSection from './landing/FaqSection';
 import { CloudUpload, FolderOpen, Download, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -87,6 +88,7 @@ export default function LandingPage() {
             </section>
             <PlansSection />
             <ProductShowcase />
+            <AboutPage />
             <section className={styles.closing} data-reveal="left">
                 <p className={styles.eyebrow}>NIM SUTZ’</p>
                 <h2>Tu próximo proyecto empieza con una idea.</h2>

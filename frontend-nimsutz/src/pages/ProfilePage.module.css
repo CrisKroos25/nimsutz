@@ -1,26 +1,191 @@
-.page { max-width: var(--content-width); display: grid; gap: var(--space-4); padding-block: var(--space-3); }
-.heading p { margin-top: var(--space-2); color: var(--color-text-muted); }
-.card { padding: var(--space-5); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-panel); background: var(--color-surface); box-shadow: var(--shadow-panel); min-width: 0; }
-.card h2 { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-md); }
-.card h2 svg { color: var(--color-secondary); flex-shrink: 0; }
-.identity { display: flex; align-items: center; gap: var(--space-5); margin-top: var(--space-5); }
-.avatar { width: 88px; height: 88px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--color-secondary) 12%, var(--color-surface)); color: var(--color-secondary); font-size: 2rem; font-weight: var(--font-weight-semibold); }
-.fields { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-3) var(--space-5); min-width: 0; margin: 0; }
-.fields dt { color: var(--color-text-muted); }
-.fields dd { margin: 0; overflow-wrap: anywhere; }
-.summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
-.plan { display: flex; align-items: center; gap: var(--space-4); margin-top: var(--space-5); }
-.plan > svg { color: var(--color-secondary); flex-shrink: 0; }
-.planName { font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); }
-.muted, .note { color: var(--color-text-muted); font-size: var(--font-size-sm); }
-.note { margin-top: var(--space-3); font-size: var(--font-size-xs); }
-.usage { margin-top: var(--space-4); font-size: var(--font-size-sm); }
-.meter { display: flex; align-items: center; gap: var(--space-3); margin-block: var(--space-2); font-size: var(--font-size-xs); }
-.meter progress { appearance: none; flex: 1; min-width: 0; width: 100%; height: 12px; border: 0; border-radius: var(--radius-pill); overflow: hidden; background: var(--color-bg); color: var(--color-secondary); }
-.meter progress::-webkit-progress-bar { background: var(--color-bg); border-radius: var(--radius-pill); }
-.meter progress::-webkit-progress-value { background: var(--color-secondary); border-radius: var(--radius-pill); }
-.meter progress::-moz-progress-bar { background: var(--color-secondary); border-radius: var(--radius-pill); }
-/* Mobile (< 768px: 6.8", 6.4", 5.8" phones) */
+/* ---------- Layout general ---------- */
+.page {
+    max-width: var(--content-width);
+    margin-inline: auto;
+    display: grid;
+    gap: var(--space-4);
+    padding-block: var(--space-3);
+}
+
+.heading p {
+    margin-top: var(--space-2);
+    color: var(--color-text-muted);
+}
+
+/* ---------- Tarjetas ---------- */
+.card {
+    min-width: 0;
+    padding: var(--space-5);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-panel);
+}
+.card h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-md);
+}
+.card h2 svg {
+    color: var(--color-secondary);
+    flex-shrink: 0;
+}
+
+/* ---------- Identidad ---------- */
+.identity {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    margin-top: var(--space-5);
+}
+.avatar {
+    width: 88px;
+    height: 88px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-secondary) 12%, var(--color-surface));
+    color: var(--color-secondary);
+    font-size: 2rem;
+    font-weight: var(--font-weight-semibold);
+}
+.fields {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-3) var(--space-5);
+    min-width: 0;
+    margin: 0;
+}
+.fields dt {
+    color: var(--color-text-muted);
+}
+.fields dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+/* ---------- Resumen y plan ---------- */
+.summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+.plan {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+}
+.plan > svg {
+    color: var(--color-secondary);
+    flex-shrink: 0;
+}
+.planName {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+}
+
+/* ---------- Almacenamiento ---------- */
+.muted,
+.note {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+.note {
+    margin-top: var(--space-3);
+    font-size: var(--font-size-xs);
+}
+.usage {
+    margin-top: var(--space-4);
+    font-size: var(--font-size-sm);
+}
+.meter {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-block: var(--space-2);
+    font-size: var(--font-size-xs);
+}
+.meter progress {
+    appearance: none;
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    height: 12px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    background: var(--color-bg);
+    color: var(--color-secondary);
+}
+.meter progress::-webkit-progress-bar {
+    background: var(--color-bg);
+    border-radius: var(--radius-pill);
+}
+.meter progress::-webkit-progress-value {
+    background: var(--color-secondary);
+    border-radius: var(--radius-pill);
+}
+.meter progress::-moz-progress-bar {
+    background: var(--color-secondary);
+    border-radius: var(--radius-pill);
+}
+
+/* ---------- Navegación al pie ---------- */
+.links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+}
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ---------- Botones y links de acción ---------- */
+.linkRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+}
+.primaryLink,
+.secondaryLink {
+    min-height: var(--button-height);
+    padding: var(--space-2) var(--space-4);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-pill);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+    white-space: nowrap;
+}
+.primaryLink {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+.primaryLink:hover {
+    background: var(--color-primary-hover);
+}
+.secondaryLink {
+    border: var(--border-width) solid var(--color-secondary);
+    color: var(--color-secondary);
+}
+.secondaryLink:hover {
+    background: color-mix(in srgb, var(--color-secondary) 8%, transparent);
+}
+.primaryLink:focus-visible,
+.secondaryLink:focus-visible {
+    outline: var(--focus-width) solid var(--color-focus);
+    outline-offset: var(--focus-offset);
+}
+
+/* ---------- Responsive ---------- */
 @media (max-width: 767px) {
     .summary {
         grid-template-columns: minmax(0, 1fr);
@@ -45,9 +210,16 @@
     .plan {
         margin-top: var(--space-3);
     }
+    .actions a {
+        flex: 1 1 100%;
+    }
+    .links {
+        gap: 12px 20px;
+    }
+    .linkRow > * {
+        flex: 1 1 100%;
+    }
 }
-
-/* Compact Mobile (<= 375px: 5.8" phones) */
 @media (max-width: 375px) {
     .card {
         padding: var(--space-3);
@@ -65,4 +237,3 @@
         font-size: 13px;
     }
 }
-
