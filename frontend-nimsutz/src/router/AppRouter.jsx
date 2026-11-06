@@ -1,7 +1,6 @@
 import AuthProvider from '@shared/auth/AuthProvider';
 import RequireSession from '@shared/auth/RequireSession';
 import RequireAdmin from '@shared/auth/RequireAdmin';
-import AboutPage from '../pages/AboutPage';
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import useTheme from '@shared/hooks/useTheme';
 import MainLayout from '@layouts/MainLayout';
