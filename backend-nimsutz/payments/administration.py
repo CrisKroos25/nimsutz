@@ -14,7 +14,7 @@ from accounts.models import User
 from files.models import File, QuotaReservation
 from payments.models import Payment
 from subscriptions.coverage import period_at
-from subscriptions.models import CoveragePeriod
+from subscriptions.models import CoveragePeriod, Subscription
 
 from .read_serializers import (
     AdministrationPaymentDetailSerializer,
@@ -73,7 +73,7 @@ def collect_metrics(*, date_from, date_to, at=None):
     # Lee periodos comerciales vigentes y excluye selecciones pendientes o cobertura futura.
     for sub in Subscription.objects.filter(user__role=User.Role.CLIENTE).select_related(
         "plan_version__plan"
-    ).prefetch_related("coverage_history").iterator():
+    ).prefetch_related("coverage_history").iterator(chunk_size=200):
         if sub.status == Subscription.Status.PENDING:
             continue
         if sub.coverage_history.exists():

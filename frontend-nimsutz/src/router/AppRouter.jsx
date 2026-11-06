@@ -12,6 +12,7 @@ import ProfilePage from '../pages/ProfilePage';
 import RegisterPage from '../pages/RegisterPage';
 import PlansPage from '../pages/PlansPage';
 import { FilesPage } from '@features/files/pages/FilePages';
+import FilesGate from '@shared/auth/FilesGate';
 import TrashPage from '@features/files/pages/Trash';
 import ForgotPassword from '@features/auth/pages/ForgotPassword';
 import ResetPassword from '@features/auth/pages/ResetPassword';
@@ -20,7 +21,6 @@ import { CheckoutPage, PaymentResultPage } from '@features/payments/PaymentPages
 import { PaymentHistoryPage, PaymentDetailPage } from '@features/payments/history/PaymentHistoryPages';
 import { SubscriptionPage, RenewPage, ChangePlanPage } from '@features/subscription/SubscriptionPages';
 import { AdministrationDashboardPage, AdministrationPaymentsPage, AdministrationPaymentDetailPage } from '@features/administration/AdministrationPages';
-import RequireAdministrator from '@features/administration/RequireAdministrator';
 import AdminPlansPage from '@features/administration/plans/AdminPlansPage';
 
 export default function AppRouter() {
@@ -29,6 +29,7 @@ export default function AppRouter() {
         <BrowserRouter>
             <AuthProvider>
                 <Routes>
+
                     <Route element={<PublicLayout {...theme} />}>
                         <Route index element={<LandingPage />} />
                         <Route
@@ -52,7 +53,7 @@ export default function AppRouter() {
                     
                     <Route element={<RequireSession />}>
                         <Route element={<MainLayout {...theme} />}>
-                            <Route path="files/*" element={<FilesPage />} />
+                            <Route path="/files" element={<FilesGate><FilesPage /></FilesGate>} />
                             <Route path="trash/*" element={<TrashPage />} />
                             <Route path="profile" element={<ProfilePage />} />
                             <Route path="plans" element={<PlansPage />} />
@@ -66,20 +67,18 @@ export default function AppRouter() {
                             <Route path="subscription/change" element={<ChangePlanPage />} />
                         </Route>
                     </Route>
+                    
                     <Route element={<RequireSession />}>
-                      <Route element={<RequireAdministrator />}>
-                        <Route path="administration" element={<AdministrationDashboardPage />} />
-                        <Route path="administration/payments" element={<AdministrationPaymentsPage />} />
-                        <Route path="administration/payments/:paymentId" element={<AdministrationPaymentDetailPage />} />
-                      </Route>
-
-                    {/* Módulo de Administración (Hito 100% - Rodrigo M19) */}
-                    <Route element={<RequireAdmin />}>
-                        <Route element={<MainLayout {...theme} />}>
-                            <Route path="administration" element={<Navigate to="/administration/plans" replace />} />
-                            <Route path="administration/plans" element={<AdminPlansPage />} />
-                        </Route>
+                        {/* <Route path="administration" element={<AdministrationLayout />}> Colocar todas las rutas de administración aquí </Route> */}
+                            <Route element={<RequireAdmin />}>
+                                <Route path="administration" element={<AdministrationDashboardPage />} />
+                                <Route path="administration/payments" element={<AdministrationPaymentsPage />} />
+                                <Route path="administration/payments/:paymentId" element={<AdministrationPaymentDetailPage />} />
+                                <Route path="administration/plans" element={<AdminPlansPage />} />
+                            </Route>
+                        {/* </Route> */}
                     </Route>
+
                 </Routes>
             </AuthProvider>
         </BrowserRouter>
