@@ -18,6 +18,17 @@ async function loadAccount() {
     return { subscription: validateSubscription(current), preference };
 }
 
+function PlansSkeleton() {
+    return <div className={`${styles.grid} ${styles.skeleton}`} aria-hidden="true">
+        {Array.from({ length: 3 }, (_, index) => <article key={index} className={styles.card}>
+            <div className={styles.skeletonLine} style={{ width: '60%', height: 20 }} />
+            <div className={styles.skeletonLine} />
+            <div className={styles.skeletonLine} style={{ width: '40%' }} />
+            <div className={styles.skeletonButton} />
+        </article>)}
+    </div>;
+}
+
 export default function PlansPage() {
     const { user, refresh } = useAuth();
     const navigate = useNavigate();
@@ -152,7 +163,8 @@ export default function PlansPage() {
     return <section className={styles.page} aria-labelledby="plans-page-title">
         <h1 id="plans-page-title">{summary ? 'Confirma tu plan' : 'Elige tu plan'}</h1>
         <p>Cuenta: {user.email}</p>
-        {loading ? <p role="status">Consultando planes y suscripción…</p> : error ?
+        <p role="status" className={styles.muted}>{loading ? 'Consultando planes y suscripción…' : ''}</p>
+        {loading ? <PlansSkeleton /> : error ?    
             <>
                 <div role="alert"><p>{error}</p><Button onClick={retry}>Reintentar</Button></div>
                 {intentError && <p role="alert">{intentError}</p>}
@@ -170,8 +182,10 @@ export default function PlansPage() {
                 {account.subscription ? <article className={styles.card}>
                     <h2>Tu plan actual: {account.subscription.plan.name}</h2>
                     <p>Ya tienes una suscripción. Visitar esta página no cambia tu plan.</p>
-                    <Link to="/files">Ir a mis archivos</Link>
-                    <Link to="/subscription">Ver mi suscripción</Link>
+                    <div className={styles.linkRow}>
+                        <Link className={styles.primaryLink} to="/files">Ir a mis archivos</Link>
+                        <Link className={styles.secondaryLink} to="/subscription">Ver mi suscripción</Link>
+                    </div>
                 </article> : summary && selected ? <article className={styles.card}>
                     <h2>{selected.name}</h2>
                     <p>{selected.price} {selected.currency}{selected.period ? ` / ${selected.period}` : ''}</p>
@@ -195,9 +209,9 @@ export default function PlansPage() {
                     </article>)}</div>
                 </>}
             </>}
-        <Link to="/profile">Volver a mi perfil</Link>
-        <Button variant="ghost" disabled={busy} onClick={() => navigate('/')}>
-            {account.subscription ? 'Volver al inicio' : 'Salir sin confirmar'}
-        </Button>
+        <nav className={styles.links} aria-label="Accesos relacionados">
+            <Link to="/profile">Volver a mi perfil</Link>
+            <Link to="/">{account.subscription ? 'Volver a la landing' : 'Salir sin confirmar'}</Link>
+        </nav>
     </section>;
 }

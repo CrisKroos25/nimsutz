@@ -32,6 +32,27 @@ function Failure({ message, onRetry }) {
 }
 
 // ---------- Mi suscripción (R10) ----------
+function SubscriptionSkeleton() {
+    return <div className={`${styles.skeleton} ${styles.pulse}`} aria-hidden="true">
+        <div className={styles.grid}>
+            <article className={`${styles.card} ${styles.skeletonCard}`}>
+                <div className={`${styles.skeletonLine} ${styles.wide}`} />
+                <div className={styles.skeletonLine} />
+                <div className={styles.skeletonLine} />
+                <div className={styles.skeletonLine} />
+            </article>
+            <article className={`${styles.card} ${styles.skeletonCard}`}>
+                <div className={`${styles.skeletonLine} ${styles.wide}`} />
+                <div className={styles.skeletonLine} />
+                <div className={`${styles.skeletonLine} ${styles.short}`} />
+            </article>
+        </div>
+        <article className={`${styles.card} ${styles.skeletonCard}`}>
+            <div className={`${styles.skeletonLine} ${styles.wide}`} />
+            <div className={styles.skeletonLine} />
+        </article>
+    </div>;
+}
 
 function MySubscription() {
     const load = useCallback(async () => {
@@ -66,7 +87,8 @@ function MySubscription() {
             <p>Consulta tu plan, tu consumo y las operaciones disponibles.</p>
         </header>
         {notice && <p className={styles.notice} role="status">{notice}</p>}
-        {loading ? <p role="status">Consultando tu suscripción…</p> : error ?
+        {loading && <p role="status" className={styles.muted}>Consultando tu suscripción…</p>}
+        {loading && !data ? <SubscriptionSkeleton /> : error ?
             <Failure message={quoteErrorMessage(error)} onRetry={reload} /> : !subscription ?
                 <article className={styles.card}>
                     <h2>{data.pendingSelection ? 'Pago pendiente' : 'Sin plan activo'}</h2>
@@ -231,23 +253,27 @@ function Renew() {
             <h1 id="renew-title">Renovar mi plan</h1>
             <p>Revisa el resumen que calcula el servidor antes de pasar al pago.</p>
         </header>
-        {loading ? <p role="status">Consultando tu suscripción…</p> : error ? <Failure message={quoteErrorMessage(error)} onRetry={reload} /> :
+        {loading && !data ? <SubscriptionSkeleton /> : error ? <Failure message={quoteErrorMessage(error)} onRetry={reload} /> :
             !allowed ? <article className={styles.card}>
                 <h2>Renovación no disponible</h2>
                 <p>{!data.subscription ? 'Aún no tienes un plan que renovar.'
                     : isFree(data.subscription) ? 'El plan Gratis no vence ni se renueva.'
                         : 'Ya tienes un ciclo siguiente pagado. No se puede renovar más por ahora.'}</p>
                 <Link className={styles.secondaryLink} to="/subscription">Volver a mi suscripción</Link>
-            </article> : <>
+            </article> : <div className={styles.content}>
                 <article className={styles.card}>
                     <h2>Plan actual: {data.subscription.plan.name}</h2>
                     <p className={styles.muted}>Tu cobertura termina el {formatDay(coverageEnd(data.subscription))}. La renovación conserva las condiciones que contrataste.</p>
-                    {!flow.quote && <Button loading={flow.busy} loadingLabel="Calculando…" onClick={() => flow.request('renew')}>Ver resumen de renovación</Button>}
+                    {!flow.quote && <div className={styles.buttonRow}>
+                        <Button loading={flow.busy} loadingLabel="Calculando…" onClick={() => flow.request('renew')}>Ver resumen de renovación</Button>
+                    </div>}
                 </article>
                 {flow.error && <Failure message={flow.error} />}
                 {flow.quote && <><QuoteSummary quote={flow.quote} /><PayOrConfirm key={flow.quote.id} flow={flow} onNewQuote={() => flow.request('renew')} /></>}
-            </>}
-        <Link to="/subscription">Volver a mi suscripción</Link>
+            </div>}
+        <nav className={styles.links} aria-label="Accesos relacionados">
+            <Link to="/subscription">Volver a mi suscripción</Link>
+        </nav>
     </section>;
 }
 
@@ -258,6 +284,17 @@ export function RenewPage() {
 
 // ---------- Cambio de plan (R11) ----------
 
+function PlansSkeleton() {
+    return <div className={`${styles.grid} ${styles.skeleton} ${styles.pulse}`} aria-hidden="true">
+        {Array.from({ length: 2 }, (_, index) => <article key={index} className={`${styles.card} ${styles.skeletonCard}`}>
+            <div className={`${styles.skeletonLine} ${styles.wide}`} />
+            <div className={styles.skeletonLine} />
+            <div className={`${styles.skeletonLine} ${styles.short}`} />
+            <div className={styles.skeletonButton} />
+        </article>)}
+    </div>;
+}
+
 function ChangePlan() {
     const loadCurrent = useCallback(() => getCurrentSubscription(), []);
     const current = useRemoteData(loadCurrent);
@@ -266,6 +303,7 @@ function ChangePlan() {
     const [target, setTarget] = useState(null);
     const choose = (plan) => { setTarget(plan); flow.request('change', plan.version_id, catalog.reload); };
     const loading = current.loading || catalog.loading;
+    const showSkeleton = loading && (!current.data || !catalog.plans?.length);
     const failure = current.error ? quoteErrorMessage(current.error) : catalog.error;
     const allowed = current.data?.allowed.includes('change');
     const subscription = current.data?.subscription;
@@ -274,7 +312,8 @@ function ChangePlan() {
             <h1 id="change-title">Cambiar de plan</h1>
             <p>Elige el plan al que quieres pasar y revisa el resumen antes de continuar.</p>
         </header>
-        {loading ? <p role="status">Consultando planes y suscripción…</p> : failure ?
+        <p role="status" className={styles.muted}>{loading ? 'Consultando planes y suscripción…' : ''}</p>
+        {showSkeleton ? <PlansSkeleton /> : failure ?
             <Failure message={failure} onRetry={() => { current.reload(); catalog.reload(); }} /> :
             !subscription ? <article className={styles.card}>
                 <h2>Aún no tienes un plan</h2>
@@ -305,7 +344,9 @@ function ChangePlan() {
                 {flow.error && <Failure message={flow.error} />}
                 {flow.quote && <><QuoteSummary quote={flow.quote} /><PayOrConfirm key={flow.quote.id} flow={flow} onNewQuote={() => target && choose(target)} /></>}
             </>}
-        <Link to="/subscription">Volver a mi suscripción</Link>
+        <nav className={styles.links} aria-label="Accesos relacionados">
+            <Link to="/subscription">Volver a mi suscripción</Link>
+        </nav>
     </section>;
 }
 

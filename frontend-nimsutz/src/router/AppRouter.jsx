@@ -1,7 +1,7 @@
 import AuthProvider from '@shared/auth/AuthProvider';
 import RequireSession from '@shared/auth/RequireSession';
-import AboutPage from '../pages/AboutPage';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import RequireAdmin from '@shared/auth/RequireAdmin';
+import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import useTheme from '@shared/hooks/useTheme';
 import MainLayout from '@layouts/MainLayout';
 import PublicLayout from '@layouts/PublicLayout';
@@ -21,6 +21,7 @@ import { PaymentHistoryPage, PaymentDetailPage } from '@features/payments/histor
 import { SubscriptionPage, RenewPage, ChangePlanPage } from '@features/subscription/SubscriptionPages';
 import { AdministrationDashboardPage, AdministrationPaymentsPage, AdministrationPaymentDetailPage } from '@features/administration/AdministrationPages';
 import RequireAdministrator from '@features/administration/RequireAdministrator';
+import AdminPlansPage from '@features/administration/plans/AdminPlansPage';
 
 export default function AppRouter() {
     const theme = useTheme();
@@ -30,7 +31,6 @@ export default function AppRouter() {
                 <Routes>
                     <Route element={<PublicLayout {...theme} />}>
                         <Route index element={<LandingPage />} />
-                        <Route path="about" element={<AboutPage />} />
                         <Route
                             path="*"
                             element={
@@ -72,6 +72,13 @@ export default function AppRouter() {
                         <Route path="administration/payments" element={<AdministrationPaymentsPage />} />
                         <Route path="administration/payments/:paymentId" element={<AdministrationPaymentDetailPage />} />
                       </Route>
+
+                    {/* Módulo de Administración (Hito 100% - Rodrigo M19) */}
+                    <Route element={<RequireAdmin />}>
+                        <Route element={<MainLayout {...theme} />}>
+                            <Route path="administration" element={<Navigate to="/administration/plans" replace />} />
+                            <Route path="administration/plans" element={<AdminPlansPage />} />
+                        </Route>
                     </Route>
                 </Routes>
             </AuthProvider>

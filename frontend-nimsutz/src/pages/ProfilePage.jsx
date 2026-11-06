@@ -75,11 +75,16 @@ export default function ProfilePage() {
                         <p>Elige y confirma un plan para habilitar tu almacenamiento.</p>
                         <Link to="/plans">Elegir plan</Link>
                     </section>}
-            {(state.loading || state.error || subscription) && <Link to="/plans">Consultar planes</Link>}
-            {subscription && <nav aria-label="Suscripción y pagos" className={styles.summary}>
-                <Link to="/subscription">Mi suscripción</Link>
-                <Link to="/payments/history">Historial de pagos</Link>
-            </nav>}
+            <article className={styles.card} aria-labelledby="profile-links-title">
+                <h2 id="profile-links-title">Mi cuenta</h2>
+                <div className={styles.linkRow}>
+                    <Link className={styles.primaryLink} to="/plans">Consultar planes</Link>
+                    {subscription && <>
+                        <Link className={styles.secondaryLink} to="/subscription">Revisar suscripción</Link>
+                        <Link className={styles.secondaryLink} to="/payments/history">Historial de pagos</Link>
+                    </>}
+                </div>
+            </article>
             <DeleteAccountSection />
         </section>
     );
