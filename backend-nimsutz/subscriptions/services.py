@@ -1,5 +1,11 @@
 """Entradas compatibles del módulo comercial; las reglas se organizan por responsabilidad."""
 
+from .admin_catalog import (
+    deactivate_plan,
+    list_admin_plans,
+    list_plan_versions,
+    publish_plan_version,
+)
 from .catalog import get_current_version, is_contractable, list_catalog, version_payload
 from .coverage import (
     activate_free,

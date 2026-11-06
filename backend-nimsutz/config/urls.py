@@ -2,7 +2,12 @@ from django.contrib import admin
 from django.urls import path, include
 
 from accounts.urls import auth_urlpatterns, admin_urlpatterns
-from subscriptions.urls import plan_urlpatterns, subscription_urlpatterns, account_urlpatterns
+from subscriptions.urls import (
+    plan_urlpatterns,
+    subscription_urlpatterns,
+    account_urlpatterns,
+    admin_plan_urlpatterns,
+)
 from config.views import health, run_scheduled_tasks
 
 urlpatterns = [
@@ -15,4 +20,5 @@ urlpatterns = [
     path("api/account/", include(account_urlpatterns)),
     path("api/auth/", include(auth_urlpatterns)),
     path("api/admin/", include(admin_urlpatterns)),
+    path("api/administration/plans/", include(admin_plan_urlpatterns)),
 ]
