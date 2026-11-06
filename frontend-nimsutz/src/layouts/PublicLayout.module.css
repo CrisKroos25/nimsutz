@@ -1,4 +1,7 @@
-.public { min-height: 100dvh; }
+/* ---------- Base ---------- */
+.public {
+    min-height: 100dvh;
+}
 .main,
 .headerContent,
 .footer {
@@ -7,39 +10,9 @@
     margin-inline: auto;
     padding-inline: var(--space-4);
 }
-.publicHeader {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    background: color-mix(in srgb, var(--color-surface) 64%, transparent);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border-bottom: var(--border-width) solid color-mix(in srgb, var(--color-text) 12%, transparent);
-}
-.headerContent {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-    padding-block: var(--space-3);
-
-}
-.publicNav {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-}
-.publicNav a {
-    color: var(--color-text);
-    font-size: var(--font-size-sm);
-}
-.footer {
-    padding-block: var(--space-4);
-    border-top: var(--border-width) solid var(--color-divider);
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
+.main:has(> [data-landing]) {
+    max-width: none;
+    padding-inline: 0;
 }
 .skip {
     position: fixed;
@@ -55,56 +28,239 @@
     transform: translateY(0);
 }
 
-.register { font-size: 12px; color: var(--color-text-muted); }
-.footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 32px; padding-block: 40px; }
-.footer nav { display: grid; gap: 12px; }
-.footer p { margin-top: 16px; }
-.publicNav a { text-decoration: none; }
-.publicNav a:hover, .footer a:hover { text-decoration: underline; }
-@media (max-width: 768px) {
+/* ---------- Header ---------- */
+.publicHeader {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: color-mix(in srgb, var(--color-surface) 64%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom: var(--border-width) solid color-mix(in srgb, var(--color-text) 12%, transparent);
+}
+.headerContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    padding-block: var(--space-3);
+}
+.publicNav {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+.publicNav a {
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+    text-decoration: none;
+}
+.publicNav a:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+/* ---------- Acciones del header ---------- */
+.primaryAction,
+.secondaryAction {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+    white-space: nowrap;
+}
+.primaryAction {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+.primaryAction:hover {
+    background: var(--color-primary-hover);
+    text-decoration: none;
+}
+.secondaryAction {
+    border: var(--border-width) solid var(--color-secondary);
+    color: var(--color-secondary);
+}
+.secondaryAction:hover {
+    background: color-mix(in srgb, var(--color-secondary) 8%, transparent);
+    text-decoration: none;
+}
+.primaryAction:focus-visible,
+.secondaryAction:focus-visible {
+    outline: var(--focus-width) solid var(--color-focus);
+    outline-offset: var(--focus-offset);
+}
+
+/* Botón del menú: oculto en escritorio */
+.menuButton {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    color: var(--color-text);
+    cursor: pointer;
+}
+.menuButton:focus-visible {
+    outline: var(--focus-width) solid var(--color-focus);
+    outline-offset: var(--focus-offset);
+}
+
+/* Menú móvil: oculto por defecto */
+.mobileMenu {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-4) var(--space-3);
+    border-top: var(--border-width) solid var(--color-border);
+    background: var(--color-surface);
+}
+.mobileMenu[hidden] {
+    display: none;
+}
+.mobileMenu a {
+    padding: var(--space-2) 0;
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+    text-decoration: none;
+}
+.mobileMenu a:focus-visible {
+    outline: var(--focus-width) solid var(--color-focus);
+    outline-offset: var(--focus-offset);
+}
+.mobileTheme {
+    display: none;
+}
+
+/* ---------- Footer ---------- */
+.footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 32px;
+    padding-block: 40px;
+    border-top: var(--border-width) solid var(--color-divider);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+.footer nav {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+}
+.footer nav a {
+    width: fit-content;
+    color: var(--color-text-muted);
+    font-size: 13px;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: color .15s ease;
+}
+.footer nav a:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+.footer nav a:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 3px;
+}
+.footer p {
+    margin-top: 16px;
+}
+
+
+/* ---------- Tablet y móvil (< 768px) ---------- */
+@media (max-width: 767px) {
     .headerContent {
         padding-block: var(--space-2);
-        gap: var(--space-2);
     }
     .publicNav {
-        width: 100%;
-        justify-content: space-between;
-        gap: 8px;
+        display: none;
     }
-    .publicNav a {
-        padding: 6px 8px;
-        min-height: 38px;
+    .menuButton {
         display: inline-flex;
-        align-items: center;
-        font-size: 13px;
     }
-    .main, .headerContent, .footer {
+    .mobileTheme {
+        display: flex;
+        justify-content: flex-start;
+    }
+    .main,
+    .headerContent,
+    .footer {
         padding-inline: 16px;
+    }
+    .mobileMenu .primaryAction,
+    .mobileMenu .secondaryAction {
+        width: 100%;
     }
 }
 
+/* ---------- Escritorio: el menú móvil nunca se muestra ---------- */
+@media (min-width: 768px) {
+    .mobileMenu {
+        display: none;
+    }
+}
+
+/* ---------- Pie responsive ---------- */
 @media (max-width: 640px) {
     .footer {
         flex-direction: column;
-        gap: 24px;
+        align-items: flex-start;
+        gap: 28px;
         padding-block: 28px;
+    }
+    .footer > div:first-child {
+        display: grid;
+        gap: 12px;
+    }
+    .footer p {
+        margin-top: 0;
+    }
+    .footer nav {
+        width: 100%;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 16px;
+        padding-top: 20px;
+        border-top: 1px solid var(--color-divider);
+    }
+    .footer nav a {
+        width: auto;
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+    }
+    .footer > p {
+        width: 100%;
+        padding-top: 16px;
+        border-top: 1px solid var(--color-divider);
+        font-size: 12px;
     }
 }
 
+/* ---------- Compacto (<= 375px) ---------- */
 @media (max-width: 375px) {
     .headerContent {
         padding-inline: 12px;
     }
-    .publicNav {
-        gap: 4px;
+    .main,
+    .footer {
+        padding-inline: 12px;
     }
-    .publicNav a {
-        padding: 4px 6px;
-        font-size: 12px;
+    .footer nav {
+        grid-template-columns: minmax(0, 1fr);
     }
-    .main, .footer {
+    .mobileMenu {
         padding-inline: 12px;
     }
 }
-
-.main:has(> [data-landing]) { max-width: none; padding-inline: 0; }

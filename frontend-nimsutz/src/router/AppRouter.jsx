@@ -1,6 +1,5 @@
 import AuthProvider from '@shared/auth/AuthProvider';
 import RequireSession from '@shared/auth/RequireSession';
-import AboutPage from '../pages/AboutPage';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import useTheme from '@shared/hooks/useTheme';
 import MainLayout from '@layouts/MainLayout';
@@ -28,7 +27,6 @@ export default function AppRouter() {
                 <Routes>
                     <Route element={<PublicLayout {...theme} />}>
                         <Route index element={<LandingPage />} />
-                        <Route path="about" element={<AboutPage />} />
                         <Route
                             path="*"
                             element={

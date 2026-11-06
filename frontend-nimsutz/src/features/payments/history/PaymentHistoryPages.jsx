@@ -79,7 +79,7 @@ function History() {
         { key: 'amount', label: 'Importe', render: (p) => paymentAmount(p.amount, p.currency) },
         { key: 'card_last4', label: 'Tarjeta', render: (p) => maskedCard(p.card_last4) },
         { key: 'status', label: 'Resultado', render: statusBadge },
-        { key: 'detail', label: 'Detalle', render: (p) => <Link to={`/payments/history/${p.id}`}
+        { key: 'detail', label: 'Detalle', render: (p) => <Link className={styles.detailLink} to={`/payments/history/${p.id}`}
             aria-label={`Ver detalle del pago del ${formatDateTime(p.created_at)}`}>Ver detalle</Link> },
     ];
 
@@ -122,7 +122,9 @@ function History() {
             <span role="status">Página {page} de {pages}</span>
             <Button variant="secondary" disabled={loading || !data.next} onClick={() => setPage((value) => value + 1)}>Siguiente</Button>
         </nav>}
-        <Link to="/subscription">Volver a mi suscripción</Link>
+        <nav className={styles.links} aria-label="Accesos relacionados">
+            <Link to="/subscription">Volver a mi suscripción</Link>
+        </nav>
     </section>;
 }
 
@@ -145,7 +147,14 @@ function Detail({ paymentId }) {
             <h1 id="payment-detail-title">Detalle del pago</h1>
             <p>Registro de solo lectura. Por seguridad no se muestra el número completo de la tarjeta.</p>
         </header>
-        {loading ? <p role="status">Consultando el pago…</p> : error ? <div className={styles.alert} role="alert">
+        {loading && !payment ? <article className={`${styles.card} ${styles.skeleton}`} aria-hidden="true">
+            <div className={styles.skeletonLine} style={{ width: '40%', height: 22 }} />
+            {Array.from({ length: 8 }, (_, index) => <div key={index} className={styles.skeletonRow}>
+                <span className={styles.skeletonLine} />
+                <span className={styles.skeletonLine} />
+            </div>)}
+        </article> : error ? <div className={styles.alert} role="alert">\
+            <p role="status" className={styles.note}>{loading ? 'Consultando el pago…' : ''}</p>
             <p>{historyErrorMessage(error)}</p>
             {error.status !== 404 && <Button variant="secondary" onClick={reload}>Reintentar</Button>}
         </div> : <article className={styles.card}>
@@ -170,7 +179,9 @@ function Detail({ paymentId }) {
             </ul>
             {rejected && <p className={styles.note}>No se realizó ningún cargo ni se modificó tu plan.</p>}
         </article>}
-        <Link to="/payments/history">Volver al historial</Link>
+        <nav className={styles.links} aria-label="Accesos relacionados">
+            <Link to="/payments/history">Volver al historial</Link>
+        </nav>
     </section>;
 }
 
