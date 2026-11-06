@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from .deletion_views import DeleteOwnAccountView
+from .administration import ClientDetailView, ClientListView, ReactivateClientView, SuspendClientView
 
 auth_urlpatterns = [
     path("account/", DeleteOwnAccountView.as_view()),
@@ -17,4 +18,11 @@ auth_urlpatterns = [
 admin_urlpatterns = [
     path("users/<int:pk>/suspend/", views.SuspendUserView.as_view()),
     path("users/<int:pk>/reactivate/", views.ReactivateUserView.as_view()),
+]
+
+administration_urlpatterns = [
+    path("clients/", ClientListView.as_view()),
+    path("clients/<int:client_id>/", ClientDetailView.as_view()),
+    path("clients/<int:client_id>/suspend/", SuspendClientView.as_view()),
+    path("clients/<int:client_id>/reactivate/", ReactivateClientView.as_view()),
 ]

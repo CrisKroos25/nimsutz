@@ -1,6 +1,6 @@
 const PREFERENCE_KEY = 'nimsutz.preferredPlanVersion';
 const INTENT_KEY = 'nimsutz.preferredPlanCode';
-const DESTINATIONS = { files: '/files', plans: '/plans', plan_summary: '/plans/summary', admin: '/profile' };
+const DESTINATIONS = { files: '/files', plans: '/plans', plan_summary: '/plans/summary', admin: '/administration' };
 
 // Solo valida la forma del código, no que sea uno conocido: el catálogo del servidor
 // decide si existe (ver resolvePlanSelection y needsReselection).
@@ -37,7 +37,7 @@ export function clearPlanPreference() {
 }
 
 export function sessionDestination(data) {
-    if (data?.user?.role === 'administrador') return '/profile';
+    if (data?.user?.role === 'administrador') return '/administration';
     // Quien ya tiene suscripción va a sus archivos, aunque quede una selección guardada.
     if (data?.destination === 'files') return '/files';
     if (readPlanPreference() || readPlanIntent()) return '/plans/summary';

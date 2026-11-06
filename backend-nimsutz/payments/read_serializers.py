@@ -36,6 +36,23 @@ class PaymentSummarySerializer(serializers.ModelSerializer):
         return f"{payment.amount:.2f}"
 
 
+class AdministrationPaymentSummarySerializer(PaymentSummarySerializer):
+    """Vista administrativa; agrega solo la identidad del cliente al contrato público."""
+    client = serializers.SerializerMethodField()
+    plan = serializers.SerializerMethodField()
+
+    class Meta(PaymentSummarySerializer.Meta):
+        fields = PaymentSummarySerializer.Meta.fields + ("client", "plan")
+        read_only_fields = fields
+
+    def get_client(self, payment):
+        return {"id": payment.owner_id, "name": payment.owner.name, "email": payment.owner.email}
+
+    def get_plan(self, payment):
+        snapshot = payment.plan_snapshot if isinstance(payment.plan_snapshot, dict) else {}
+        return {key: snapshot.get(key) for key in ("plan_code", "version_id", "name", "capacity_bytes")}
+
+
 class PaymentLineSerializer(serializers.ModelSerializer):
     amount = serializers.SerializerMethodField()
 
@@ -60,6 +77,15 @@ class PaymentDetailSerializer(PaymentSummarySerializer):
     def get_plan(self, payment):
         snapshot = payment.plan_snapshot if isinstance(payment.plan_snapshot, dict) else {}
         return {key: snapshot.get(key) for key in ("plan_code", "version_id", "name", "capacity_bytes")}
+
+
+class AdministrationPaymentDetailSerializer(AdministrationPaymentSummarySerializer):
+    """Detalle administrativo explícito, reutilizando únicamente líneas públicas."""
+    lines = PaymentLineSerializer(many=True, read_only=True)
+
+    class Meta(AdministrationPaymentSummarySerializer.Meta):
+        fields = AdministrationPaymentSummarySerializer.Meta.fields + ("lines",)
+        read_only_fields = fields
 
 
 class HistoryQuerySerializer(serializers.Serializer):
@@ -94,3 +120,8 @@ class HistoryQuerySerializer(serializers.Serializer):
         if data.get("date_to"):
             upper = datetime.combine(data["date_to"] + timedelta(days=1), time.min, tzinfo=GUATEMALA)
         return lower, upper
+
+
+class AdministrationHistoryQuerySerializer(HistoryQuerySerializer):
+    """Filtros exclusivos del historial administrativo; no amplía contrato personal."""
+    client_id = serializers.IntegerField(min_value=1, required=False)
