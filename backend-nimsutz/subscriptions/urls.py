@@ -1,9 +1,15 @@
 # subscriptions/urls.py
 from django.urls import path
-from . import views
+from . import views, admin_views
 
 plan_urlpatterns = [
     path("", views.PlanListView.as_view()),
+]
+
+admin_plan_urlpatterns = [
+    path("", admin_views.AdminPlanListView.as_view(), name="admin-plans-list"),
+    path("<int:plan_id>/versions/", admin_views.AdminPlanVersionView.as_view(), name="admin-plans-versions"),
+    path("<int:plan_id>/deactivate/", admin_views.AdminPlanDeactivateView.as_view(), name="admin-plans-deactivate"),
 ]
 
 subscription_urlpatterns = [
