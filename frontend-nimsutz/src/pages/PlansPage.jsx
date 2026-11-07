@@ -191,12 +191,14 @@ export default function PlansPage() {
                     <p>{selected.price} {selected.currency}{selected.period ? ` / ${selected.period}` : ''}</p>
                     <p>{formatStorage(selected.capacity_bytes)} de almacenamiento</p>
                     <p>Revisa estas condiciones antes de confirmar. Elegir un plan no lo activa automáticamente.</p>
-                    {selected.available && selected.code === 'gratis' && Number(selected.price) === 0 ?
-                        <Button loading={busy} onClick={confirm}>Confirmar y activar Gratis</Button> :
-                        selected.available && Number(selected.price) > 0 ?
-                            <Button loading={busy} loadingLabel="Preparando pago…" onClick={startPaidContract}>Continuar al pago</Button> :
-                            <p>La contratación de este plan no está disponible por el momento. Puedes elegir Gratis.</p>}
-                    <Link to="/plans">Cambiar selección</Link>
+                    <div className={styles.summaryActions}>
+                        {selected.available && selected.code === 'gratis' && Number(selected.price) === 0 ?
+                            <Button loading={busy} onClick={confirm}>Confirmar y activar Gratis</Button> :
+                            selected.available && Number(selected.price) > 0 ?
+                                <Button loading={busy} loadingLabel="Preparando pago…" onClick={startPaidContract}>Continuar al pago</Button> :
+                                <p>La contratación de este plan no está disponible por el momento. Puedes elegir Gratis.</p>}
+                                <Link className={styles.secondaryLink} to="/plans">Cambiar selección</Link>
+                    </div>
                 </article> : <>
                     <p>Selecciona un plan y revisa el resumen antes de activarlo.</p>
                     {plans.length === 0 && <p>No hay planes disponibles por el momento.</p>}
