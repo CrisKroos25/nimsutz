@@ -22,6 +22,7 @@ import { PaymentHistoryPage, PaymentDetailPage } from '@features/payments/histor
 import { SubscriptionPage, RenewPage, ChangePlanPage } from '@features/subscription/SubscriptionPages';
 import { AdministrationDashboardPage, AdministrationPaymentsPage, AdministrationPaymentDetailPage } from '@features/administration/AdministrationPages';
 import AdminPlansPage from '@features/administration/plans/AdminPlansPage';
+import AuditPage from '@features/administration/audit/AuditPage';
 
 export default function AppRouter() {
     const theme = useTheme();
@@ -75,6 +76,7 @@ export default function AppRouter() {
                                 <Route path="administration/payments" element={<AdministrationPaymentsPage />} />
                                 <Route path="administration/payments/:paymentId" element={<AdministrationPaymentDetailPage />} />
                                 <Route path="administration/plans" element={<AdminPlansPage />} />
+                                <Route path="administration/audit" element={<AuditPage />} />
                             </Route>
                         {/* </Route> */}
                     </Route>
