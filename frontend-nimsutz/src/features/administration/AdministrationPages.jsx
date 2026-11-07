@@ -29,7 +29,7 @@ function Dashboard({ filters }) {
                 </div>
                 <p className={styles.muted}>Cuentas, suscripciones, archivos y consumo son una instantánea al {formatDateTime(data.as_of)}. Solo los pagos usan el periodo seleccionado.</p>
             </>}
-        <nav className={styles.links} aria-label="Módulos de administración"><Link to="/administration">Panel de métricas</Link><Link to="/administration/payments">Historial comercial de pagos</Link></nav>
+        <nav className={styles.links} aria-label="Módulos de administración"><Link to="/administration">Panel de métricas</Link><Link to="/administration/payments">Historial comercial de pagos</Link><Link to="/administration/audit">Auditoría</Link></nav>
     </section>;
 }
 

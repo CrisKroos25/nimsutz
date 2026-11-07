@@ -13,6 +13,7 @@ from subscriptions.urls import (
     account_urlpatterns,
     admin_plan_urlpatterns,
 )
+from audit.urls import administration_urlpatterns as audit_administration_urlpatterns
 from config.views import health, run_scheduled_tasks
 
 urlpatterns = [
@@ -22,6 +23,7 @@ urlpatterns = [
     path("api/", include("files.urls")),
     path("api/administration/", include(client_administration_urlpatterns)),
     path("api/administration/", include(payment_administration_urlpatterns)),
+    path("api/administration/", include(audit_administration_urlpatterns)),
     path("api/plans/", include(plan_urlpatterns)),
     path("api/subscriptions/", include(subscription_urlpatterns)),
     path("api/account/", include(account_urlpatterns)),
