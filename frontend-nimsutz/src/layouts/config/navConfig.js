@@ -12,6 +12,6 @@ export const ADMIN_NAV = [
     { to: '/administration', label: 'Panel', icon: LayoutDashboard, end: true },
     { to: '/administration/clients', label: 'Clientes', icon: Users },
     { to: '/administration/payments', label: 'Pagos', icon: CreditCard },
-    { to: '/administration/plans', label: 'Catálogo de planes', icon: Layers },
+    { to: '/administration/plans', label: 'Planes', icon: Layers },
     { to: '/administration/audit', label: 'Auditoría', icon: ScrollText },
 ];
