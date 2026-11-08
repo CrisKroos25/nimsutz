@@ -7,6 +7,7 @@ from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated, Pe
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from subscriptions.errors import SubscriptionError
+from subscriptions.permissions import IsClientUserRole
 
 from . import services
 from .errors import PaymentError
@@ -14,7 +15,7 @@ from .serializers import CheckoutInputSerializer
 
 
 class PaymentView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsClientUserRole]
 
     def handle_exception(self, exc):
         if isinstance(exc, PaymentError):

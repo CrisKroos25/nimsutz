@@ -126,6 +126,7 @@
 }
 .buttonRow {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-start;
 }
 .buttonRow > * {
@@ -262,6 +263,10 @@
     }
     .row dd {
         text-align: left;
+    }
+    .buttonRow > *,
+    .summaryActions > * {
+        flex: 1 1 100%;
     }
 }
 

@@ -1,0 +1,439 @@
+/* Estilos de M18 (clientes). Mismos tokens que el resto del design system. */
+
+/* ---------- Layout general ---------- */
+.page {
+    width: min(100%, 1080px);
+    margin: 0 auto;
+    padding: var(--space-5) var(--space-3) var(--space-6);
+    display: grid;
+    gap: var(--space-4);
+    overflow-wrap: anywhere;
+}
+.heading {
+    display: grid;
+    gap: var(--space-2);
+}
+.heading h1 {
+    font-size: clamp(1.5rem, 2.3vw, 1.875rem);
+    letter-spacing: -0.03em;
+}
+.heading p,
+.muted {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+.content {
+    display: grid;
+    gap: var(--space-4);
+    animation: fadeIn .25s ease-out;
+}
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ---------- Tarjetas y avisos ---------- */
+.card {
+    min-width: 0;
+    padding: var(--space-5);
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+    display: grid;
+    align-content: start;
+    gap: var(--space-3);
+}
+.card h2 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+}
+.cardHead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+.notice,
+.warning,
+.alert {
+    padding: var(--space-3);
+    border-radius: var(--radius);
+    font-size: var(--font-size-sm);
+}
+.notice {
+    background: color-mix(in srgb, var(--color-secondary) 8%, var(--color-surface));
+    color: var(--color-text);
+}
+.warning {
+    background: color-mix(in srgb, var(--color-warning-text) 10%, var(--color-surface));
+    color: var(--color-warning-text);
+}
+.alert {
+    display: grid;
+    gap: var(--space-2);
+    justify-items: start;
+    color: var(--color-danger);
+    border: var(--border-width) solid color-mix(in srgb, var(--color-danger) 35%, transparent);
+    background: color-mix(in srgb, var(--color-danger) 6%, var(--color-surface));
+}
+.empty {
+    justify-items: start;
+}
+
+/* ---------- Detalle (filas) ---------- */
+.details {
+    margin: 0;
+}
+.row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-bottom: var(--border-width) solid var(--color-border);
+    font-size: var(--font-size-sm);
+}
+.row dt {
+    color: var(--color-text-muted);
+}
+.row dd {
+    margin: 0;
+    text-align: right;
+    font-weight: var(--font-weight-semibold);
+}
+
+/* ---------- Estado ---------- */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-pill);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    border: var(--border-width) solid currentColor;
+    white-space: nowrap;
+}
+.badge_ok {
+    color: var(--color-success, var(--color-secondary));
+    background: color-mix(in srgb, currentColor 10%, var(--color-surface));
+}
+.badge_warn {
+    color: var(--color-warning-text);
+    background: color-mix(in srgb, currentColor 10%, var(--color-surface));
+}
+.badge_danger {
+    color: var(--color-danger);
+    background: color-mix(in srgb, currentColor 8%, var(--color-surface));
+}
+.badge_neutral {
+    color: var(--color-text-muted);
+}
+
+/* ---------- Filtros ---------- */
+.filters {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-panel);
+}
+.field {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+}
+.field label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+.field input,
+.field select {
+    width: 100%;
+    min-height: var(--button-height);
+    padding: 0 var(--space-3);
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius);
+    font: inherit;
+    font-size: var(--font-size-sm);
+}
+.field input:focus-visible,
+.field select:focus-visible {
+    outline: var(--focus-width) solid var(--color-focus);
+    outline-offset: var(--focus-offset);
+}
+
+/* ---------- Acciones ---------- */
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+.actions > *,
+.buttonRow > * {
+    width: auto;
+}
+.buttonRow {
+    justify-content: flex-start;
+}
+.secondaryLink {
+    min-height: var(--button-height);
+    padding: var(--space-2) var(--space-4);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--border-width) solid var(--color-secondary);
+    border-radius: var(--radius-pill);
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+    white-space: nowrap;
+}
+.secondaryLink:focus-visible,
+.backLink:focus-visible {
+    outline: var(--focus-width) solid var(--color-focus);
+    outline-offset: var(--focus-offset);
+}
+.backLink {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    text-decoration: none;
+    border-radius: 4px;
+}
+.backLink:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+/* ---------- Tabla ---------- */
+.tableWrap {
+    min-width: 0;
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+    overflow-x: auto;
+}
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+}
+.table th,
+.table td {
+    padding: var(--space-3) var(--space-4);
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: var(--border-width) solid var(--color-border);
+}
+.table th {
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
+}
+.table tbody tr:last-child td {
+    border-bottom: 0;
+}
+.identity {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+.rowAction {
+    text-align: right;
+}
+
+.statusCell {
+    white-space: nowrap;
+}
+
+/* ---------- Paginación ---------- */
+.pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+.pager > button {
+    width: auto;
+}
+
+/* ---------- Modal ---------- */
+.modalBody {
+    display: grid;
+    gap: var(--space-3);
+    font-size: var(--font-size-sm);
+}
+.modalList {
+    margin: 0;
+    padding-left: var(--space-4);
+    display: grid;
+    gap: var(--space-2);
+    color: var(--color-text-muted);
+}
+.modalActions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2);
+}
+.modalActions > * {
+    width: auto;
+}
+
+/* ---------- Esqueleto ---------- */
+.skeleton {
+    display: grid;
+    gap: var(--space-4);
+}
+.skeletonLine {
+    height: 12px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--color-border) 75%, transparent);
+}
+.skeletonLine.wide {
+    height: 18px;
+    width: 55%;
+}
+.skeletonLine.short {
+    width: 45%;
+}
+.skeletonCard {
+    min-height: 220px;
+}
+.skeletonRow {
+    min-height: 72px;
+}
+.pulse {
+    animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: .45; }
+    50% { opacity: 1; }
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+    .grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .filterActions {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Tabla -> tarjetas */
+@media (max-width: 767px) {
+    .tableWrap {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        overflow: visible;
+    }
+    .table,
+    .table tbody,
+    .table tr,
+    .table td {
+        display: block;
+    }
+    .table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+    }
+    .table tr {
+        margin-bottom: var(--space-3);
+        padding: var(--space-3);
+        background: var(--color-surface);
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--shadow-panel);
+    }
+    .table td {
+        padding: var(--space-2) 0;
+        border-bottom: 0;
+    }
+    .table td[data-label] {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+        gap: var(--space-2);
+        align-items: center;
+    }
+    .table td[data-label]::before {
+        content: attr(data-label);
+        color: var(--color-text-muted);
+    }
+    .rowAction {
+        text-align: left;
+    }
+    .rowAction .secondaryLink {
+        width: 100%;
+    }
+}
+
+@media (max-width: 560px) {
+    .page {
+        padding: var(--space-4) 0;
+        gap: var(--space-3);
+    }
+    .card {
+        padding: var(--space-4) var(--space-3);
+    }
+    .filters {
+        grid-template-columns: minmax(0, 1fr);
+        padding: var(--space-3);
+    }
+    .row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-1);
+    }
+    .row dd {
+        text-align: left;
+    }
+    .buttonRow > *,
+    .modalActions > *,
+    .filterActions > * {
+        flex: 1 1 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pulse,
+    .content {
+        animation: none;
+    }
+}

@@ -94,7 +94,9 @@ function MySubscription() {
                     <h2>{data.pendingSelection ? 'Pago pendiente' : 'Sin plan activo'}</h2>
                     {data.pendingSelection && <p>Seleccionaste el plan <strong>{data.pendingSelection.plan.name}</strong>. La selección se conserva, pero aún no concede almacenamiento.</p>}
                     <p>Elige y confirma un plan para habilitar tu almacenamiento.</p>
-                    <Link className={styles.primaryLink} to="/plans">Elegir plan</Link>
+                    <div className={styles.buttonRow}>
+                        <Link className={styles.primaryLink} to="/plans">Elegir plan</Link>
+                    </div>
                 </article> : <>
                     <div className={styles.grid}>
                         <article className={styles.card} aria-labelledby="plan-title">
@@ -318,7 +320,9 @@ function ChangePlan() {
             !subscription ? <article className={styles.card}>
                 <h2>Aún no tienes un plan</h2>
                 <p>Primero elige y confirma uno.</p>
-                <Link className={styles.primaryLink} to="/plans">Elegir plan</Link>
+                <div className={styles.buttonRow}>
+                    <Link className={styles.primaryLink} to="/plans">Elegir plan</Link>
+                </div>
             </article> : !allowed ? <article className={styles.card}>
                 <h2>Cambio no disponible</h2>
                 <p>No puedes cambiar de plan en este momento.</p>
@@ -326,7 +330,9 @@ function ChangePlan() {
                 <h2>Cambio programado</h2>
                 <p>Cambio a <strong>{flow.quote.plan.name}</strong>{flow.done.effective_at ? ` programado para el ${formatDay(flow.done.effective_at)}` : ' programado al terminar tu cobertura'}. No se cobró nada.</p>
                 <p>{flow.done.requires_payment ? 'Para activar el plan destino tendrás que revisar sus condiciones y aprobar el pago al terminar la cobertura actual. No se cobrará automáticamente.' : 'Hasta esa fecha conservas tu plan actual y después pasarás a Gratis sin perder archivos.'}</p>
-                <Link className={styles.primaryLink} to="/subscription">Ir a mi suscripción</Link>
+                <div className={styles.buttonRow}>
+                    <Link className={styles.primaryLink} to="/subscription">Ir a mi suscripción</Link>
+                </div>
             </article> : <>
                 <p className={styles.muted}>Plan actual: <strong>{subscription.plan.name}</strong></p>
                 {changeTargets(catalog.plans, subscription).length === 0 && <p className={styles.notice} role="status">No hay otros planes disponibles para cambiar en este momento.</p>}
