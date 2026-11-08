@@ -101,6 +101,45 @@
     outline-offset: 3px;
 }
 
+.summaryActions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+.summaryActions > * {
+    width: auto;
+    margin: 0;
+}
+.summaryActions .secondaryLink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: var(--button-height);
+    padding: var(--space-2) var(--space-3);
+    border: var(--border-width) solid var(--color-secondary);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.summaryActions .secondaryLink:hover {
+    background: color-mix(in srgb, var(--color-secondary) 12%, transparent);
+    color: var(--color-secondary);
+    text-decoration: none;
+}
+
+.summaryActions .secondaryLink:hover {
+    background: color-mix(in srgb, var(--color-secondary) 8%, transparent);
+}
+
+
 /* ---------- Botones y links de acción ---------- */
 .linkRow {
     display: flex;
@@ -136,7 +175,6 @@
 }
 .secondaryLink:hover {
     background: color-mix(in srgb, var(--color-primary) 8%, transparent);
-    border-color: var(--color-primary);
 }
 .primaryLink:focus-visible,
 .secondaryLink:focus-visible {

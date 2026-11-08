@@ -7,6 +7,8 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from subscriptions.permissions import IsClientUserRole
+
 from . import services
 from .models import File, Folder
 from .serializers import (
@@ -18,7 +20,7 @@ from .serializers import (
 # ---------- Folders ----------
 
 class FolderListCreateView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsClientUserRole]
     # futuro: E1 agrega IsAccountActive aquí (global, vía settings, no hace falta tocar esto)
 
     def get(self, request):
@@ -48,7 +50,7 @@ class FolderListCreateView(APIView):
 
 
 class FolderDetailView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsClientUserRole]
 
     def patch(self, request, pk):
         folder = get_object_or_404(Folder, pk=pk, owner=request.user)
@@ -77,7 +79,7 @@ class FolderDetailView(APIView):
 
 class FileListView(generics.ListAPIView):
     serializer_class = FileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsClientUserRole]
 
     def get_queryset(self):
         queryset = File.objects.filter(owner=self.request.user)
@@ -91,7 +93,7 @@ class FileListView(generics.ListAPIView):
 
 
 class FileRequestUploadView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsClientUserRole]
     # futuro: E2 agrega aquí HasActiveSubscription (es escritura/consumo de cuota)
 
     def post(self, request):
@@ -112,7 +114,7 @@ class FileRequestUploadView(APIView):
 
 
 class FileConfirmUploadView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsClientUserRole]
 
     def post(self, request, pk):
         file = get_object_or_404(File, pk=pk, owner=request.user)
@@ -133,7 +135,7 @@ class FileConfirmUploadView(APIView):
 
 
 class FileRequestDownloadView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsClientUserRole]
     # descarga: E2 NO bloquea esto ni vencida la suscripción (RN-E2-18), por eso
     # este permission_classes se queda solo con IsAuthenticated, a propósito.
 
@@ -149,7 +151,7 @@ class FileRequestDownloadView(APIView):
 # ---------- Recycle Bin and deletion ----------
 
 class FileTrashView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsClientUserRole]
 
     def post(self, request, pk):
         file = get_object_or_404(File, pk=pk, owner=request.user)
@@ -161,7 +163,7 @@ class FileTrashView(APIView):
 
 
 class FileRestoreView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsClientUserRole]
     # futuro: E2 agrega aquí HasActiveSubscription (restaurar cuenta como escritura, RN-E2-18)
 
     def post(self, request, pk):
@@ -181,7 +183,7 @@ class FileRestoreView(APIView):
 
 
 class FilePermanentDeleteView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsClientUserRole]
 
     def delete(self, request, pk):
         file = get_object_or_404(File, pk=pk, owner=request.user)
@@ -195,7 +197,7 @@ class FilePermanentDeleteView(APIView):
 # ---------- Reglas de archivo ----------
 
 class UploadRulesView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsClientUserRole]
 
     def get(self, request):
         return Response({

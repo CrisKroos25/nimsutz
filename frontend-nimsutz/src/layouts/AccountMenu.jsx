@@ -5,7 +5,7 @@ import { useAuth } from '@shared/auth/AuthContext';
 import { getAccountIdentity } from '@shared/auth/accountIdentity';
 import styles from './AccountMenu.module.css';
 
-export default function AccountMenu() {
+export default function AccountMenu({ profilePath = '/profile' }) {
     const { user, signOut } = useAuth();
     const { name, initial, email } = getAccountIdentity(user);
     const [open, setOpen] = useState(false);
@@ -64,9 +64,9 @@ export default function AccountMenu() {
                         <span>{email}</span>
                     </div>
                     <nav aria-label="Opciones de cuenta">
-                        <Link to="/profile" onClick={() => setOpen(false)}>
-                            <UserRound size={18} aria-hidden="true" /> Mi perfil
-                        </Link>
+                            <Link to={profilePath} onClick={() => setOpen(false)}>
+                                <UserRound size={18} aria-hidden="true" /> Mi perfil
+                            </Link>
                         <button type="button" onClick={exit} disabled={busy} aria-busy={busy}>
                             <LogOut size={18} aria-hidden="true" />
                             {busy ? 'Cerrando sesión…' : 'Cerrar sesión'}

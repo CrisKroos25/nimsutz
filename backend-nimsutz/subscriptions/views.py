@@ -10,6 +10,7 @@ from accounts.serializers import UserSerializer
 from . import services
 from .errors import SubscriptionError
 from .overview import build_account_overview
+from .permissions import IsClientUserRole
 from .serializers import PlanVersionInputSerializer, QuoteCreateSerializer, ScheduledConfirmationSerializer
 from .terms import require_customer
 
@@ -26,7 +27,7 @@ class PlanListView(APIView):
 
 
 class PreferenceView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsClientUserRole]
 
     def get(self, request):
         return Response({"preference": services.get_preference(request.user)})
@@ -48,7 +49,7 @@ class PreferenceView(APIView):
 
 
 class CurrentSubscriptionView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsClientUserRole]
 
     def get(self, request):
         sub = services.get_active_subscription(request.user)
@@ -62,7 +63,7 @@ class CurrentSubscriptionView(APIView):
 
 
 class ActivateFreeView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsClientUserRole]
 
     def post(self, request):
         serializer = PlanVersionInputSerializer(data=request.data)
@@ -84,7 +85,7 @@ class ActivateFreeView(APIView):
 
 
 class AccountOverviewView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsClientUserRole]
 
     def get(self, request):
         data = build_account_overview(request.user)
@@ -96,7 +97,7 @@ class AccountOverviewView(APIView):
 # ---------------------------------------------------------------------------
 
 class CommercialView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsClientUserRole]
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)

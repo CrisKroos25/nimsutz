@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'files',
     'subscriptions',
     'payments',
+    'audit',
 ]
 
 MIDDLEWARE = [
