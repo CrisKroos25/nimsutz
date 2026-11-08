@@ -48,3 +48,25 @@ class IsAdminUserRole(BasePermission):
 
         return True
 
+
+class IsClientUserRole(BasePermission):
+    """DRF Permission class para asegurar rol de cliente verificado y activo."""
+    message = "Acceso restringido a clientes autorizados."
+
+    def has_permission(self, request, view):
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated:
+            return False
+
+        role = getattr(user, "role", None)
+        if role != User.Role.CLIENTE and role != "cliente":
+            return False
+
+        account_status = getattr(user, "account_status", None)
+        if account_status != User.AccountStatus.ACTIVE and account_status != "activa":
+            return False
+
+        if not getattr(user, "is_active", True) or not getattr(user, "email_verified", False):
+            return False
+
+        return True

@@ -9,6 +9,8 @@ from rest_framework import permissions, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from subscriptions.permissions import IsClientUserRole
+
 from .deletion import delete_own_account
 
 
@@ -26,7 +28,7 @@ class DeleteAccountSerializer(serializers.Serializer):
 @method_decorator(transaction.non_atomic_requests, name="dispatch")
 @method_decorator(csrf_protect, name="dispatch")
 class DeleteOwnAccountView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsClientUserRole]
 
     def delete(self, request):
         confirmation = DeleteAccountSerializer(data=request.data)

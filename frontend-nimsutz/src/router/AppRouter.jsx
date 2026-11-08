@@ -1,6 +1,7 @@
 import AuthProvider from '@shared/auth/AuthProvider';
 import RequireSession from '@shared/auth/RequireSession';
 import RequireAdmin from '@shared/auth/RequireAdmin';
+import RequireRole from '@shared/auth/RequireRole';
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import useTheme from '@shared/hooks/useTheme';
 import MainLayout from '@layouts/MainLayout';
@@ -53,33 +54,34 @@ export default function AppRouter() {
                     </Route>
                     
                     <Route element={<RequireSession />}>
-                        <Route element={<MainLayout {...theme} />}>
-                            <Route path="/files" element={<FilesGate><FilesPage /></FilesGate>} />
-                            <Route path="trash/*" element={<TrashPage />} />
-                            <Route path="profile" element={<ProfilePage />} />
-                            <Route path="plans" element={<PlansPage />} />
-                            <Route path="plans/summary" element={<PlansPage />} />
-                            <Route path="payments/checkout/:quoteId" element={<CheckoutPage />} />
-                            <Route path="payments/result/:paymentId" element={<PaymentResultPage />} />
-                            <Route path="payments/history" element={<PaymentHistoryPage />} />
-                            <Route path="payments/history/:paymentId" element={<PaymentDetailPage />} />
-                            <Route path="subscription" element={<SubscriptionPage />} />
-                            <Route path="subscription/renew" element={<RenewPage />} />
-                            <Route path="subscription/change" element={<ChangePlanPage />} />
+                        <Route element={<RequireRole allow={['cliente']} />}>
+                            <Route element={<MainLayout {...theme} />}>
+                                <Route path="/files" element={<FilesGate><FilesPage /></FilesGate>} />
+                                <Route path="trash/*" element={<TrashPage />} />
+                                <Route path="profile" element={<ProfilePage />} />
+                                <Route path="plans" element={<PlansPage />} />
+                                <Route path="plans/summary" element={<PlansPage />} />
+                                <Route path="payments/checkout/:quoteId" element={<CheckoutPage />} />
+                                <Route path="payments/result/:paymentId" element={<PaymentResultPage />} />
+                                <Route path="payments/history" element={<PaymentHistoryPage />} />
+                                <Route path="payments/history/:paymentId" element={<PaymentDetailPage />} />
+                                <Route path="subscription" element={<SubscriptionPage />} />
+                                <Route path="subscription/renew" element={<RenewPage />} />
+                                <Route path="subscription/change" element={<ChangePlanPage />} />
+                            </Route>
                         </Route>
                     </Route>
-                    
+                            
                     <Route element={<RequireSession />}>
-                        {/* <Route path="administration" element={<AdministrationLayout />}> Colocar todas las rutas de administración aquí </Route> */}
-                            <Route element={<RequireAdmin />}>
-                                <Route path="administration" element={<AdministrationDashboardPage />} />
-                                <Route path="administration/payments" element={<AdministrationPaymentsPage />} />
-                                <Route path="administration/payments/:paymentId" element={<AdministrationPaymentDetailPage />} />
-                                <Route path="administration/plans" element={<AdminPlansPage />} />
-                                <Route path="administration/audit" element={<AuditPage />} />
-                            </Route>
-                        {/* </Route> */}
+                        <Route element={<RequireRole allow={['administrador']} />}>
+                            <Route path="administration" element={<AdministrationDashboardPage />} />
+                            <Route path="administration/payments" element={<AdministrationPaymentsPage />} />
+                            <Route path="administration/payments/:paymentId" element={<AdministrationPaymentDetailPage />} />
+                            <Route path="administration/plans" element={<AdminPlansPage />} />
+                            <Route path="administration/audit" element={<AuditPage />} />
+                        </Route>
                     </Route>
+
 
                 </Routes>
             </AuthProvider>
