@@ -96,6 +96,14 @@ class HistoryQuerySerializer(serializers.Serializer):
     page = serializers.IntegerField(min_value=1, required=False, default=1)
     page_size = serializers.IntegerField(min_value=1, required=False, default=DEFAULT_PAGE_SIZE)
 
+    def to_internal_value(self, data):
+        unknown = set(data.keys()) - set(self.fields)
+        if unknown:
+            raise serializers.ValidationError({
+                key: ["Este parámetro no está permitido."] for key in sorted(unknown)
+            })
+        return super().to_internal_value(data)
+
     def validate_page_size(self, value):
         return min(value, MAX_PAGE_SIZE)
 

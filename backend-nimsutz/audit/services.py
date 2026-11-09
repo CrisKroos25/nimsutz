@@ -24,6 +24,7 @@ ALLOWED_METADATA_KEYS = frozenset({
     "previous_status", "new_status",
     "previous_version_id", "new_version_id",
     "previous_active", "new_active",
+    "plan_code", "version_number", "price", "capacity_bytes",
     "reason_code",
 })
 MAX_VALUE_LENGTH = 100
