@@ -11,6 +11,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from accounts.models import User
+from audit.models import AuditEvent
 from .errors import SubscriptionError
 from .models import Plan, PlanVersion, Subscription
 from . import services
@@ -215,6 +216,9 @@ class AdminPublishVersionApiTests(TestCase):
         self.assertEqual(data["version"]["name"], "Básico Mejorado")
         self.assertEqual(data["version"]["price"], "20.00")
         self.assertTrue(data["version"]["is_current"])
+        event = AuditEvent.objects.get(action="plan.version_published", entity_id=str(self.basic_plan.id))
+        self.assertEqual(event.metadata["plan_code"], "basic")
+        self.assertEqual(event.metadata["version_number"], 2)
 
         # Verificar que v1 permanece inalterada
         current_v1.refresh_from_db()
@@ -267,7 +271,7 @@ class AdminPublishVersionApiTests(TestCase):
         v1 = self.basic_plan.versions.get(version_number=1)
 
         # Cliente cotiza bajo la versión 1
-        quote = services.prepare_quote(user=client, operation="upgrade", plan_version_id=v1.id)
+        quote = services.prepare_quote(user=client, operation="contract", plan_version_id=v1.id)
         self.assertEqual(quote.plan_version.id, v1.id)
 
         # Administrador publica versión 2
@@ -283,7 +287,7 @@ class AdminPublishVersionApiTests(TestCase):
 
         # Al intentar validar la cotización previa, el motor comercial lo rechaza con 409
         with self.assertRaises(SubscriptionError) as ctx:
-            services.validate_quote_for_execution(quote)
+            services.validate_quote_for_execution(user=client, quote_id=quote.id)
         self.assertEqual(ctx.exception.code, "plan_conditions_changed")
 
     def test_free_plan_requires_price_zero(self):
@@ -362,6 +366,8 @@ class AdminDeactivatePlanApiTests(TestCase):
         self.assertEqual(data["plan_id"], self.basic_plan.id)
         self.assertFalse(data["active"])
         self.assertTrue(data["changed"])
+        event = AuditEvent.objects.get(action="plan.deactivated", entity_id=str(self.basic_plan.id))
+        self.assertEqual(event.metadata["plan_code"], "basic")
 
         self.basic_plan.refresh_from_db()
         self.assertFalse(self.basic_plan.is_available)
@@ -393,6 +399,7 @@ class AdminDeactivatePlanApiTests(TestCase):
             plan_version=basic_version,
             status=Subscription.Status.ACTIVE,
             started_at=now,
+            expires_at=now + timezone.timedelta(days=30),
             cycle_anchor_day=now.day,
             coverage_end=now + timezone.timedelta(days=30),
             selected_plan_version=basic_version,
@@ -410,9 +417,11 @@ class AdminDeactivatePlanApiTests(TestCase):
         self.assertIsNotNone(effective)
         self.assertEqual(effective.plan_version.id, basic_version.id)
 
-        # Puede consultarse la preferencia/renovación del cliente normalmente
-        pref = services.get_preference(self.client_user)
-        self.assertEqual(pref["plan_code"], "basic")
+        # Los contratos existentes pueden renovar su versión aunque el plan
+        # ya no esté disponible para nuevas contrataciones.
+        quote = services.prepare_quote(user=self.client_user, operation="renew")
+        self.assertEqual(quote.operation, "renew")
+        self.assertEqual(quote.plan_version_id, basic_version.id)
 
 
 class PlanVersionImmutabilityModelTests(TestCase):

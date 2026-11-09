@@ -21,7 +21,7 @@ class AdministrationReadTests(TestCase):
         cls.client_b = User.objects.create_user(email="two@example.test", name="Dos", email_verified=True,
                                                 account_status="activa")
         plan = Plan.objects.create(code="qa", name="Plan QA")
-        version = PlanVersion.objects.create(plan=plan, version_number=1, price="12.00", capacity_bytes=1000,
+        version = PlanVersion.objects.create(plan=plan, version_number=1, price=Decimal("12.00"), capacity_bytes=1000,
                                              duration_days=30)
         cls.subscription = Subscription.objects.create(user=cls.client_a, plan_version=version,
             status=Subscription.Status.ACTIVE, started_at=timezone.now(), expires_at=timezone.now())
@@ -62,9 +62,11 @@ class AdministrationReadTests(TestCase):
     def test_effective_coverage_is_counted_and_expired_contract_is_not(self):
         from subscriptions.history import record_period
         now = timezone.now()
+        starts_at = now - timezone.timedelta(days=1)
+        self.subscription.started_at = starts_at
         self.subscription.expires_at = None
-        self.subscription.save(update_fields=["expires_at"])
-        record_period(self.subscription, self.subscription.plan_version, now, None, reason="test")
+        self.subscription.save(update_fields=["started_at", "expires_at"])
+        record_period(self.subscription, self.subscription.plan_version, starts_at, None, reason="test")
         self.api.force_authenticate(self.admin)
         self.assertEqual(self.api.get("/api/administration/metrics/").data["active_subscriptions"], 1)
         self.subscription.coverage_history.update(ends_at=now, cycle_ends_at=now)
@@ -129,6 +131,8 @@ class AdministrationReadTests(TestCase):
         self.assertEqual(response.data["payments"]["approved_count"], 1)
 
     def test_query_validation_and_page_size_cap(self):
+        from datetime import timedelta
         self.api.force_authenticate(self.admin)
-        self.assertEqual(self.api.get("/api/administration/metrics/?date_from=2026-10-31").status_code, 400)
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        self.assertEqual(self.api.get(f"/api/administration/metrics/?date_from={tomorrow.isoformat()}").status_code, 400)
         self.assertEqual(self.api.get("/api/administration/payments/?page_size=abc").status_code, 400)
